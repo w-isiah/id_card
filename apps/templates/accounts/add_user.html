@@ -1,0 +1,203 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Add Customer{% endblock %}
+
+<!-- Element injected into the BODY element -->
+{% block body_class %}sidebar-mini layout-footer-fixed{% endblock body_class %}
+
+<!-- Specific Page CSS -->
+{% block stylesheets %}
+<!-- Google Font: Source Sans Pro -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+<!-- Font Awesome -->
+<link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
+<!-- Theme style -->
+<link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
+<!-- Custom CSS for Flash Messages -->
+<style>
+  .alert-container {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    width: 80%;
+    display: none;
+  }
+
+  .alert {
+    opacity: 1;
+    transition: opacity 1s ease-out;
+    margin-bottom: 10px;
+  }
+
+  .alert.alert-dismissible {
+    padding-right: 30px;
+  }
+</style>
+{% endblock stylesheets %}
+
+{% block content %}
+<div class="content-wrapper">
+  <!-- Content Header (Page header) -->
+  <section class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6">
+          <h1>Add Customer</h1>
+        </div>
+        <div class="col-sm-6">
+          <ol class="breadcrumb float-sm-right">
+            <li class="breadcrumb-item"><a href="/index">Home</a></li>
+            <li class="breadcrumb-item"><a href="/manage_users">users</a></li>
+            <li class="breadcrumb-item active">Add Customer</li>
+          </ol>
+        </div>
+      </div>
+    </div><!-- /.container-fluid -->
+  </section>
+
+  <!-- Flash Messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="alert-container" id="flashMessageContainer">
+      {% for category, message in messages %}
+      <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+        <strong>{{ message }}</strong>
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- Main content -->
+  <section class="content">
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-12">
+          <!-- Add Customer Form -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <h3 class="card-title">Add Customer</h3>
+            </div><!-- /.card-header -->
+
+            <div class="card-body">
+              <div class="widget-content nopadding">
+                <form action="{{ url_for('authentication_blueprint.add_user') }}" method="POST" enctype="multipart/form-data">
+                  <!-- CSRF Token for security -->
+                  <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+
+                  <div class="card-body">
+                    <!-- User Name Input -->
+                    <div class="form-group">
+                      <label for="username">Username</label>
+                      <input type="text" class="form-control" id="username" placeholder="Enter username" name="username" required pattern="^[a-zA-Z0-9_]{3,20}$" title="Username must be alphanumeric and 3 to 20 characters long">
+                      <small class="form-text text-muted">Username should be 3-20 characters long and contain only letters, numbers, and underscores.</small>
+                    </div>
+
+                    <!-- First Name -->
+                    <div class="form-group">
+                      <label for="first_name">First Name</label>
+                      <input type="text" class="form-control" id="first_name" placeholder="Enter first name" name="first_name" required>
+                    </div>
+
+                    <!-- Last Name -->
+                    <div class="form-group">
+                      <label for="last_name">Last Name</label>
+                      <input type="text" class="form-control" id="last_name" placeholder="Enter last name" name="last_name" required>
+                    </div>
+
+                    <!-- Other Name -->
+                    <div class="form-group">
+                      <label for="other_name">Other Name</label>
+                      <input type="text" class="form-control" id="other_name" placeholder="Enter other name" name="other_name">
+                      <small class="form-text text-muted">Optional.</small>
+                    </div>
+
+                    <!-- Password Input -->
+                    <div class="form-group">
+                      <label for="password">Password</label>
+                      <input type="password" class="form-control" id="password" placeholder="Enter password" name="password" required minlength="8" title="Password must be at least 8 characters long">
+                      <small class="form-text text-muted">Password must be at least 8 characters long.</small>
+                    </div>
+
+                    <!-- Confirm Password Input -->
+                    <div class="form-group">
+                      <label for="confirm_password">Confirm Password</label>
+                      <input type="password" class="form-control" id="confirm_password" placeholder="Confirm password" name="confirm_password" required>
+                      <small class="form-text text-muted">Please confirm your password.</small>
+                    </div>
+
+                    <!-- Show Password Toggle -->
+                    <div class="form-group">
+                      <input type="checkbox" id="show_password"> Show Password
+                    </div>
+
+                    <!-- Role Dropdown -->
+                    <div class="form-group">
+                      <label for="role">Role</label>
+                      <select class="form-control select2" name="role" id="role" style="width: 100%;" required>
+                        <option value="" selected disabled="selected">Select a Role</option>
+                        <option value="user">User</option>
+                      </select>
+                    </div>
+
+                    <!-- Profile Image Upload -->
+                    <div class="form-group">
+                      <label for="profile_image">Profile Image</label>
+                      <input type="file" class="form-control-file" id="profile_image" name="profile_image" accept="image/*">
+                      <small class="form-text text-muted">Upload a profile image (optional). Accepted formats: PNG, JPG, JPEG, GIF.</small>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn btn-primary btn-sm">Submit</button>
+                  </div>
+                </form>
+              </div>
+            </div><!-- /.card-body -->
+          </div><!-- /.card -->
+        </div>
+      </div>
+    </div>
+  </section>
+  <!-- /.content -->
+</div>
+{% endblock content %}
+
+<!-- Specific Page JS -->
+{% block javascripts %}
+<!-- jQuery -->
+<script src="/static/assets/plugins/jquery/jquery.min.js"></script>
+<!-- Bootstrap 4 -->
+<script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<!-- AdminLTE App -->
+<script src="/static/assets/js/adminlte.min.js"></script>
+<!-- AdminLTE for demo purposes -->
+<script src="/static/assets/js/demo.js"></script>
+
+<!-- Custom JS to handle Flash Message Fade-in/Fade-out -->
+<script>
+  $(document).ready(function() {
+    // Flash message fade-in and fade-out effect
+    if ($('#flashMessageContainer').length) {
+      $('#flashMessageContainer').fadeIn(500).delay(3000).fadeOut(1000);
+    }
+
+    // Show Password toggle functionality
+    document.getElementById('show_password').addEventListener('change', function() {
+      var passwordField = document.getElementById('password');
+      var confirmPasswordField = document.getElementById('confirm_password');
+      if (this.checked) {
+        passwordField.type = 'text';  // Show password
+        confirmPasswordField.type = 'text';  // Show confirm password
+      } else {
+        passwordField.type = 'password';  // Hide password
+        confirmPasswordField.type = 'password';  // Hide confirm password
+      }
+    });
+  });
+</script>
+{% endblock javascripts %}
