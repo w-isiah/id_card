@@ -132,41 +132,46 @@ def add_product():
     return render_template('products/add_product.html', random_num=random_num, categories=categories, segment='add_product')
 
 
-# Route to edit an existing product
-@blueprint.route('/edit_product/<int:product_id>', methods=['GET', 'POST'])
-def edit_product(product_id):
+# Route to edit an existing pupil
+@blueprint.route('/edit_pupil/<int:pupil_id>', methods=['GET', 'POST'])
+def edit_pupil(pupil_id):
     # Connect to the database
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
-    # Fetch the product data from the database
-    cursor.execute('SELECT * FROM product_list WHERE ProductID = %s', (product_id,))
-    product = cursor.fetchone()
+    # Fetch the pupil data from the database
+    cursor.execute('SELECT * FROM pupils WHERE pupil_id = %s', (pupil_id,))
+    pupil = cursor.fetchone()
 
-    if not product:
-        flash("Product not found!")
-        return redirect(url_for('products_blueprint.products'))  # Redirect to a products list page or home
-
-    # Fetch categories from the database for the dropdown
-    cursor.execute('SELECT * FROM category_list')
-    categories = cursor.fetchall()
+    if not pupil:
+        flash("Pupil not found!")
+        return redirect(url_for('pupils_blueprint.pupils'))  # Redirect to pupils list page or home
 
     if request.method == 'POST':
         # Get the form data
-        category_id = request.form.get('category_id')
-        sku = request.form.get('serial_no')
-        price = request.form.get('price')
-        name = request.form.get('name')
-        description = request.form.get('description')
-        reorder_level = request.form.get('reorder_level')
+        first_name = request.form.get('first_name')
+        other_name = request.form.get('other_name')
+        last_name = request.form.get('last_name')
+        date_of_birth = request.form.get('date_of_birth')
+        gender = request.form.get('gender')
+        class_name = request.form.get('class')  # Renamed 'class' to 'class_name' to avoid conflict with Python keyword
+        study_year = request.form.get('study_year')
+        contact_number = request.form.get('contact_number')
+        address = request.form.get('address')
+        emergency_contact = request.form.get('emergency_contact')
+        medical_info = request.form.get('medical_info')
+        special_needs = request.form.get('special_needs')
+        attendance_record = request.form.get('attendance_record')
+        academic_performance = request.form.get('academic_performance')
+        notes = request.form.get('notes')
 
         # Handle image upload
-        image_filename = product['image']  # Default to existing image if no new one is uploaded
+        image_filename = pupil['image']  # Default to existing image if no new one is uploaded
         image_file = request.files.get('image')
 
         if image_file and allowed_file(image_file.filename):
             filename = secure_filename(image_file.filename)
-            image_filename = f"{product_id}_{filename}"  # Rename with product ID to avoid conflicts
+            image_filename = f"{pupil_id}_{filename}"  # Rename with pupil ID to avoid conflicts
             
             # Ensure the directory exists before saving the file
             image_folder = os.path.join(current_app.config['UPLOAD_FOLDER'])
@@ -176,40 +181,31 @@ def edit_product(product_id):
             image_path = os.path.join(image_folder, image_filename)
             image_file.save(image_path)  # Save new image
 
-        # Calculate the price change if the price has been updated
-        old_price = product['price']
-        price_change = None
-
-        if price != old_price:
-            price_change = float(price) - float(old_price)  # Calculate the price change
-
-        # Update the product data in the database
+        # Update the pupil data in the database
         cursor.execute(''' 
-            UPDATE product_list
-            SET category_id = %s, sku = %s, price = %s, name = %s, description = %s,
-                 reorder_level = %s, image = %s, updated_at = CURRENT_TIMESTAMP
-            WHERE ProductID = %s
-        ''', (category_id, sku, price, name, description, reorder_level, image_filename, product_id))
-
-        # If there's a price change, insert it into the inventory_logs table
-        if price_change is not None:
-            cursor.execute('''
-                INSERT INTO inventory_logs (product_id, quantity_change, log_date, reason, price_change, old_price)
-                VALUES (%s, 0, CURRENT_TIMESTAMP, %s, %s, %s)
-            ''', (product_id, 'Price Update', price_change, old_price))
+            UPDATE pupils
+            SET first_name = %s, other_name = %s, last_name = %s, date_of_birth = %s, gender = %s,
+                class = %s, study_year = %s, contact_number = %s, address = %s, emergency_contact = %s,
+                medical_info = %s, special_needs = %s, attendance_record = %s, academic_performance = %s,
+                notes = %s, image = %s, updated_at = CURRENT_TIMESTAMP
+            WHERE pupil_id = %s
+        ''', (first_name, other_name, last_name, date_of_birth, gender, class_name, study_year, contact_number,
+              address, emergency_contact, medical_info, special_needs, attendance_record, academic_performance,
+              notes, image_filename, pupil_id))
 
         # Commit the transaction
         connection.commit()
 
-        flash("Product updated successfully!")
-        return redirect(url_for('products_blueprint.products'))
-
- 
+        flash("Pupil updated successfully!")
+        return redirect(url_for('pupils_blueprint.pupils'))  # Redirect to pupil list or home
 
     cursor.close()
     connection.close()
 
-    return render_template('products/edit_product.html', product=product, categories=categories)
+    return render_template('pupils/edit_pupil.html', pupil=pupil)
+
+
+
 
 
 
