@@ -107,7 +107,7 @@
 
             <div class="card-body">
               <div class="widget-content nopadding">
-                <form action="{{ url_for('classes_blueprint.add_class') }}" method="POST" class="form-horizontal">
+                <form action="{{ url_for('classes_blueprint.add_classes') }}" method="POST" class="form-horizontal">
                   <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
 
                   <!-- Class Name -->

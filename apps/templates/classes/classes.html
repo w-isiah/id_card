@@ -85,13 +85,13 @@
     <div class="container-fluid">
       <div class="row mb-2">
         <div class="col-sm-6">
-          <h1>class List</h1>
+          <h1>Class List</h1>
         </div>
         <div class="col-sm-6">
           <ol class="breadcrumb float-sm-right">
             <li class="breadcrumb-item"><a href="/index">Home</a></li>
-            <li class="breadcrumb-item"><a href="/class">class</a></li>
-            <li class="breadcrumb-item active">class List</li>
+            <li class="breadcrumb-item"><a href="/class">Classes</a></li>
+            <li class="breadcrumb-item active">Class List</li>
           </ol>
         </div>
       </div>
@@ -105,7 +105,7 @@
         <div class="col-12">
           <div class="card">
             <div class="card-header">
-              <h3 class="card-title">class List</h3>
+              <h3 class="card-title">Class List</h3>
             </div>
 
             <!-- Card Body -->
@@ -116,9 +116,9 @@
                     <tr>
                       <th>Name</th>
                       <th>Class Teacher</th>
-                      <th>Gender</th>
-                      <th>year</th>
-                       <th>Room Number</th>
+                  
+                      <th>Year</th>
+                      <th>Room Number</th>
                       <th>Edit</th>
                       <th>Delete</th>
                     </tr>
@@ -126,15 +126,12 @@
                   <tbody>
                     {% for class in classes %}
                     <tr class="gradeX">
-                      <!-- Display First Name and Last Name -->
-                      <td>{{ class.class_name }}  </td>
-                      <td>{{ class.teacher_in_charge}} </td>
-                      <td>{{ class.year}} </td>
-                       <td>{{ class.room_number}} </td>
-
-            
-
-
+                      <!-- Class Information -->
+                      <td>{{ class.class_name }}</td>
+                      <td>{{ class.teacher_in_charge }}</td>
+                  
+                      <td>{{ class.year }}</td>
+                      <td>{{ class.room_number }}</td>
 
                       <!-- Edit Button -->
                       <td>
@@ -150,8 +147,8 @@
                         {% if session['role'] == 'admin' %}
                         <a href="/delete_classes/{{ class.class_id }}" 
                            class="btn btn-sm btn-danger" 
-                           style="--bs-btn-padding-y: .25rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .75rem;"
-                           onclick="return confirm('Are you sure you want to delete {{ pupil.first_name }}?')">
+                           style="--bs-btn-padding-y: .25rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .75rem;" 
+                           onclick="return confirm('Are you sure you want to delete {{ class.class_name }}?')">
                           Delete
                         </a>
                         {% else %}
@@ -202,7 +199,7 @@
           }
         }
       });
-      
+
       const $flash = $('#flashMessageContainer');
       if ($flash.length) {
         $flash.fadeIn(400).delay(3500).fadeOut(600);

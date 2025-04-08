@@ -6,7 +6,7 @@ Copyright (c) 2019 - present AppSeed.us
 from flask import Blueprint
 
 blueprint = Blueprint(
-    'class_blueprint',
+    'classes_blueprint',
     __name__,
     url_prefix=''
 )

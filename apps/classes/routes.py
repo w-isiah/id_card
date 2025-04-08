@@ -30,34 +30,43 @@ def classes():
     return render_template('classes/classes.html', classes=classes,segment='classes')
 
 
+
+
 @blueprint.route('/add_classes', methods=['GET', 'POST'])
 def add_classes():
-    """Handles the adding of a new classes."""
+    """Handles the adding of a new class."""
     if request.method == 'POST':
-        name = request.form.get('name')
+        class_name = request.form.get('class_name')
+        year = request.form.get('year')
+        teacher_in_charge = request.form.get('teacher_in_charge')
+        room_number = request.form.get('room_number')
 
         # Validate input
-        if not name:
-            flash("Please fill out the form!", "warning")
-        elif not re.match(r'^[A-Za-z0-9_ ]+$', name):
-
-            flash('classes name must contain only letters and numbers!', "danger")
+        if not class_name or not year:
+            flash("Please fill out all required fields!", "warning")
+        #elif not re.match(r'^[A-Za-z0-9_ ]+$', class_name):
+        #    flash('Class name must contain only letters, numbers, and spaces!', "danger")
+        elif not re.match(r'^[0-9]+$', year):  # Ensuring year is numeric (you can modify the pattern as needed)
+            flash('Year must be a valid number!', "danger")
         else:
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
 
             try:
-                # Check if the classes already exists
-                cursor.execute('SELECT * FROM classes WHERE name = %s', (name,))
-                existing_classes = cursor.fetchone()
+                # Check if the class already exists
+                cursor.execute('SELECT * FROM classes WHERE class_name = %s AND year = %s', (class_name, year))
+                existing_class = cursor.fetchone()
 
-                if existing_classes:
-                    flash("classes already exists!", "warning")
+                if existing_class:
+                    flash("Class already exists for the given year!", "warning")
                 else:
-                    # Insert the new classes into the database
-                    cursor.execute('INSERT INTO classes (name) VALUES (%s)', (name,))
+                    # Insert the new class into the database
+                    cursor.execute('''
+                        INSERT INTO classes (class_name, year, teacher_in_charge, room_number)
+                        VALUES (%s, %s, %s, %s)
+                    ''', (class_name, year, teacher_in_charge, room_number))
                     connection.commit()
-                    flash("classes successfully added!", "success")
+                    flash("Class successfully added!", "success")
 
             except mysql.connector.Error as err:
                 flash(f"Error: {err}", "danger")
@@ -65,28 +74,62 @@ def add_classes():
                 cursor.close()
                 connection.close()
 
-    return render_template('classes/add_classes.html',segment='add_classes')
+    return render_template('classes/add_classes.html', segment='add_classes')
 
 
-@blueprint.route('/edit_classes/<int:classes_id>', methods=['GET', 'POST'])
-def edit_classes(classes_id):
-    """Handles editing an existing classes."""
+
+
+
+
+
+@blueprint.route('/edit_classes/<int:class_id>', methods=['GET', 'POST'])
+def edit_classes(class_id):
+    """Handles editing an existing class."""
     if request.method == 'POST':
-        name = request.form['name']
+        # Retrieve the form data
+        class_name = request.form['class_name']
+        year = request.form['year']
+        teacher_in_charge = request.form['teacher_in_charge']
+        room_number = request.form['room_number']
+
+        # Validate the input
+        if not class_name or not year:
+            flash("Please fill out all required fields!", "warning")
+            return redirect(url_for('classes_blueprint.edit_classes', class_id=class_id))
+        
+        #if not re.match(r'^[A-Za-z0-9_ ]+$', class_name):
+        #    flash("Class name must contain only letters, numbers, and spaces!", "danger")
+        #    return redirect(url_for('classes_blueprint.edit_classes', class_id=class_id))
+
+        if not re.match(r'^[0-9]+$', year):
+            flash("Year must be a valid number!", "danger")
+            return redirect(url_for('classes_blueprint.edit_classes', class_id=class_id))
 
         try:
             connection = get_db_connection()
             cursor = connection.cursor()
 
-            # Update classes in the database
+            # Check if the class name already exists in the database for the same year
+            cursor.execute("""
+                SELECT * FROM classes 
+                WHERE class_name = %s AND year = %s AND class_id != %s
+            """, (class_name, year, class_id))
+            existing_class = cursor.fetchone()
+
+            if existing_class:
+                flash("A class with the same name already exists for this year!", "warning")
+                return redirect(url_for('classes_blueprint.edit_classes', class_id=class_id))
+
+            # Update the class details in the database
             cursor.execute("""
                 UPDATE classes
-                SET name = %s
-                WHERE classesID = %s
-            """, (name, classes_id))
+                SET class_name = %s, year = %s, teacher_in_charge = %s, room_number = %s
+                WHERE class_id = %s
+            """, (class_name, year, teacher_in_charge, room_number, class_id))
             connection.commit()
 
-            flash("classes updated successfully!", "success")
+            flash("Class updated successfully!", "success")
+
         except Exception as e:
             flash(f"Error: {str(e)}", "danger")
         finally:
@@ -96,32 +139,37 @@ def edit_classes(classes_id):
         return redirect(url_for('classes_blueprint.classes'))
 
     elif request.method == 'GET':
-        # Retrieve the classes to pre-fill the form
+        # Retrieve the class to pre-fill the form
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM classes WHERE classesID = %s", (classes_id,))
-        classes = cursor.fetchone()
+        cursor.execute("SELECT * FROM classes WHERE class_id = %s", (class_id,))
+        class_data = cursor.fetchone()
         cursor.close()
         connection.close()
 
-        if classes:
-            return render_template('classes/edit_classes.html', classes=classes,segment='classes')
+        if class_data:
+            return render_template('classes/edit_classes.html', classes=class_data, segment='classes')
         else:
-            flash("classes not found.", "danger")
+            flash("Class not found.", "danger")
             return redirect(url_for('classes_blueprint.classes'))
 
 
-@blueprint.route('/delete_classes/<int:classes_id>')
-def delete_classes(classes_id):
+
+
+
+
+
+@blueprint.route('/delete_classes/<int:class_id>')
+def delete_classes(class_id):
     """Deletes a classes from the database."""
     connection = get_db_connection()
     cursor = connection.cursor()
 
     try:
         # Delete the classes with the specified ID
-        cursor.execute('DELETE FROM classes WHERE classesID = %s', (classes_id,))
+        cursor.execute('DELETE FROM classes WHERE class_id = %s', (class_id,))
         connection.commit()
-        flash("classes deleted successfully.", "success")
+        flash("class deleted successfully.", "success")
     except Exception as e:
         flash(f"Error: {str(e)}", "danger")
     finally:
