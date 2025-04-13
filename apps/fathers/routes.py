@@ -102,70 +102,83 @@ def add_father():
 
 
 
-# Route to edit an existing father
+
+
+
+
+
+
+
+
 @blueprint.route('/edit_father/<int:father_id>', methods=['GET', 'POST'])
 def edit_father(father_id):
-    # Connect to the database
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
-    # Fetch the father data from the database
+    # Fetch the father record
     cursor.execute('SELECT * FROM fathers WHERE father_id = %s', (father_id,))
     father = cursor.fetchone()
 
     if not father:
-        flash("Father not found!")
-        return redirect(url_for('fathers_blueprint.fathers'))  # Redirect to fathers list page or home
+        flash("Father not found!", "danger")
+        return redirect(url_for('fathers_blueprint.fathers'))
+
+    # Fetch pupils for dropdown
+    cursor.execute('SELECT * FROM pupils ORDER BY first_name')
+    pupils = cursor.fetchall()
 
     if request.method == 'POST':
-        # Get the form data
+        # Get form fields
         pupil_id = request.form.get('pupil_id')
         first_name = request.form.get('first_name')
         other_name = request.form.get('other_name')
         last_name = request.form.get('last_name')
 
-        # Handle image uploads
-        image_filename = father['image']  # Default to existing image if no new one is uploaded
-        sign_image_filename = father['sign_image']  # Default to existing sign_image if no new one is uploaded
-        
-        image_file = request.files.get('image')
-        sign_image_file = request.files.get('sign_image')
+        # Retain existing images by default
+        image_filename = father['image']
+        sign_image_filename = father['sign_image']
 
-        # Handle the image file
+        # Define upload folder early
+        upload_folder = os.path.join(current_app.config['UPLOAD_FOLDER'])
+        os.makedirs(upload_folder, exist_ok=True)
+
+        # Process new image upload if present
+        image_file = request.files.get('image')
         if image_file and allowed_file(image_file.filename):
             filename = secure_filename(image_file.filename)
-            image_filename = f"{father_id}_{filename}"  # Rename with father ID to avoid conflicts
-            image_folder = os.path.join(current_app.config['UPLOAD_FOLDER'])
-            if not os.path.exists(image_folder):
-                os.makedirs(image_folder)
-            image_path = os.path.join(image_folder, image_filename)
+            image_filename = f"{father_id}_img_{filename}"
+            image_path = os.path.join(upload_folder, image_filename)
             image_file.save(image_path)
 
-        # Handle the sign image file
+        # Process new sign image upload if present
+        sign_image_file = request.files.get('sign_image')
         if sign_image_file and allowed_file(sign_image_file.filename):
             sign_filename = secure_filename(sign_image_file.filename)
-            sign_image_filename = f"{father_id}_{sign_filename}"  # Rename with father ID to avoid conflicts
-            sign_image_path = os.path.join(image_folder, sign_image_filename)
+            sign_image_filename = f"{father_id}_sign_{sign_filename}"
+            sign_image_path = os.path.join(upload_folder, sign_image_filename)
             sign_image_file.save(sign_image_path)
 
-        # Update the father data in the database
+        # Update the father's data in DB
         cursor.execute('''
             UPDATE fathers
-            SET pupil_id = %s, first_name = %s, other_name = %s, last_name = %s, 
+            SET pupil_id = %s, first_name = %s, other_name = %s, last_name = %s,
                 image = %s, sign_image = %s
             WHERE father_id = %s
-        ''', (pupil_id, first_name, other_name, last_name, image_filename, sign_image_filename, father_id))
+        ''', (pupil_id, first_name, other_name, last_name,
+              image_filename, sign_image_filename, father_id))
 
-        # Commit the transaction
         connection.commit()
-
         flash("Father updated successfully!", "success")
-        return redirect(url_for('fathers_blueprint.fathers'))  # Redirect to father list or home
+        return redirect(url_for('fathers_blueprint.fathers'))
 
     cursor.close()
     connection.close()
 
-    return render_template('fathers/edit_father.html', father=father)
+    return render_template('fathers/edit_father.html', father=father, pupils=pupils)
+
+
+
+
 
 
 

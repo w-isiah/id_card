@@ -102,70 +102,75 @@ def add_mother():
 
 
 
-# Route to edit an existing mother
+
 @blueprint.route('/edit_mother/<int:mother_id>', methods=['GET', 'POST'])
 def edit_mother(mother_id):
-    # Connect to the database
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
-    # Fetch the mother data from the database
-    cursor.execute('SELECT * FROM mothers WHERE mother_id = %s', (mother_id,))
-    mother = cursor.fetchone()
+    try:
+        # Fetch the mother
+        cursor.execute('SELECT * FROM mothers WHERE mother_id = %s', (mother_id,))
+        mother = cursor.fetchone()
 
-    if not mother:
-        flash("mother not found!")
-        return redirect(url_for('mothers_blueprint.mothers'))  # Redirect to mothers list page or home
+        if not mother:
+            flash("Mother not found!", "danger")
+            return redirect(url_for('mothers_blueprint.mothers'))
 
-    if request.method == 'POST':
-        # Get the form data
-        pupil_id = request.form.get('pupil_id')
-        first_name = request.form.get('first_name')
-        other_name = request.form.get('other_name')
-        last_name = request.form.get('last_name')
+        # Fetch all pupils
+        cursor.execute('SELECT * FROM pupils ORDER BY first_name')
+        pupils = cursor.fetchall()
 
-        # Handle image uploads
-        image_filename = mother['image']  # Default to existing image if no new one is uploaded
-        sign_image_filename = mother['sign_image']  # Default to existing sign_image if no new one is uploaded
-        
-        image_file = request.files.get('image')
-        sign_image_file = request.files.get('sign_image')
+        if request.method == 'POST':
+            # Form data
+            pupil_id = request.form.get('pupil_id')
+            first_name = request.form.get('first_name').strip()
+            other_name = request.form.get('other_name').strip()
+            last_name = request.form.get('last_name').strip()
 
-        # Handle the image file
-        if image_file and allowed_file(image_file.filename):
-            filename = secure_filename(image_file.filename)
-            image_filename = f"{mother_id}_{filename}"  # Rename with mother ID to avoid conflicts
-            image_folder = os.path.join(current_app.config['UPLOAD_FOLDER'])
-            if not os.path.exists(image_folder):
-                os.makedirs(image_folder)
-            image_path = os.path.join(image_folder, image_filename)
-            image_file.save(image_path)
+            # Upload folder
+            upload_folder = os.path.join(current_app.config['UPLOAD_FOLDER'])
+            os.makedirs(upload_folder, exist_ok=True)
 
-        # Handle the sign image file
-        if sign_image_file and allowed_file(sign_image_file.filename):
-            sign_filename = secure_filename(sign_image_file.filename)
-            sign_image_filename = f"{mother_id}_{sign_filename}"  # Rename with mother ID to avoid conflicts
-            sign_image_path = os.path.join(image_folder, sign_image_filename)
-            sign_image_file.save(sign_image_path)
+            # Image fields default to existing values
+            image_filename = mother['image']
+            sign_image_filename = mother['sign_image']
 
-        # Update the mother data in the database
-        cursor.execute('''
-            UPDATE mothers
-            SET pupil_id = %s, first_name = %s, other_name = %s, last_name = %s, 
-                image = %s, sign_image = %s
-            WHERE mother_id = %s
-        ''', (pupil_id, first_name, other_name, last_name, image_filename, sign_image_filename, mother_id))
+            # Handle image upload
+            image_file = request.files.get('image')
+            if image_file and allowed_file(image_file.filename):
+                image_name = secure_filename(image_file.filename)
+                image_filename = f"{mother_id}_{image_name}"
+                image_path = os.path.join(upload_folder, image_filename)
+                image_file.save(image_path)
 
-        # Commit the transaction
-        connection.commit()
+            # Handle sign image upload
+            sign_image_file = request.files.get('sign_image')
+            if sign_image_file and allowed_file(sign_image_file.filename):
+                sign_name = secure_filename(sign_image_file.filename)
+                sign_image_filename = f"{mother_id}_{sign_name}"
+                sign_image_path = os.path.join(upload_folder, sign_image_filename)
+                sign_image_file.save(sign_image_path)
 
-        flash("mother updated successfully!", "success")
-        return redirect(url_for('mothers_blueprint.mothers'))  # Redirect to mother list or home
+            # Update DB
+            cursor.execute('''
+                UPDATE mothers
+                SET pupil_id = %s, first_name = %s, other_name = %s, last_name = %s,
+                    image = %s, sign_image = %s
+                WHERE mother_id = %s
+            ''', (pupil_id, first_name, other_name, last_name,
+                  image_filename, sign_image_filename, mother_id))
 
-    cursor.close()
-    connection.close()
+            connection.commit()
+            flash("Mother updated successfully!", "success")
+            return redirect(url_for('mothers_blueprint.mothers'))
 
-    return render_template('mothers/edit_mother.html', mother=mother)
+        return render_template('mothers/edit_mother.html', mother=mother, pupils=pupils)
+
+    finally:
+        cursor.close()
+        connection.close()
+
 
 
 

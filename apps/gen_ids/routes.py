@@ -75,109 +75,73 @@ def gen_ids():
 
 
 
-@blueprint.route('/add_gen_id', methods=['GET', 'POST'])
-def add_gen_id():
-    if request.method == 'POST':
-        name = request.form.get('gen_id_name')
-        contact = request.form.get('contact')
-        address = request.form.get('address')
-        
-        # Ensure the form data is filled
-        if not name or not contact or not address:
-            flash("Please fill out the form!")
-            return render_template('gen_id/add_gen_id.html',segment='add_gen_id')
-
-        # Check if gen_id already exists
-        connection = get_db_connection()
-        cursor = connection.cursor(dictionary=True)
-        cursor.execute('SELECT * FROM gen_id WHERE name = %s', (name,))
-        gen_id = cursor.fetchone()
-
-        if gen_id:
-            flash("gen_id already exists!")
-        else:
-            # Insert the new gen_id
-            cursor.execute('INSERT INTO gen_id (name, contact, address) VALUES (%s, %s, %s)', 
-                           (name, contact, address))
-            connection.commit()
-            flash("You have successfully registered a gen_id!")
-        
-        cursor.close()
-        connection.close()
-        return render_template('gen_ids/add_gen_id.html',segment='add_gen_id')
-    
-    # Handle GET request (no action needed for this part)
-    return render_template('gen_ids/add_gen_id.html',segment='add_gen_id')
-
-
-@blueprint.route('/edit_gen_id/<int:gen_id_id>', methods=['POST', 'GET'])
-def edit_gen_id(gen_id_id):
-    if request.method == 'POST':
-        # Get data from the form
-        name = request.form['name']
-        contact = request.form['contact']
-        address = request.form['address']
-        loyaltypoints = request.form.get('loyaltypoints')  # Optional field, may be NULL
-
-        try:
-            # Create connection and execute the update query
-            connection = get_db_connection()
-            cursor = connection.cursor()
-            cursor.execute("""
-                UPDATE gen_id 
-                SET name=%s, contact=%s, address=%s, loyaltypoints=%s 
-                WHERE gen_idID=%s
-            """, (name, contact, address, loyaltypoints, gen_id_id))
-            connection.commit()
-            
-            # Flash success message
-            flash("gen_id Data Updated Successfully", "success")
-        except Exception as e:
-            # Flash error message if any exception occurs
-            flash(f"Error: {str(e)}", "danger")
-        finally:
-            # Close the cursor and connection
-            cursor.close()
-            connection.close()
-            return redirect(url_for('gen_ids_blueprint.gen_ids'))
-
-    elif request.method == 'GET':
-        # Retrieve gen_id data to pre-fill the form (if needed)
-        connection = get_db_connection()
-        cursor = connection.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM gen_id WHERE gen_idID = %s", (gen_id_id,))
-        gen_id = cursor.fetchone()
-        cursor.close()
-        connection.close()
-        
-        # If gen_id exists, render an edit form
-        if gen_id:
-            return render_template('gen_ids/edit_gen_id.html', gen_id=gen_id)
-        else:
-            flash("gen_id not found.", "danger")
-            return redirect(url_for('gen_ids_blueprint.gen_ids'))
 
 
 
 
 
-@blueprint.route('/delete_gen_id/<string:get_id>')
-def delete_gen_id(get_id):
+
+
+
+@blueprint.route('/generate_id/<int:pupil_id>')
+def generate_id(pupil_id):
     connection = get_db_connection()
-    cursor = connection.cursor()
+    cursor = connection.cursor(dictionary=True)
+
+    cursor.execute("""
+        SELECT 
+            p.first_name AS pupil_first_name,
+            p.other_name,
+            p.last_name AS pupil_last_name,
+            p.reg_no,
+            p.class,
+            f.first_name AS father_first_name,
+            f.last_name AS father_last_name,
+            m.first_name AS mother_first_name,
+            m.last_name AS mother_last_name,
+            p.image AS pupil_image,
+            f.image AS father_image,
+            m.image AS mother_image
+        FROM pupils p
+        LEFT JOIN fathers f ON p.pupil_id = f.pupil_id
+        LEFT JOIN mothers m ON p.pupil_id = m.pupil_id
+        WHERE p.pupil_id = %s
+    """, (pupil_id,))
     
-    # Using a parameterized query to prevent SQL injection
-    cursor.execute('DELETE FROM gen_id WHERE gen_idID = %s', (get_id,))
-    
-    # Commit the transaction to apply the changes
-    connection.commit()
-    
-    # Close the cursor and connection
+    row = cursor.fetchone()
     cursor.close()
     connection.close()
 
-    # Redirect to the 'manage_gen_id' route
-    return redirect(url_for('gen_ids_blueprint.gen_ids'))
+    if not row:
+        flash("Pupil not found", "danger")
+        return redirect(url_for('blueprint.gen_ids'))
+
+    # Compose names
+    full_name = f"{row['pupil_first_name']} {row['other_name']} {row['pupil_last_name']}"
+    mother_name = f"{row['mother_first_name']} {row['mother_last_name']}"
+    father_name = f"{row['father_first_name']} {row['father_last_name']}"
+    reg_no = row['reg_no']
+    class_name = row['class']
+    issue_date = datetime.now().strftime("%Y-%m-%d")
+
+    # Generate ID Card
+    generate_id_card(
+        name=full_name,
+        id_number="N/A",  # Not used in template? Else pass it
+        class_name=class_name,
+        reg_number=reg_no,
+        mother_name=mother_name,
+        father_name=father_name,
+        issue_date=issue_date,
+        profile_pic_filename=row['pupil_image'],
+        extra_image_filename=row['mother_image'],
+        third_image_filename=row['father_image'],
+        output_filename=f"id_{pupil_id}.png"
+    )
+
+    flash("ID card generated successfully!", "success")
+    return redirect(url_for('blueprint.gen_ids'))
+
 
 
 

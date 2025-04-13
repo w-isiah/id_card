@@ -121,9 +121,14 @@
                       
                         <th>Gender</th>
                         <th>Class</th>
-                        <th>Father</th>
+                        <th>Father </th>
                         <th>Father Image</th>
                         <th>Father Signature</th>
+
+
+                        <th>Mother </th>
+                        <th>Mother Image</th>
+                        <th>Mother Signature</th>
                
                        
                         <th>Guardian</th>
@@ -140,8 +145,8 @@
                         <!-- Pupil -->
                         <td>{{ row.pupil_first_name }} {{ row.other_name }} {{ row.pupil_last_name }}</td>
                         <td>
-                          {% if row.image %}
-                          <img src="/static/uploads/{{ row.image }}" alt="Pupil Image" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
+                          {% if row.pupil_image %}
+                          <img src="/static/uploads/{{ row.pupil_image }}" alt="Pupil Image" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
                           {% else %}
                           <span>No Image</span>
                           {% endif %}
@@ -161,12 +166,34 @@
                           {% endif %}
                         </td>
                         <td>
-                          {% if row.father_sign_image %}
-                          <img src="/static/uploads/{{ row.father_sign_image }}" alt="Father Sign" style="width: 100px; height: auto;">
+                          {% if row.father_sign %}
+                          <img src="/static/uploads/{{ row.father_sign }}" alt="Father Sign" style="width: 100px; height: auto;">
                           {% else %}
                           <span>No Sign</span>
                           {% endif %}
                         </td>
+
+
+
+                        >
+                        <td>{{ row.mother_first_name }} {{ row.mother_other_name }} {{ row.mother_last_name }}</td>
+                        <td>
+                          {% if row.mother_image %}
+                          <img src="/static/uploads/{{ row.mother_image }}" alt="mother Image" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
+                          {% else %}
+                          <span>No Image</span>
+                          {% endif %}
+                        </td>
+                        <td>
+                          {% if row.mother_sign %}
+                          <img src="/static/uploads/{{ row.mother_sign }}" alt="mother Sign" style="width: 100px; height: auto;">
+                          {% else %}
+                          <span>No Sign</span>
+                          {% endif %}
+                        </td>
+
+
+                        
 
                        
                     

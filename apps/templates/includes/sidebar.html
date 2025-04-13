@@ -15,7 +15,7 @@
         <img src="/static/uploads/{{ session['profile_image']}}" class="img-circle elevation-2" alt="User Image">
       </div>
       <div class="info">
-        <a href="/logout" class="d-block">{{ session['first_name'] }} - Logout</a>
+        <a href="/logout" class="d-block"><i class="fas fa-sign-out-alt"></i> {{ session['first_name'] }} - Logout</a>
       </div>
     </div>
 
@@ -31,326 +31,248 @@
       </div>
     </div>
 
-   <!-- Sidebar Menu -->
-<nav class="mt-2">
-  <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+    <!-- Sidebar Menu -->
+    <nav class="mt-2">
+      <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
 
-    <!-- Dashboard -->
-    <li class="nav-item has-treeview {% if 'index' in segment %} menu-open {% endif %}">
-      <a href="/index" class="nav-link {% if 'index' in segment %} active {% endif %}">
-        <i class="nav-icon fas fa-tachometer-alt"></i>
-        <p>Dashboard <i class="right fas fa-angle-left"></i></p>
-      </a>
-      <ul class="nav nav-treeview">
-        <li class="nav-item">
+        <!-- Dashboard -->
+        <li class="nav-item has-treeview {% if 'index' in segment %} menu-open {% endif %}">
           <a href="/index" class="nav-link {% if 'index' in segment %} active {% endif %}">
-            <i class="far fa-circle nav-icon"></i>
-            <p>Home</p>
+            <i class="nav-icon fas fa-home"></i>
+            <p>Dashboard <i class="right fas fa-angle-left"></i></p>
           </a>
+          <ul class="nav nav-treeview">
+            <li class="nav-item">
+              <a href="/index" class="nav-link {% if 'index' in segment %} active {% endif %}">
+                <i class="fas fa-circle-notch nav-icon"></i>
+                <p>Home</p>
+              </a>
+            </li>
+          </ul>
         </li>
+
+        <!-- Pupils' Records -->
+        <li class="nav-item has-treeview {% if 'students' in segment %} menu-open {% endif %}">
+          <a href="#" class="nav-link {% if 'students' in segment %} active {% endif %}">
+            <i class="nav-icon fas fa-users"></i>
+            <p>
+              Pupils' Records
+              <i class="fas fa-angle-left right"></i>
+              <span class="badge badge-info right">6</span>
+            </p>
+          </a>
+          <ul class="nav nav-treeview">
+            <li class="nav-item">
+              <a href="/pupils" class="nav-link {% if 'view-students' in segment %} active {% endif %}">
+                <i class="fas fa-eye nav-icon"></i>
+                <p>View Pupils</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="/add_pupil" class="nav-link {% if 'add-students' in segment %} active {% endif %}">
+                <i class="fas fa-user-plus nav-icon"></i>
+                <p>Add Pupils</p>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- Classes -->
+        <li class="nav-item has-treeview {% if 'classes' in segment %} menu-open {% endif %}">
+          <a href="#" class="nav-link {% if 'classes' in segment %} active {% endif %}">
+            <i class="nav-icon fas fa-school"></i>
+            <p>Classes <i class="fas fa-angle-left right"></i></p>
+          </a>
+          <ul class="nav nav-treeview">
+            <li class="nav-item">
+              <a href="/classes" class="nav-link {% if 'view-classes' in segment %} active {% endif %}">
+                <i class="fas fa-eye nav-icon"></i>
+                <p>View Classes</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="/add_classes" class="nav-link {% if 'add-class' in segment %} active {% endif %}">
+                <i class="fas fa-plus nav-icon"></i>
+                <p>Add Class</p>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- Parents Records -->
+        <li class="nav-header">Parents Records</li>
+
+        <!-- Fathers -->
+        <li class="nav-item has-treeview {% if 'parents' in segment %} menu-open {% endif %}">
+          <a href="#" class="nav-link {% if 'parents' in segment %} active {% endif %}">
+            <i class="nav-icon fas fa-male"></i>
+            <p>Fathers <i class="fas fa-angle-left right"></i></p>
+          </a>
+          <ul class="nav nav-treeview">
+            <li class="nav-item">
+              <a href="/fathers" class="nav-link {% if 'view-parents' in segment %} active {% endif %}">
+                <i class="fas fa-eye nav-icon"></i>
+                <p>View Fathers</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="/add_father" class="nav-link {% if 'add-parent' in segment %} active {% endif %}">
+                <i class="fas fa-plus nav-icon"></i>
+                <p>Add Father</p>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- Mothers -->
+        <li class="nav-item has-treeview {% if 'parents' in segment %} menu-open {% endif %}">
+          <a href="#" class="nav-link {% if 'parents' in segment %} active {% endif %}">
+            <i class="nav-icon fas fa-female"></i>
+            <p>Mothers <i class="fas fa-angle-left right"></i></p>
+          </a>
+          <ul class="nav nav-treeview">
+            <li class="nav-item">
+              <a href="/mothers" class="nav-link {% if 'view-parents' in segment %} active {% endif %}">
+                <i class="fas fa-eye nav-icon"></i>
+                <p>View Mothers</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="/add_mother" class="nav-link {% if 'add-parent' in segment %} active {% endif %}">
+                <i class="fas fa-plus nav-icon"></i>
+                <p>Add Mother</p>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- Guardians -->
+        <li class="nav-item has-treeview {% if 'parents' in segment %} menu-open {% endif %}">
+          <a href="#" class="nav-link {% if 'parents' in segment %} active {% endif %}">
+            <i class="nav-icon fas fa-user-shield"></i>
+            <p>Guardians <i class="fas fa-angle-left right"></i></p>
+          </a>
+          <ul class="nav nav-treeview">
+            <li class="nav-item">
+              <a href="/guardians" class="nav-link {% if 'view-parents' in segment %} active {% endif %}">
+                <i class="fas fa-eye nav-icon"></i>
+                <p>View Guardians</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="/add_guardian" class="nav-link {% if 'add-parent' in segment %} active {% endif %}">
+                <i class="fas fa-plus nav-icon"></i>
+                <p>Add Guardian</p>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- Teachers -->
+        <li class="nav-item has-treeview {% if 'teachers' in segment %} menu-open {% endif %}">
+          <a href="#" class="nav-link {% if 'teachers' in segment %} active {% endif %}">
+            <i class="nav-icon fas fa-person-chalkboard"></i>
+            <p>Teacher's Data <i class="fas fa-angle-left right"></i></p>
+          </a>
+          <ul class="nav nav-treeview">
+            <li class="nav-item">
+              <a href="/teachers" class="nav-link {% if 'view-teachers' in segment %} active {% endif %}">
+                <i class="fas fa-eye nav-icon"></i>
+                <p>View Teachers</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="/add_teacher" class="nav-link {% if 'add-teacher' in segment %} active {% endif %}">
+                <i class="fas fa-plus nav-icon"></i>
+                <p>Add Teacher</p>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- Subjects -->
+        <li class="nav-item has-treeview {% if 'teachers' in segment %} menu-open {% endif %}">
+          <a href="#" class="nav-link {% if 'teachers' in segment %} active {% endif %}">
+            <i class="nav-icon fas fa-book-open"></i>
+            <p>Subjects <i class="fas fa-angle-left right"></i></p>
+          </a>
+          <ul class="nav nav-treeview">
+            <li class="nav-item">
+              <a href="/subjects" class="nav-link {% if 'view-teachers' in segment %} active {% endif %}">
+                <i class="fas fa-eye nav-icon"></i>
+                <p>View Subjects</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="/add_subject" class="nav-link {% if 'add-teacher' in segment %} active {% endif %}">
+                <i class="fas fa-plus nav-icon"></i>
+                <p>Add Subject</p>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- Academic Year -->
+        <li class="nav-item has-treeview {% if 'academic-year' in segment %} menu-open {% endif %}">
+          <a href="#" class="nav-link {% if 'academic-year' in segment %} active {% endif %}">
+            <i class="nav-icon fas fa-calendar-alt"></i>
+            <p>Academic Year <i class="fas fa-angle-left right"></i></p>
+          </a>
+          <ul class="nav nav-treeview">
+            <li class="nav-item">
+              <a href="#" class="nav-link {% if 'view-year' in segment %} active {% endif %}">
+                <i class="fas fa-eye nav-icon"></i>
+                <p>View Academic Year</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="#" class="nav-link {% if 'add-year' in segment %} active {% endif %}">
+                <i class="fas fa-plus nav-icon"></i>
+                <p>Add Academic Year</p>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- Identity Cards -->
+        <li class="nav-item has-treeview {% if 'identity-cards' in segment %} menu-open {% endif %}">
+          <a href="#" class="nav-link {% if 'identity-cards' in segment %} active {% endif %}">
+            <i class="nav-icon fas fa-id-badge"></i>
+            <p>Identity Cards <i class="fas fa-angle-left right"></i></p>
+          </a>
+          <ul class="nav nav-treeview">
+            <li class="nav-item">
+              <a href="/gen_ids" class="nav-link {% if 'view-cards' in segment %} active {% endif %}">
+                <i class="fas fa-eye nav-icon"></i>
+                <p>View Identity Cards</p>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- User Accounts -->
+        <li class="nav-item has-treeview {% if 'User Accounts' in segment %} menu-open {% endif %}">
+          <a href="/manage_users" class="nav-link {% if 'User Accounts' in segment %} active {% endif %}">
+            <i class="nav-icon fas fa-users-cog"></i>
+            <p>User Accounts <i class="fas fa-angle-left right"></i> <span class="badge badge-info right">6</span></p>
+          </a>
+          <ul class="nav nav-treeview">
+            <li class="nav-item">
+              <a href="/manage_users" class="nav-link {% if 'manage_users' in segment %} active {% endif %}">
+                <i class="fas fa-eye nav-icon"></i>
+                <p>View Users</p>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="/add_user" class="nav-link {% if 'add_user' in segment %} active {% endif %}">
+                <i class="fas fa-user-plus nav-icon"></i>
+                <p>Add User</p>
+              </a>
+            </li>
+          </ul>
+        </li>
+
       </ul>
-    </li>
-
-    <!-- Pupils' Records Section -->
-    <li class="nav-item has-treeview {% if 'students' in segment %} menu-open {% endif %}">
-      <a href="#" class="nav-link {% if 'students' in segment %} active {% endif %}">
-        <i class="nav-icon fas fa-user-graduate"></i>
-        <p>
-          Pupils' Records
-          <i class="fas fa-angle-left right"></i>
-          <span class="badge badge-info right">6</span>
-        </p>
-      </a>
-      <ul class="nav nav-treeview">
-        <li class="nav-item">
-          <a href="/pupils" class="nav-link {% if 'view-students' in segment %} active {% endif %}">
-            <i class="far fa-circle nav-icon"></i>
-            <p>View Pupils</p>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a href="/add_pupil" class="nav-link {% if 'add-students' in segment %} active {% endif %}">
-            <i class="far fa-circle nav-icon"></i>
-            <p>Add Pupils</p>
-          </a>
-        </li>
-      </ul>
-    </li>
-
-    <!-- Classes Section -->
-    <li class="nav-item has-treeview {% if 'classes' in segment %} menu-open {% endif %}">
-      <a href="#" class="nav-link {% if 'classes' in segment %} active {% endif %}">
-        <i class="nav-icon fas fa-chalkboard-teacher"></i>
-        <p>
-          Classes
-          <i class="fas fa-angle-left right"></i>
-        </p>
-      </a>
-      <ul class="nav nav-treeview">
-        <li class="nav-item">
-          <a href="/classes" class="nav-link {% if 'view-classes' in segment %} active {% endif %}">
-            <i class="far fa-circle nav-icon"></i>
-            <p>View Classes</p>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a href="/add_classes" class="nav-link {% if 'add-class' in segment %} active {% endif %}">
-            <i class="far fa-circle nav-icon"></i>
-            <p>Add Class</p>
-          </a>
-        </li>
-      </ul>
-    </li>
-
-    <!-- Parents Records Section -->
-    <li class="nav-header">Parents Records</li>
-
-    <!-- Fathers Section -->
-    <li class="nav-item has-treeview {% if 'parents' in segment %} menu-open {% endif %}">
-      <a href="#" class="nav-link {% if 'parents' in segment %} active {% endif %}">
-        <i class="nav-icon fas fa-user-friends"></i>
-        <p>
-          Fathers
-          <i class="fas fa-angle-left right"></i>
-        </p>
-      </a>
-      <ul class="nav nav-treeview">
-        <li class="nav-item">
-          <a href="/fathers" class="nav-link {% if 'view-parents' in segment %} active {% endif %}">
-            <i class="far fa-circle nav-icon"></i>
-            <p>View Fathers</p>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a href="/add_father" class="nav-link {% if 'add-parent' in segment %} active {% endif %}">
-            <i class="far fa-circle nav-icon"></i>
-            <p>Add Fathers</p>
-          </a>
-        </li>
-      </ul>
-    </li>
-
-    <!-- Mothers Section -->
-    <li class="nav-item has-treeview {% if 'parents' in segment %} menu-open {% endif %}">
-      <a href="#" class="nav-link {% if 'parents' in segment %} active {% endif %}">
-        <i class="nav-icon fas fa-user-friends"></i>
-        <p>
-          Mothers
-          <i class="fas fa-angle-left right"></i>
-        </p>
-      </a>
-      <ul class="nav nav-treeview">
-        <li class="nav-item">
-          <a href="/mothers" class="nav-link {% if 'view-parents' in segment %} active {% endif %}">
-            <i class="far fa-circle nav-icon"></i>
-            <p>View Mothers</p>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a href="/add_mother" class="nav-link {% if 'add-parent' in segment %} active {% endif %}">
-            <i class="far fa-circle nav-icon"></i>
-            <p>Add Mother</p>
-          </a>
-        </li>
-      </ul>
-    </li>
-
-    <!-- Guardians Section -->
-    <li class="nav-item has-treeview {% if 'parents' in segment %} menu-open {% endif %}">
-      <a href="#" class="nav-link {% if 'parents' in segment %} active {% endif %}">
-        <i class="nav-icon fas fa-user-friends"></i>
-        <p>
-          Guardians
-          <i class="fas fa-angle-left right"></i>
-        </p>
-      </a>
-      <ul class="nav nav-treeview">
-        <li class="nav-item">
-          <a href="/guardians" class="nav-link {% if 'view-parents' in segment %} active {% endif %}">
-            <i class="far fa-circle nav-icon"></i>
-            <p>View Guardians</p>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a href="/add_guardian" class="nav-link {% if 'add-parent' in segment %} active {% endif %}">
-            <i class="far fa-circle nav-icon"></i>
-            <p>Add a Guardian</p>
-          </a>
-        </li>
-      </ul>
-    </li>
-
-    <!-- Teachers' Data Section -->
-    <li class="nav-item has-treeview {% if 'teachers' in segment %} menu-open {% endif %}">
-      <a href="#" class="nav-link {% if 'teachers' in segment %} active {% endif %}">
-        <i class="nav-icon fas fa-chalkboard"></i>
-        <p>
-          Teacher's Data
-          <i class="fas fa-angle-left right"></i>
-        </p>
-      </a>
-      <ul class="nav nav-treeview">
-        <li class="nav-item">
-          <a href="/teachers" class="nav-link {% if 'view-teachers' in segment %} active {% endif %}">
-            <i class="far fa-circle nav-icon"></i>
-            <p>View Teachers</p>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a href="add_teacher" class="nav-link {% if 'add-teacher' in segment %} active {% endif %}">
-            <i class="far fa-circle nav-icon"></i>
-            <p>Add Teacher</p>
-          </a>
-        </li>
-      </ul>
-    </li>
-
-
-       <!-- Teachers' Data Section -->
-    <li class="nav-item has-treeview {% if 'teachers' in segment %} menu-open {% endif %}">
-      <a href="#" class="nav-link {% if 'teachers' in segment %} active {% endif %}">
-        <i class="nav-icon fas fa-chalkboard"></i>
-        <p>
-          Non Teaching Staff
-          <i class="fas fa-angle-left right"></i>
-        </p>
-      </a>
-      <ul class="nav nav-treeview">
-        <li class="nav-item">
-          <a href="#" class="nav-link {% if 'view-teachers' in segment %} active {% endif %}">
-            <i class="far fa-circle nav-icon"></i>
-            <p>View Teachers</p>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a href="#" class="nav-link {% if 'add-teacher' in segment %} active {% endif %}">
-            <i class="far fa-circle nav-icon"></i>
-            <p>Add Teacher</p>
-          </a>
-        </li>
-      </ul>
-    </li>
-
-
-
-    <!-- Subjects Section -->
-    <li class="nav-item has-treeview {% if 'teachers' in segment %} menu-open {% endif %}">
-      <a href="#" class="nav-link {% if 'teachers' in segment %} active {% endif %}">
-        <i class="nav-icon fas fa-book"></i>
-        <p>
-          Subjects
-          <i class="fas fa-angle-left right"></i>
-        </p>
-      </a>
-      <ul class="nav nav-treeview">
-        <li class="nav-item">
-          <a href="/subjects" class="nav-link {% if 'view-teachers' in segment %} active {% endif %}">
-            <i class="far fa-circle nav-icon"></i>
-            <p>View Subjects</p>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a href="/add_subject" class="nav-link {% if 'add-teacher' in segment %} active {% endif %}">
-            <i class="far fa-circle nav-icon"></i>
-            <p>Add a Subject</p>
-          </a>
-        </li>
-      </ul>
-    </li>
-
-    <!-- Academic Year Section -->
-    <li class="nav-item has-treeview {% if 'academic-year' in segment %} menu-open {% endif %}">
-      <a href="#" class="nav-link {% if 'academic-year' in segment %} active {% endif %}">
-        <i class="nav-icon fas fa-calendar-alt"></i>
-        <p>
-          Academic Year
-          <i class="fas fa-angle-left right"></i>
-        </p>
-      </a>
-      <ul class="nav nav-treeview">
-        <li class="nav-item">
-          <a href="#" class="nav-link {% if 'view-year' in segment %} active {% endif %}">
-            <i class="far fa-circle nav-icon"></i>
-            <p>View Academic Year</p>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a href="#" class="nav-link {% if 'add-year' in segment %} active {% endif %}">
-            <i class="far fa-circle nav-icon"></i>
-            <p>Add Academic Year</p>
-          </a>
-        </li>
-      </ul>
-    </li>
-
-    <!-- Identity Cards Section -->
-    <li class="nav-item has-treeview {% if 'identity-cards' in segment %} menu-open {% endif %}">
-      <a href="#" class="nav-link {% if 'identity-cards' in segment %} active {% endif %}">
-        <i class="nav-icon fas fa-id-card"></i>
-        <p>
-          Identity Cards
-          <i class="fas fa-angle-left right"></i>
-        </p>
-      </a>
-      <ul class="nav nav-treeview">
-        <li class="nav-item">
-          <a href="/gen_ids" class="nav-link {% if 'view-cards' in segment %} active {% endif %}">
-            <i class="far fa-circle nav-icon"></i>
-            <p>View Identity Cards</p>
-          </a>
-        </li>
-      </ul>
-    </li>
-
-    <!-- Parking Cards Section -->
-    <li class="nav-item has-treeview {% if 'teachers' in segment %} menu-open {% endif %}">
-      <a href="#" class="nav-link {% if 'teachers' in segment %} active {% endif %}">
-        <i class="nav-icon fas fa-car"></i>
-        <p>
-          Parking Cards
-          <i class="fas fa-angle-left right"></i>
-        </p>
-      </a>
-      <ul class="nav nav-treeview">
-        <li class="nav-item">
-          <a href="#" class="nav-link {% if 'view-teachers' in segment %} active {% endif %}">
-            <i class="far fa-circle nav-icon"></i>
-            <p>View Cards</p>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a href="#" class="nav-link {% if 'add-teacher' in segment %} active {% endif %}">
-            <i class="far fa-circle nav-icon"></i>
-            <p>Generate a Card</p>
-          </a>
-        </li>
-      </ul>
-    </li>
-
-    <!-- User Accounts Section -->
-    <li class="nav-item has-treeview {% if 'User Accounts' in segment %} menu-open {% endif %}">
-      <a href="/manage_users" class="nav-link {% if 'User Accounts' in segment %} active {% endif %}">
-        <i class="nav-icon fas fa-user-cog"></i>
-        <p>User Accounts <i class="fas fa-angle-left right"></i><span class="badge badge-info right">6</span></p>
-      </a>
-      <ul class="nav nav-treeview">
-        <li class="nav-item">
-          <a href="/manage_users" class="nav-link {% if 'manage_users' in segment %} active {% endif %}">
-            <i class="far fa-circle nav-icon"></i>
-            <p>View Users</p>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a href="add_user" class="nav-link {% if 'add_user' in segment %} active {% endif %}">
-            <i class="far fa-plus-square nav-icon"></i>
-            <p>Add User</p>
-          </a>
-        </li>
-      </ul>
-    </li>
-
-  </ul>
-</nav>
-
+    </nav>
   </div>
 </aside>
