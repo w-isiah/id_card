@@ -1,0 +1,161 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}ID Card - {{ data.pupil_first_name }}{% endblock %}
+
+{% block body_class %}sidebar-mini{% endblock %}
+
+{% block stylesheets %}
+  <!-- Google Fonts -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+
+  <!-- Font Awesome & Ionicons -->
+  <link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
+  <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+
+  <!-- AdminLTE Theme -->
+  <link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
+
+  <!-- DataTables -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css">
+
+  <!-- Flash Message Styles -->
+  <style>
+    .alert-container {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      max-width: 600px;
+      width: 90%;
+      display: none;
+    }
+
+    .alert {
+      opacity: 1;
+      transition: opacity 0.5s ease-in-out;
+      margin-bottom: 10px;
+      padding: 0.75rem 1.25rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+    }
+
+    .alert i {
+      font-size: 1.2rem;
+      margin-right: 10px;
+    }
+
+    .alert .close {
+      margin-left: auto;
+      font-size: 1.2rem;
+      line-height: 1;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+
+  <!-- Flash Messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="alert-container" id="flashMessageContainer">
+      {% for category, message in messages %}
+      <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+        <i class="fas fa-{{ 
+            'check-circle' if category == 'success' 
+            else 'exclamation-circle' if category == 'warning' 
+            else 'times-circle' if category == 'danger' 
+            else 'info-circle' }}"></i>
+        <span>{{ message }}</span>
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- Page Header -->
+  <section class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6">
+          <h1>Identity Cards List</h1>
+        </div>
+        <div class="col-sm-6">
+          <ol class="breadcrumb float-sm-right">
+            <li class="breadcrumb-item"><a href="/index">Home</a></li>
+            <li class="breadcrumb-item"><a href="/Identity Cards">Identity Cards</a></li>
+            <li class="breadcrumb-item active">Identity Cards List</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ID Card Content -->
+  <section class="content">
+    <div class="container d-flex justify-content-center align-items-center" style="min-height: 100vh;">
+      <div class="id-card" style="width: 350px; border: 2px solid #333; padding: 15px; border-radius: 10px; font-family: Arial;">
+        <h4 class="text-center">STUDENT ID CARD</h4>
+        <hr>
+
+        <!-- Pupil Info -->
+        <div class="text-center mb-3">
+          <img src="/static/uploads/{{ data.pupil_image }}" alt="Pupil Photo" style="width: 100px; height: 100px; object-fit: cover; border-radius: 50%; border: 2px solid #666;">
+          <h5>{{ data.pupil_first_name }} {{ data.other_name }} {{ data.pupil_last_name }}</h5>
+          <p>Gender: {{ data.gender }}</p>
+          <p>Class: {{ data.class }}</p>
+          <p>Reg No: {{ data.reg_no }}</p>
+        </div>
+
+        <!-- Guardian Info -->
+        <hr>
+        <div style="font-size: 0.85rem;">
+          <strong>Guardian:</strong><br>
+          {{ data.guardian_first_name }} {{ data.guardian_other_name }} {{ data.guardian_last_name }}<br>
+          {{ data.relationship }}<br>
+          Contact: {{ data.contact_number }}
+        </div>
+
+        <!-- Signature -->
+        <div class="text-right mt-3">
+          {% if data.guardian_sign_image %}
+            <img src="/static/uploads/{{ data.guardian_sign_image }}" alt="Guardian Sign" style="width: 100px;">
+          {% else %}
+            <p>No Signature</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+{% endblock %}
+
+{% block javascripts %}
+  <!-- jQuery & Bootstrap -->
+  <script src="/static/assets/plugins/jquery/jquery.min.js"></script>
+  <script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+  <!-- AdminLTE -->
+  <script src="/static/assets/js/adminlte.js"></script>
+
+  <!-- DataTables -->
+  <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/responsive/2.3.0/js/dataTables.responsive.min.js"></script>
+
+  <!-- Flash Message Animation -->
+  <script>
+    $(document).ready(function() {
+      const $flash = $('#flashMessageContainer');
+      if ($flash.length) {
+        $flash.fadeIn(400).delay(3500).fadeOut(600);
+      }
+    });
+  </script>
+{% endblock %}

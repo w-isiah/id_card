@@ -118,7 +118,7 @@
                         <th>Reg No</th>
                         <th>Pupil</th>
                         <th>Pupil Image</th>
-                      
+
                         <th>Gender</th>
                         <th>Class</th>
                         <th>Father </th>
@@ -129,12 +129,12 @@
                         <th>Mother </th>
                         <th>Mother Image</th>
                         <th>Mother Signature</th>
-               
-                       
+
+
                         <th>Guardian</th>
                         <th>Guardian Image</th>
                         <th>Guardian Signature</th>
-                        
+                        <th>Generate ID</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -151,7 +151,7 @@
                           <span>No Image</span>
                           {% endif %}
                         </td>
-                      
+
 
                         <td>{{ row.gender }}</td>
                         <td>{{ row.class }}</td>
@@ -192,11 +192,18 @@
                           {% endif %}
                         </td>
 
+                        <td>
+                          <a href="{{ url_for('gen_ids_blueprint.generate_id_card', pupil_id=row.pupil_id) }}" class="btn btn-sm btn-primary" target="_blank">
+                            View ID Card
+                          </a>
+                        </td>
+
+
 
                         
 
-                       
-                    
+
+
                         <!-- Guardian -->
                         <td>
                           {{ row.guardian_first_name }} {{ row.guardian_other_name }} {{ row.guardian_last_name }}<br>
@@ -217,7 +224,7 @@
                           {% endif %}
                         </td>
 
-                      
+
                       </tr>
                       {% endfor %}
                     </tbody>
