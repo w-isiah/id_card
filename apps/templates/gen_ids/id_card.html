@@ -30,8 +30,8 @@
     }
 
     .id-card {
-      width: 420px;
-      height: 250px;
+      width: 250px;
+      height: 420px;
       border: 2px solid #333;
       border-radius: 10px;
       font-family: Arial, sans-serif;
@@ -39,41 +39,73 @@
       box-sizing: border-box;
       position: relative;
       display: flex;
-      flex-direction: row;
+      background-color: #fff;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .id-card.front {
+      flex-direction: column;
       align-items: center;
       justify-content: space-between;
     }
 
-    .id-card.front {
-      background-color: #f9f9f9;
-    }
-
-    .id-card.back {
-      background-color: #fff;
-      flex-direction: column;
-      justify-content: flex-start;
-      padding-top: 10px;
-    }
-
-    .id-left, .id-right {
-      flex: 1;
-      padding: 10px;
-    }
-
-    .id-card img.photo {
-      width: 100px;
-      height: 100px;
-      object-fit: cover;
-      border-radius: 50%;
-      border: 2px solid #666;
+    .id-left {
+      width: 100%;
+      text-align: center;
       margin-bottom: 10px;
     }
 
+    .id-right {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .id-left h4 {
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    .id-card img.photo {
+      width: 90px;
+      height: 90px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 2px solid #666;
+    }
+
+    .id-card.back {
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .back-left, .back-right {
+      width: 100%;
+      text-align: center;
+    }
+
+    .back-left h5 {
+      margin-bottom: 8px;
+    }
+
+    .back-right img {
+      margin-top: 10px;
+    }
+
     .qr-code {
-      position: absolute;
-      bottom: 10px;
-      right: 10px;
       width: 80px;
+      margin-top: 15px;
+    }
+
+    @media print {
+      @page {
+        size: portrait;
+      }
+      .id-card-container {
+        gap: 20px;
+      }
     }
   </style>
 {% endblock %}
@@ -91,7 +123,7 @@
 
       <!-- Front Side -->
       <div class="id-card front">
-        <div class="id-left text-center">
+        <div class="id-left">
           <h4>STUDENT ID CARD</h4>
           <img class="photo" src="/static/uploads/{{ data.pupil_image or 'default-avatar.png' }}" alt="{{ data.pupil_first_name }}'s photo">
         </div>
@@ -105,21 +137,22 @@
 
       <!-- Back Side -->
       <div class="id-card back">
-        <h5>Guardian Information</h5>
-        <p>{{ data.guardian_first_name }} {{ data.guardian_other_name }} {{ data.guardian_last_name }}</p>
-        <p><strong>Relationship:</strong> {{ data.relationship }}</p>
-        <p><strong>Contact:</strong> {{ data.contact_number }}</p>
-
-        <div style="margin-top: 10px;">
+        <div class="back-left">
+          <h5>Guardian Information</h5>
+          <p>{{ data.guardian_first_name }} {{ data.guardian_other_name }} {{ data.guardian_last_name }}</p>
+          <p><strong>Relationship:</strong> {{ data.relationship }}</p>
+          <p><strong>Contact:</strong> {{ data.contact_number }}</p>
+        </div>
+        <div class="back-right">
           <strong>Signature:</strong><br>
           {% if data.guardian_sign_image %}
             <img src="/static/uploads/{{ data.guardian_sign_image }}" alt="Guardian Signature" style="width: 100px;">
           {% else %}
             <em>No Signature</em>
           {% endif %}
-        </div>
 
-        <img class="qr-code" src="/static/uploads/qr/{{ data.qr_code }}" alt="QR Code">
+          <img class="qr-code" src="/static/uploads/qr/{{ data.qr_code }}" alt="QR Code">
+        </div>
       </div>
 
     </div>
@@ -128,18 +161,13 @@
 {% endblock %}
 
 {% block javascripts %}
-  <!-- jQuery & Bootstrap -->
   <script src="/static/assets/plugins/jquery/jquery.min.js"></script>
   <script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-
-  <!-- AdminLTE -->
   <script src="/static/assets/js/adminlte.js"></script>
 
-  <!-- DataTables -->
   <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
   <script src="https://cdn.datatables.net/responsive/2.3.0/js/dataTables.responsive.min.js"></script>
 
-  <!-- Flash Message Animation -->
   <script>
     $(function () {
       const $flash = $('#flashMessageContainer');
