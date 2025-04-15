@@ -1,21 +1,37 @@
 {% extends "layouts/base.html" %}
 
-{% block title %}ID Card - {{ data.pupil_first_name }}{% endblock %}
+{% block title %}Dashboard{% endblock %}
 {% block body_class %}sidebar-mini{% endblock %}
 
 {% block stylesheets %}
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback" rel="stylesheet">
-  <!-- Icons & Theme -->
-  <link href="/static/assets/plugins/fontawesome-free/css/all.min.css" rel="stylesheet">
-  <link href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css" rel="stylesheet">
-  <link href="/static/assets/css/adminlte.min.css" rel="stylesheet">
-  <!-- DataTables -->
-  <link href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css" rel="stylesheet">
-  <link href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css" rel="stylesheet">
+  <!-- Fonts & Icons -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+  <link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
+  <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+
+  <!-- Theme & Plugins -->
+  <link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css">
 
   <!-- Custom Styles -->
   <style>
+    .images {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .photo {
+      width: 60px;
+      height: 60px;
+      border-radius: 10%;
+      object-fit: cover;
+      border: 2px solid #666;
+    }
+
     .id-card-container {
       display: flex;
       justify-content: center;
@@ -25,96 +41,56 @@
     }
 
     .id-card {
+      position: relative;
       width: 260px;
       height: 420px;
       padding: 15px;
-      background: url('/static/uploads/id_image/bg.jpg') no-repeat center;
-      background-size: cover;
       border: 2px solid #333;
       border-radius: 12px;
+      background: url('/static/uploads/id_image/bg.jpg') center/cover no-repeat;
       font-family: 'Arial', sans-serif;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      color: #000;
       display: flex;
       flex-direction: column;
-      align-items: center;
       justify-content: space-between;
-      position: relative;
+      align-items: center;
       overflow: hidden;
-      color: #000;
     }
 
     .id-card::before {
       content: '';
       position: absolute;
       inset: 0;
-      background-color: rgba(255, 255, 255, 0.10);
-      z-index: 0;
       border-radius: 12px;
+      background-color: rgba(255, 255, 255, 0.1);
+      z-index: 0;
     }
 
-    .id-photo, .id-section, .id-details {
-      text-align: center;
+    .id-card h4, .id-card h5 {
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .id-card h4 { text-align:  center; font-size: 14px; color: #0056b3; }
+    .id-card h5 { font-size: 15px; color: #2e2e2e; }
+    .id-card p { font-size: 13px; margin: 4px 0; }
+    .id-card p strong { color: #333; }
+
+    .id-section, .id-details, .id-photo {
       z-index: 1;
+      text-align: center;
+      border-top: 1px solid #ccc;
+      padding-top: 1px;
     }
 
-    .photo {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 2px solid #666;
-      margin-bottom: 10px;
-    }
+    .id-section h5 { color: #00695c; }
+    .id-section p strong { color: #444; }
+    .id-section em { color: #cc0000; }
 
     .qr-code {
       width: 70px;
       margin-top: 10px;
-    }
-
-    .id-card h4, .id-card h5 {
-      margin-bottom: 8px;
-      font-weight: bold;
-    }
-
-    .id-card h4 {
-      font-size: 14px;
-      color: #0056b3; /* Header titles */
-    }
-
-    .id-photo h4:nth-child(2),
-    .id-photo h4:nth-child(3) {
-      color: #0d6efd; /* Subtitles (school name) */
-    }
-
-    .id-card h5 {
-      font-size: 15px;
-      color: #2e2e2e; /* Student name */
-    }
-
-    .id-card p {
-      font-size: 13px;
-      margin: 4px 0;
-    }
-
-    .id-card p strong {
-      color: #333; /* Labels */
-    }
-
-    .id-section h5 {
-      color: #00695c; /* Section titles (Parents Info) */
-    }
-
-    .id-section p strong {
-      color: #444; /* Parent names */
-    }
-
-    .id-section em {
-      color: #cc0000; /* No Signature text */
-    }
-
-    .id-details, .id-section {
-      border-top: 1px solid #ccc;
-      padding-top: 10px;
     }
 
     .print-button-container {
@@ -125,32 +101,21 @@
     .print-button-container .btn {
       background-color: #007bff;
       border-color: #007bff;
-      color: white;
+      color: #fff;
     }
 
     @media print {
-      body * {
-        visibility: hidden;
-      }
-
-      #print-area, #print-area * {
-        visibility: visible;
-      }
-
+      body * { visibility: hidden; }
+      #print-area, #print-area * { visibility: visible; }
       #print-area {
         position: absolute;
         left: 0;
         top: 0;
         width: 100%;
       }
+      .no-print { display: none !important; }
 
-      .no-print {
-        display: none !important;
-      }
-
-      @page {
-        size: portrait;
-      }
+      @page { size: portrait; }
     }
   </style>
 {% endblock %}
@@ -165,7 +130,7 @@
 
   <section class="content">
     <div class="print-button-container no-print">
-      <button onclick="printIDCard()" class="btn btn-primary">
+      <button class="btn btn-primary" onclick="printIDCard()">
         <i class="fas fa-print"></i> Print ID Card
       </button>
     </div>
@@ -175,48 +140,55 @@
 
         <!-- Front Side -->
         <div class="id-card">
-          <div class="id-photo">
-            <h4>STUDENT ID CARD</h4>
+          <div class="header">
+            <h4>AUTHORITY ID</h4>
             <h4>UGANDA MARTYRS JUNIOR</h4>
             <h4>BOYS SCHOOL, NAMILYANGO</h4>
-            <img class="photo" src="/static/uploads/{{ data.pupil_image or 'default-avatar.png' }}" alt="{{ data.pupil_first_name }}'s photo">
           </div>
-          <div class="id-details">
-            <h5>{{ data.pupil_first_name }} {{ data.other_name }} {{ data.pupil_last_name }}</h5>
-            <p><strong>Gender:</strong> {{ data.gender }}</p>
+
+          <div class="id-section">
+            <p><strong>Child Name:</strong> {{ data.pupil_first_name }} {{ data.other_name }} {{ data.pupil_last_name }}</p>
             <p><strong>Class:</strong> {{ data.class }}</p>
-            <p><strong>Reg No:</strong> {{ data.reg_no }}</p>
+            <p><strong>Reg. No:</strong> {{ data.reg_no }}</p>
+            <p><strong>Father's Name:</strong> {{ data.father_first_name }} {{ data.father_last_name }}</p>
+            <p><strong>Mother's Name:</strong> {{ data.mother_first_name }} {{ data.mother_last_name }}</p>
           </div>
-          <img class="qr-code" src="/static/uploads/qr_{{ data.pupil_id }}.png" alt="QR Code">
+
+          <div class="id-details">
+            <p><strong>Issue Date:</strong> {{ data.date_issued }}</p>
+            <p><strong>Expiry Date:</strong> {{ data.date_expiry }}</p>
+          </div>
+
+          <div class="images">
+            <img class="photo" src="/static/uploads/{{ data.pupil_image or 'default-avatar.png' }}" alt="Student Photo">
+            <img class="photo" src="/static/uploads/{{ data.father_image or 'default-avatar.png' }}" alt="Father Photo">
+            <img class="photo" src="/static/uploads/{{ data.mother_image or 'default-avatar.png' }}" alt="Mother Photo">
+          </div>
+
+          <div class="images">
+            <img class="photo" src="/static/uploads/{{ data.father_sign or 'default-avatar.png' }}" alt="Father Signature">
+            <img class="photo" src="/static/uploads/{{ data.mother_sign or 'default-avatar.png' }}" alt="Mother Signature">
+          </div>
         </div>
 
         <!-- Back Side -->
         <div class="id-card">
-          <!-- Father's Info -->
           <div class="id-section">
-            <h5>Parents Information</h5>
-            <img class="photo" src="/static/uploads/{{ data.father_image or 'default-avatar.png' }}" alt="Father's photo">
-            <p><strong>Father:</strong> {{ data.father_first_name }} {{ data.father_last_name }}</p>
-            <p><strong>Signature:</strong><br>
-              {% if data.father_sign %}
-                <img src="/static/uploads/{{ data.father_sign }}" alt="Father's Signature" style="width: 60px;">
-              {% else %}
-                <em>No Signature</em>
-              {% endif %}
-            </p>
+            <p><strong>This is a property of</strong></p>
+            <p><strong>UGANDA MARTYRS JUNIOR</strong></p>
+            <p><strong>BOYS SCHOOL, NAMILYANGO</strong></p>
+            <p><strong>Location:</strong> Waka</p>
+            <p><strong>Contact:</strong> 759623689</p>
+            <p><strong>Email:</strong> @gmail.com</p>
+            <p><strong>Address:</strong> P.O.BOX 63, Masaka</p>
           </div>
 
-          <!-- Mother's Info -->
+          <span>Authorization Signature</span>
+          <img class="photo" src="/static/uploads/{{ data.mother_sign or 'default-avatar.png' }}" alt="Mother Signature">
+          <img class="qr-code" src="/static/uploads/qr_{{ data.pupil_id }}.png" alt="QR Code">
+
           <div class="id-section">
-            <img class="photo" src="/static/uploads/{{ data.mother_image or 'default-avatar.png' }}" alt="Mother's photo">
-            <p><strong>Mother:</strong> {{ data.mother_first_name }} {{ data.mother_last_name }}</p>
-            <p><strong>Signature:</strong><br>
-              {% if data.mother_sign %}
-                <img src="/static/uploads/{{ data.mother_sign }}" alt="Mother's Signature" style="width: 60px;">
-              {% else %}
-                <em>No Signature</em>
-              {% endif %}
-            </p>
+            <p>If found, please return to the address above</p>
           </div>
         </div>
 
@@ -230,8 +202,6 @@
   <script src="/static/assets/plugins/jquery/jquery.min.js"></script>
   <script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
   <script src="/static/assets/js/adminlte.js"></script>
-  <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-  <script src="https://cdn.datatables.net/responsive/2.3.0/js/dataTables.responsive.min.js"></script>
 
   <script>
     function printIDCard() {
