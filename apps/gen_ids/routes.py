@@ -94,14 +94,52 @@ def generate_id_card(pupil_id):
 
     cursor.execute("""
         SELECT 
-            p.pupil_id, p.reg_no, p.first_name AS pupil_first_name, 
-            p.other_name AS pupil_other_name, p.last_name AS pupil_last_name,
-            p.gender, p.date_of_birth, p.class, p.study_year, p.image AS pupil_image,
-            g.first_name AS guardian_first_name, g.other_name AS guardian_other_name, 
-            g.last_name AS guardian_last_name, g.relationship, g.contact_number,
-            g.sign_image AS guardian_sign_image
+            -- Pupil Info
+            p.pupil_id AS pupil_id,
+            p.reg_no,
+            p.first_name AS pupil_first_name,
+            p.other_name AS pupil_other_name,
+            p.last_name AS pupil_last_name,
+            p.gender, 
+            p.date_of_birth,
+            p.class,
+            p.study_year,
+            p.image AS pupil_image,
+
+            -- Father's Info
+            f.first_name AS father_first_name,
+            f.other_name AS father_other_name,
+            f.last_name AS father_last_name,
+            f.image AS father_image,
+            f.sign_image AS father_sign,
+
+            -- Mother's Info
+            m.first_name AS mother_first_name,
+            m.other_name AS mother_other_name,
+            m.last_name AS mother_last_name,
+            m.image AS mother_image,
+            m.sign_image AS mother_sign,
+
+            -- Guardian's Info
+            g.first_name AS guardian_first_name,
+            g.other_name AS guardian_other_name,
+            g.last_name AS guardian_last_name,
+            g.relationship,
+            g.contact_number,
+            g.image AS guardian_image,
+            g.sign_image AS guardian_sign,
+
+            -- Class Info
+            c.class_name,
+            c.year,
+            c.teacher_in_charge,
+            c.room_number
+
         FROM pupils p
+        LEFT JOIN fathers f ON p.pupil_id = f.pupil_id
+        LEFT JOIN mothers m ON p.pupil_id = m.pupil_id
         LEFT JOIN guardians g ON p.pupil_id = g.pupil_id
+        LEFT JOIN classes c ON p.class = c.class_name
         WHERE p.pupil_id = %s
     """, (pupil_id,))
     
@@ -127,6 +165,7 @@ def generate_id_card(pupil_id):
     data['qr_code'] = qr_filename
 
     return render_template('gen_ids/id_card.html', data=data)
+
 
 
 
