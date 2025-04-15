@@ -6,134 +6,124 @@
 
 {% block stylesheets %}
   <!-- Google Fonts -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+  <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback" rel="stylesheet">
 
   <!-- Font Awesome & Ionicons -->
-  <link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
-  <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+  <link href="/static/assets/plugins/fontawesome-free/css/all.min.css" rel="stylesheet">
+  <link href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css" rel="stylesheet">
 
   <!-- AdminLTE Theme -->
-  <link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
+  <link href="/static/assets/css/adminlte.min.css" rel="stylesheet">
 
   <!-- DataTables -->
-  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
-  <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css">
+  <link href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css" rel="stylesheet">
+  <link href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css" rel="stylesheet">
 
-  <!-- Flash Message Styles -->
+  <!-- Custom Styles -->
   <style>
-    .alert-container {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 9999;
-      max-width: 600px;
-      width: 90%;
-      display: none;
-    }
-
-    .alert {
-      opacity: 1;
-      transition: opacity 0.5s ease-in-out;
-      margin-bottom: 10px;
-      padding: 0.75rem 1.25rem;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    .id-card-container {
       display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 40px;
+      padding: 2rem;
+    }
+
+    .id-card {
+      width: 420px;
+      height: 250px;
+      border: 2px solid #333;
+      border-radius: 10px;
+      font-family: Arial, sans-serif;
+      padding: 15px;
+      box-sizing: border-box;
+      position: relative;
+      display: flex;
+      flex-direction: row;
       align-items: center;
+      justify-content: space-between;
     }
 
-    .alert i {
-      font-size: 1.2rem;
-      margin-right: 10px;
+    .id-card.front {
+      background-color: #f9f9f9;
     }
 
-    .alert .close {
-      margin-left: auto;
-      font-size: 1.2rem;
-      line-height: 1;
+    .id-card.back {
+      background-color: #fff;
+      flex-direction: column;
+      justify-content: flex-start;
+      padding-top: 10px;
+    }
+
+    .id-left, .id-right {
+      flex: 1;
+      padding: 10px;
+    }
+
+    .id-card img.photo {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 2px solid #666;
+      margin-bottom: 10px;
+    }
+
+    .qr-code {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      width: 80px;
     }
   </style>
 {% endblock %}
 
 {% block content %}
 <div class="content-wrapper">
-
-  <!-- Flash Messages -->
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-    <div class="alert-container" id="flashMessageContainer">
-      {% for category, message in messages %}
-      <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-        <i class="fas fa-{{ 
-            'check-circle' if category == 'success' 
-            else 'exclamation-circle' if category == 'warning' 
-            else 'times-circle' if category == 'danger' 
-            else 'info-circle' }}"></i>
-        <span>{{ message }}</span>
-        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      {% endfor %}
-    </div>
-    {% endif %}
-  {% endwith %}
-
-  <!-- Page Header -->
   <section class="content-header">
     <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <h1>Identity Cards List</h1>
-        </div>
-        <div class="col-sm-6">
-          <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="/index">Home</a></li>
-            <li class="breadcrumb-item"><a href="/Identity Cards">Identity Cards</a></li>
-            <li class="breadcrumb-item active">Identity Cards List</li>
-          </ol>
-        </div>
-      </div>
+      <h1>Student ID Card</h1>
     </div>
   </section>
 
-  <!-- ID Card Content -->
   <section class="content">
-    <div class="container d-flex justify-content-center align-items-center" style="min-height: 100vh;">
-      <div class="id-card" style="width: 350px; border: 2px solid #333; padding: 15px; border-radius: 10px; font-family: Arial;">
-        <h4 class="text-center">STUDENT ID CARD</h4>
-        <hr>
+    <div class="id-card-container">
 
-        <!-- Pupil Info -->
-        <div class="text-center mb-3">
-          <img src="/static/uploads/{{ data.pupil_image }}" alt="Pupil Photo" style="width: 100px; height: 100px; object-fit: cover; border-radius: 50%; border: 2px solid #666;">
+      <!-- Front Side -->
+      <div class="id-card front">
+        <div class="id-left text-center">
+          <h4>STUDENT ID CARD</h4>
+          <img class="photo" src="/static/uploads/{{ data.pupil_image or 'default-avatar.png' }}" alt="{{ data.pupil_first_name }}'s photo">
+        </div>
+        <div class="id-right">
           <h5>{{ data.pupil_first_name }} {{ data.other_name }} {{ data.pupil_last_name }}</h5>
-          <p>Gender: {{ data.gender }}</p>
-          <p>Class: {{ data.class }}</p>
-          <p>Reg No: {{ data.reg_no }}</p>
+          <p><strong>Gender:</strong> {{ data.gender }}</p>
+          <p><strong>Class:</strong> {{ data.class }}</p>
+          <p><strong>Reg No:</strong> {{ data.reg_no }}</p>
         </div>
+      </div>
 
-        <!-- Guardian Info -->
-        <hr>
-        <div style="font-size: 0.85rem;">
-          <strong>Guardian:</strong><br>
-          {{ data.guardian_first_name }} {{ data.guardian_other_name }} {{ data.guardian_last_name }}<br>
-          {{ data.relationship }}<br>
-          Contact: {{ data.contact_number }}
-        </div>
+      <!-- Back Side -->
+      <div class="id-card back">
+        <h5>Guardian Information</h5>
+        <p>{{ data.guardian_first_name }} {{ data.guardian_other_name }} {{ data.guardian_last_name }}</p>
+        <p><strong>Relationship:</strong> {{ data.relationship }}</p>
+        <p><strong>Contact:</strong> {{ data.contact_number }}</p>
 
-        <!-- Signature -->
-        <div class="text-right mt-3">
+        <div style="margin-top: 10px;">
+          <strong>Signature:</strong><br>
           {% if data.guardian_sign_image %}
-            <img src="/static/uploads/{{ data.guardian_sign_image }}" alt="Guardian Sign" style="width: 100px;">
+            <img src="/static/uploads/{{ data.guardian_sign_image }}" alt="Guardian Signature" style="width: 100px;">
           {% else %}
-            <p>No Signature</p>
+            <em>No Signature</em>
           {% endif %}
         </div>
+
+        <img class="qr-code" src="/static/uploads/qr/{{ data.qr_code }}" alt="QR Code">
       </div>
+
     </div>
   </section>
-
 </div>
 {% endblock %}
 
@@ -151,7 +141,7 @@
 
   <!-- Flash Message Animation -->
   <script>
-    $(document).ready(function() {
+    $(function () {
       const $flash = $('#flashMessageContainer');
       if ($flash.length) {
         $flash.fadeIn(400).delay(3500).fadeOut(600);
