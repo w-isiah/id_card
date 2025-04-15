@@ -1,14 +1,27 @@
-from apps.gen_ids import blueprint
-from flask import render_template, request, redirect, url_for, flash, session
-from flask import Flask
-import mysql.connector
-from werkzeug.utils import secure_filename
-from mysql.connector import Error
-from datetime import datetime
+# Standard Library
 import os
+import re
 import random
 import logging
+from datetime import datetime
+
+# Third-Party
+import mysql.connector
+from mysql.connector import Error
+from werkzeug.utils import secure_filename
+from jinja2 import TemplateNotFound
+
+# Flask
+from flask import (
+    Flask, render_template, request, redirect, url_for,
+    flash, session, current_app
+)
+
+# Internal Modules
 from apps import get_db_connection
+from apps.gen_ids import blueprint
+
+
 
 
 # Start of gen_id handling
@@ -157,7 +170,8 @@ def generate_id_card(pupil_id):
     qr_img = qrcode.make(qr_data)
     
     qr_filename = f"qr_{pupil_id}.png"
-    qr_path = os.path.join('static/uploads/qr', qr_filename)
+
+    qr_path = os.path.join(current_app.config['UPLOAD_FOLDER'], qr_filename)
     os.makedirs(os.path.dirname(qr_path), exist_ok=True)
     qr_img.save(qr_path)
 

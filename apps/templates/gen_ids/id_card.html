@@ -1,20 +1,15 @@
 {% extends "layouts/base.html" %}
 
 {% block title %}ID Card - {{ data.pupil_first_name }}{% endblock %}
-
 {% block body_class %}sidebar-mini{% endblock %}
 
 {% block stylesheets %}
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback" rel="stylesheet">
-
-  <!-- Font Awesome & Ionicons -->
+  <!-- Icons & Theme -->
   <link href="/static/assets/plugins/fontawesome-free/css/all.min.css" rel="stylesheet">
   <link href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css" rel="stylesheet">
-
-  <!-- AdminLTE Theme -->
   <link href="/static/assets/css/adminlte.min.css" rel="stylesheet">
-
   <!-- DataTables -->
   <link href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css" rel="stylesheet">
   <link href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css" rel="stylesheet">
@@ -25,83 +20,112 @@
       display: flex;
       justify-content: center;
       flex-wrap: wrap;
-      gap: 40px;
+      gap: 30px;
       padding: 2rem;
     }
 
     .id-card {
-      width: 250px;
+      width: 260px;
       height: 420px;
-      border: 2px solid #333;
-      border-radius: 10px;
-      font-family: Arial, sans-serif;
       padding: 15px;
-      box-sizing: border-box;
-      position: relative;
-      display: flex;
-      background-color: #fff;
+      background: url('/static/uploads/id_image/bg.jpg') no-repeat center;
+      background-size: cover;
+      border: 2px solid #333;
+      border-radius: 12px;
+      font-family: 'Arial', sans-serif;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    .id-card.front {
-      flex-direction: column;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .id-left {
-      width: 100%;
-      text-align: center;
-      margin-bottom: 10px;
-    }
-
-    .id-right {
-      width: 100%;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      color: #000;
     }
 
-    .id-left h4 {
-      margin-bottom: 10px;
-      font-size: 16px;
+    .id-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-color: rgba(255, 255, 255, 0.10);
+      z-index: 0;
+      border-radius: 12px;
     }
 
-    .id-card img.photo {
-      width: 90px;
-      height: 90px;
-      object-fit: cover;
-      border-radius: 50%;
-      border: 2px solid #666;
-    }
-
-    .id-card.back {
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .back-left, .back-right {
-      width: 100%;
+    .id-photo, .id-section, .id-details {
       text-align: center;
+      z-index: 1;
     }
 
-    .back-left h5 {
-      margin-bottom: 8px;
-    }
-
-    .back-right img {
-      margin-top: 10px;
+    .photo {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #666;
+      margin-bottom: 10px;
     }
 
     .qr-code {
-      width: 80px;
-      margin-top: 15px;
+      width: 70px;
+      margin-top: 10px;
+    }
+
+    .id-card h4, .id-card h5 {
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+
+    .id-card h4 {
+      font-size: 14px;
+      color: #0056b3; /* Header titles */
+    }
+
+    .id-photo h4:nth-child(2),
+    .id-photo h4:nth-child(3) {
+      color: #0d6efd; /* Subtitles (school name) */
+    }
+
+    .id-card h5 {
+      font-size: 15px;
+      color: #2e2e2e; /* Student name */
+    }
+
+    .id-card p {
+      font-size: 13px;
+      margin: 4px 0;
+    }
+
+    .id-card p strong {
+      color: #333; /* Labels */
+    }
+
+    .id-section h5 {
+      color: #00695c; /* Section titles (Parents Info) */
+    }
+
+    .id-section p strong {
+      color: #444; /* Parent names */
+    }
+
+    .id-section em {
+      color: #cc0000; /* No Signature text */
+    }
+
+    .id-details, .id-section {
+      border-top: 1px solid #ccc;
+      padding-top: 10px;
     }
 
     .print-button-container {
       text-align: center;
       margin: 20px 0;
+    }
+
+    .print-button-container .btn {
+      background-color: #007bff;
+      border-color: #007bff;
+      color: white;
     }
 
     @media print {
@@ -140,54 +164,64 @@
   </section>
 
   <section class="content">
-
-    <!-- Print Button -->
     <div class="print-button-container no-print">
       <button onclick="printIDCard()" class="btn btn-primary">
         <i class="fas fa-print"></i> Print ID Card
       </button>
     </div>
 
-    <!-- Only this area will be printed -->
     <div id="print-area">
       <div class="id-card-container">
 
         <!-- Front Side -->
-        <div class="id-card front">
-          <div class="id-left">
+        <div class="id-card">
+          <div class="id-photo">
             <h4>STUDENT ID CARD</h4>
+            <h4>UGANDA MARTYRS JUNIOR</h4>
+            <h4>BOYS SCHOOL, NAMILYANGO</h4>
             <img class="photo" src="/static/uploads/{{ data.pupil_image or 'default-avatar.png' }}" alt="{{ data.pupil_first_name }}'s photo">
           </div>
-          <div class="id-right">
+          <div class="id-details">
             <h5>{{ data.pupil_first_name }} {{ data.other_name }} {{ data.pupil_last_name }}</h5>
             <p><strong>Gender:</strong> {{ data.gender }}</p>
             <p><strong>Class:</strong> {{ data.class }}</p>
             <p><strong>Reg No:</strong> {{ data.reg_no }}</p>
           </div>
+          <img class="qr-code" src="/static/uploads/qr_{{ data.pupil_id }}.png" alt="QR Code">
         </div>
 
         <!-- Back Side -->
-        <div class="id-card back">
-          <div class="back-left">
+        <div class="id-card">
+          <!-- Father's Info -->
+          <div class="id-section">
             <h5>Parents Information</h5>
-            <p>{{ data.father_first_name }} {{ data.guardian_other_name }} {{ data.guardian_last_name }}</p>
-            <p><strong>Relationship:</strong> {{ data.relationship }}</p>
-            <p><strong>Contact:</strong> {{ data.contact_number }}</p>
+            <img class="photo" src="/static/uploads/{{ data.father_image or 'default-avatar.png' }}" alt="Father's photo">
+            <p><strong>Father:</strong> {{ data.father_first_name }} {{ data.father_last_name }}</p>
+            <p><strong>Signature:</strong><br>
+              {% if data.father_sign %}
+                <img src="/static/uploads/{{ data.father_sign }}" alt="Father's Signature" style="width: 60px;">
+              {% else %}
+                <em>No Signature</em>
+              {% endif %}
+            </p>
           </div>
-          <div class="back-right">
-            <strong>Signature:</strong><br>
-            {% if data.guardian_sign_image %}
-              <img src="/static/uploads/{{ data.guardian_sign_image }}" alt="Guardian Signature" style="width: 100px;">
-            {% else %}
-              <em>No Signature</em>
-            {% endif %}
-            <img class="qr-code" src="/static/uploads/qr/{{ data.qr_code }}" alt="QR Code">
+
+          <!-- Mother's Info -->
+          <div class="id-section">
+            <img class="photo" src="/static/uploads/{{ data.mother_image or 'default-avatar.png' }}" alt="Mother's photo">
+            <p><strong>Mother:</strong> {{ data.mother_first_name }} {{ data.mother_last_name }}</p>
+            <p><strong>Signature:</strong><br>
+              {% if data.mother_sign %}
+                <img src="/static/uploads/{{ data.mother_sign }}" alt="Mother's Signature" style="width: 60px;">
+              {% else %}
+                <em>No Signature</em>
+              {% endif %}
+            </p>
           </div>
         </div>
 
       </div>
     </div>
-
   </section>
 </div>
 {% endblock %}
@@ -196,7 +230,6 @@
   <script src="/static/assets/plugins/jquery/jquery.min.js"></script>
   <script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
   <script src="/static/assets/js/adminlte.js"></script>
-
   <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
   <script src="https://cdn.datatables.net/responsive/2.3.0/js/dataTables.responsive.min.js"></script>
 
