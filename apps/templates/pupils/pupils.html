@@ -19,6 +19,19 @@
 
   <!-- Flash Message Styling -->
   <style>
+
+.btn-inline-danger {
+    background-color: transparent;
+    color: #6f42c1; /* Bootstrap purple */
+    border: 1px solid #6f42c1;
+}
+
+.btn-inline-danger:hover {
+    background-color: #6f42c1;
+    color: white;
+}
+
+
     .alert-container {
       position: fixed;
       top: 20px;
@@ -133,7 +146,11 @@
         
        
          
-          <a href="{{ url_for('pupils_blueprint.upload_excel') }}" class="btn btn-secondary btn-sm">Bulk Upload</a>
+        <a href="{{ url_for('pupils_blueprint.upload_excel') }}" class="btn btn-sm btn-inline-danger">Bulk Upload</a>
+
+
+
+
         </div>
       </form>
 

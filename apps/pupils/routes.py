@@ -19,6 +19,8 @@ from mysql.connector import Error
 from apps.pupils import blueprint
 from apps import get_db_connection
 
+import numpy as np
+
 
 # Access the upload folder from the current Flask app configuration
 def allowed_file(filename):
@@ -374,12 +376,7 @@ def upload_excel():
 
 
 
-import pandas as pd
 
-import pandas as pd
-
-import pandas as pd
-import numpy as np
 
 def validate_excel_data(df):
     processed_data = []
@@ -507,7 +504,7 @@ def insert_into_database(processed_data):
             print(f"{len(processed_data)} records successfully inserted.")
 
     except Exception as e:
-        print("❌ Error inserting data:", e)
+        print(" Error inserting data:", e)
 
 
 
