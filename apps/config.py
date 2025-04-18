@@ -2,6 +2,8 @@ import random
 import string
 import os
 
+from datetime import timedelta
+
 class Config:
     """Base configuration class."""
     # Absolute path to the current directory
@@ -9,7 +11,7 @@ class Config:
 
     # Upload folder paths
     UPLOAD_FOLDER = os.path.join(basedir, 'static', 'uploads')
-    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif','xlsx', 'xls'}
 
     # Secret key for Flask (generated securely)
     SECRET_KEY = ''.join(random.choices(string.ascii_letters + string.digits, k=32))
@@ -19,6 +21,9 @@ class Config:
     MYSQL_USER = os.getenv('MYSQL_USER', 'root')
     MYSQL_PASSWORD = os.getenv('MYSQL_PASSWORD', '')
     MYSQL_DATABASE = os.getenv('MYSQL_DATABASE', 'id_card')
+
+    # Session timeout after 30 minutes of inactivity
+    PERMANENT_SESSION_LIFETIME = timedelta(minutes=30)
 
     @staticmethod
     def init_app(app):
