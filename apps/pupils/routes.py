@@ -12,6 +12,7 @@ from apps import get_db_connection
 from jinja2 import TemplateNotFound
 
 
+
 # Access the upload folder from the current Flask app configuration
 def allowed_file(filename):
     """Check if the uploaded file has a valid extension."""
@@ -20,43 +21,85 @@ def allowed_file(filename):
 
 @blueprint.route('/pupils')
 def pupils():
-    """Fetches all pupils with their study year and class info, and renders the manage pupils page."""
+    """Fetch and filter pupils by Reg No, Name, Class, and Study Year."""
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
-    # Join pupils with year_id and class_id
+    # Fetch all study years and classes for dropdowns
+    cursor.execute('SELECT year_id, year_name AS study_year FROM study_year ORDER BY year_name')
+    study_years = cursor.fetchall()
+
+    cursor.execute('SELECT class_id, class_name FROM classes ORDER BY class_name')
+    class_list = cursor.fetchall()
+
+    # Get search filters from the request
+    reg_no = request.args.get('reg_no', '').strip()
+    name = request.args.get('name', '').strip()
+    class_id = request.args.get('class_name', '').strip()  # using class_id in filter
+    study_year_id = request.args.get('study_year', '').strip()  # using year_id in filter
+
+    # Build SQL query dynamically
     query = '''
         SELECT 
             p.pupil_id,
             p.reg_no,
-            p.first_name,
-            p.last_name,
+            CONCAT(p.first_name, ' ', p.last_name) AS full_name,
             p.gender,
             p.image,
             p.date_of_birth,
             sy.year_name AS study_year,
-            sy.level,
-            c.class_name,
-            c.teacher_in_charge,
-            c.room_number
-        FROM 
-            pupils p
-        JOIN 
-            study_year sy ON p.year_id = sy.year_id  -- Updated column name
-        JOIN 
-            classes c ON p.class_id = c.class_id    -- Updated column name
-        ORDER BY 
-            p.last_name
+            c.class_name
+        FROM pupils p
+        JOIN study_year sy ON p.year_id = sy.year_id
+        JOIN classes c ON p.class_id = c.class_id
+        WHERE 1 = 1
     '''
-    
-    cursor.execute(query)
+
+    filters = []
+    params = {}
+
+    if reg_no:
+        filters.append("p.reg_no LIKE %(reg_no)s")
+        params['reg_no'] = f"%{reg_no}%"
+
+    if name:
+        filters.append("(p.first_name LIKE %(name)s OR p.last_name LIKE %(name)s)")
+        params['name'] = f"%{name}%"
+
+    if class_id:
+        filters.append("p.class_id = %(class_id)s")
+        params['class_id'] = class_id
+
+    if study_year_id:
+        filters.append("p.year_id = %(study_year_id)s")
+        params['study_year_id'] = study_year_id
+
+    if filters:
+        query += " AND " + " AND ".join(filters)
+
+    query += " ORDER BY p.last_name"
+
+    cursor.execute(query, params)
     pupils = cursor.fetchall()
 
-    # Close the cursor and connection
     cursor.close()
     connection.close()
 
-    return render_template('pupils/pupils.html', pupils=pupils, segment='pupils')
+    return render_template(
+        'pupils/pupils.html',
+        pupils=pupils,
+        segment='pupils',
+        class_list=class_list,
+        study_years=study_years,
+        filters={
+            'reg_no': reg_no,
+            'name': name,
+            'class_name': class_id,
+            'study_year': study_year_id
+        }
+    )
+
+
 
 
 
@@ -139,6 +182,13 @@ def edit_pupil(pupil_id):
     cursor.execute('SELECT * FROM pupils WHERE pupil_id = %s', (pupil_id,))
     pupil = cursor.fetchone()
 
+    cursor.execute('SELECT * FROM study_year ORDER BY year_name')
+    study_years = cursor.fetchall()
+    cursor.execute('SELECT * FROM classes ORDER BY class_name')
+    classes = cursor.fetchall()
+
+
+
     if not pupil:
         flash("Pupil not found!")
         return redirect(url_for('pupils_blueprint.pupils'))  # Redirect to pupils list page or home
@@ -181,7 +231,7 @@ def edit_pupil(pupil_id):
         cursor.execute(''' 
             UPDATE pupils
             SET first_name = %s, other_name = %s, last_name = %s, date_of_birth = %s, gender = %s,
-                class = %s, study_year = %s,  address = %s, emergency_contact = %s,
+                class_id = %s, year_id = %s,  address = %s, emergency_contact = %s,
                 medical_info = %s, special_needs = %s, attendance_record = %s, academic_performance = %s,
                 notes = %s, image = %s
             WHERE pupil_id = %s
@@ -198,7 +248,7 @@ def edit_pupil(pupil_id):
     cursor.close()
     connection.close()
 
-    return render_template('pupils/edit_pupil.html', pupil=pupil)
+    return render_template('pupils/edit_pupil.html',classes=classes, study_years=study_years, pupil=pupil)
 
 
 

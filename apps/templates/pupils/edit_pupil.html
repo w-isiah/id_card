@@ -1,25 +1,19 @@
 {% extends "layouts/base.html" %}
 
 {% block title %}Dashboard{% endblock %}
-
 {% block body_class %}sidebar-mini{% endblock %}
 
 {% block stylesheets %}
-  <!-- Google Font -->
+  <!-- Fonts and UI Frameworks -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-  <!-- Font Awesome -->
   <link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
-  <!-- Ionicons -->
   <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
-  <!-- AdminLTE -->
   <link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
-  <!-- DataTables -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css">
-  <!-- Select2 (if needed for dropdowns) -->
   <link rel="stylesheet" href="/static/assets/css/select2.min.css" />
 
-  <!-- Flash Message Styling -->
+  <!-- Flash Styling -->
   <style>
     .alert-container {
       position: fixed;
@@ -54,7 +48,6 @@
 
 {% block content %}
 <div class="content-wrapper">
-
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       <div class="alert-container" id="flashMessageContainer">
@@ -82,8 +75,8 @@
         <div class="col-sm-6"><h1>Edit Pupil</h1></div>
         <div class="col-sm-6">
           <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="#">Home</a></li>
-            <li class="breadcrumb-item"><a href="#">Pupils</a></li>
+            <li class="breadcrumb-item"><a href="/index">Home</a></li>
+            <li class="breadcrumb-item"><a href="/pupils">Pupils</a></li>
             <li class="breadcrumb-item active">Edit Pupil</li>
           </ol>
         </div>
@@ -107,7 +100,7 @@
                 <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
 
                 <!-- First Name -->
-                <div class="form-group row mb-3">
+                <div class="row mb-3">
                   <label class="col-sm-2 col-form-label">First Name:</label>
                   <div class="col-sm-10">
                     <input type="text" name="first_name" class="form-control" value="{{ pupil.first_name }}" required>
@@ -115,7 +108,7 @@
                 </div>
 
                 <!-- Last Name -->
-                <div class="form-group row mb-3">
+                <div class="row mb-3">
                   <label class="col-sm-2 col-form-label">Last Name:</label>
                   <div class="col-sm-10">
                     <input type="text" name="last_name" class="form-control" value="{{ pupil.last_name }}" required>
@@ -123,7 +116,7 @@
                 </div>
 
                 <!-- Date of Birth -->
-                <div class="form-group row mb-3">
+                <div class="row mb-3">
                   <label class="col-sm-2 col-form-label">Date of Birth:</label>
                   <div class="col-sm-10">
                     <input type="date" name="date_of_birth" class="form-control" value="{{ pupil.date_of_birth }}" required>
@@ -131,7 +124,7 @@
                 </div>
 
                 <!-- Gender -->
-                <div class="form-group row mb-3">
+                <div class="row mb-3">
                   <label class="col-sm-2 col-form-label">Gender:</label>
                   <div class="col-sm-10">
                     <select name="gender" class="form-control" required>
@@ -142,24 +135,32 @@
                   </div>
                 </div>
 
-                <!-- Class (Use select if using from list) -->
-                <div class="form-group row mb-3">
+                <!-- Class -->
+                <div class="row mb-3">
                   <label class="col-sm-2 col-form-label">Class:</label>
                   <div class="col-sm-10">
-                    <input type="text" name="class_name" class="form-control" value="{{ pupil.class }}" required>
+                    <select name="class_name" class="form-control select2" required>
+                      {% for class in classes %}
+                        <option value="{{ class.class_id }}" {% if class.class_id == pupil.class_id %}selected{% endif %}>{{ class.class_name }}</option>
+                      {% endfor %}
+                    </select>
                   </div>
                 </div>
 
                 <!-- Study Year -->
-                <div class="form-group row mb-3">
+                <div class="row mb-3">
                   <label class="col-sm-2 col-form-label">Study Year:</label>
                   <div class="col-sm-10">
-                    <input type="text" name="study_year" class="form-control" value="{{ pupil.study_year }}" required>
+                    <select name="study_year" class="form-control select2" required>
+                      {% for year in study_years %}
+                        <option value="{{ year.year_id }}" {% if year.year_id == pupil.study_year %}selected{% endif %}>{{ year.year_name }}</option>
+                      {% endfor %}
+                    </select>
                   </div>
                 </div>
 
                 <!-- Address -->
-                <div class="form-group row mb-3">
+                <div class="row mb-3">
                   <label class="col-sm-2 col-form-label">Address:</label>
                   <div class="col-sm-10">
                     <input type="text" name="address" class="form-control" value="{{ pupil.address }}" required>
@@ -167,7 +168,7 @@
                 </div>
 
                 <!-- Emergency Contact -->
-                <div class="form-group row mb-3">
+                <div class="row mb-3">
                   <label class="col-sm-2 col-form-label">Emergency Contact:</label>
                   <div class="col-sm-10">
                     <input type="text" name="emergency_contact" class="form-control" value="{{ pupil.emergency_contact }}" required>
@@ -175,7 +176,7 @@
                 </div>
 
                 <!-- Medical Info -->
-                <div class="form-group row mb-3">
+                <div class="row mb-3">
                   <label class="col-sm-2 col-form-label">Medical Info:</label>
                   <div class="col-sm-10">
                     <input type="text" name="medical_info" class="form-control" value="{{ pupil.medical_info }}">
@@ -183,7 +184,7 @@
                 </div>
 
                 <!-- Special Needs -->
-                <div class="form-group row mb-3">
+                <div class="row mb-3">
                   <label class="col-sm-2 col-form-label">Special Needs:</label>
                   <div class="col-sm-10">
                     <input type="text" name="special_needs" class="form-control" value="{{ pupil.special_needs }}">
@@ -191,7 +192,7 @@
                 </div>
 
                 <!-- Attendance Record -->
-                <div class="form-group row mb-3">
+                <div class="row mb-3">
                   <label class="col-sm-2 col-form-label">Attendance Record:</label>
                   <div class="col-sm-10">
                     <input type="text" name="attendance_record" class="form-control" value="{{ pupil.attendance_record }}">
@@ -199,7 +200,7 @@
                 </div>
 
                 <!-- Academic Performance -->
-                <div class="form-group row mb-3">
+                <div class="row mb-3">
                   <label class="col-sm-2 col-form-label">Academic Performance:</label>
                   <div class="col-sm-10">
                     <input type="text" name="academic_performance" class="form-control" value="{{ pupil.academic_performance }}">
@@ -207,7 +208,7 @@
                 </div>
 
                 <!-- Notes -->
-                <div class="form-group row mb-3">
+                <div class="row mb-3">
                   <label class="col-sm-2 col-form-label">Notes:</label>
                   <div class="col-sm-10">
                     <textarea name="notes" class="form-control">{{ pupil.notes }}</textarea>
@@ -215,19 +216,19 @@
                 </div>
 
                 <!-- Current Image -->
-                <div class="form-group row mb-3">
+                <div class="row mb-3">
                   <label class="col-sm-2 col-form-label">Current Image:</label>
                   <div class="col-sm-10">
                     {% if pupil.image %}
-                      <img src="{{ url_for('static', filename='uploads/' ~ pupil.image) }}" alt="Pupil Image" style="max-width: 150px; max-height: 150px;">
+                      <img src="{{ url_for('static', filename='uploads/' ~ pupil.image) }}" alt="Pupil Image" style="max-width: 150px;">
                     {% else %}
                       <p>No image uploaded.</p>
                     {% endif %}
                   </div>
                 </div>
 
-                <!-- New Image Upload -->
-                <div class="form-group row mb-3">
+                <!-- Upload New Image -->
+                <div class="row mb-3">
                   <label class="col-sm-2 col-form-label">Upload New Image:</label>
                   <div class="col-sm-10">
                     <input type="file" name="image" class="form-control" accept="image/*">
@@ -251,14 +252,10 @@
 {% endblock content %}
 
 {% block javascripts %}
-  <!-- jQuery -->
   <script src="/static/assets/plugins/jquery/jquery.min.js"></script>
-  <!-- Bootstrap 4 -->
   <script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-  <!-- AdminLTE -->
   <script src="/static/assets/js/adminlte.min.js"></script>
   <script src="/static/assets/js/demo.js"></script>
-  <!-- Select2 (if needed) -->
   <script src="/static/assets/js/select2.min.js"></script>
 
   <script>
