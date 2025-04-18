@@ -16,13 +16,13 @@
 <body class="hold-transition {% block body_class %}{% endblock body_class %}">
 <div class="wrapper">
 
-    {% include 'includes/navigation.html' %}
+ {% include 'includes/navigation.html' %}
 
-    
+    {% if session['role'] == 'admin' %}
         {% include 'includes/sidebar.html' %}
-    
-       
-    
+    {% else %}
+        {% include 'includes/user_sidebar.html' %}
+    {% endif %}
 
     {% block content %}{% endblock content %}
 

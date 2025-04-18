@@ -20,19 +20,45 @@ def allowed_file(filename):
 
 @blueprint.route('/pupils')
 def pupils():
-    """Fetches all pupils and renders the manage pupils page."""
+    """Fetches all pupils with their study year and class info, and renders the manage pupils page."""
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
-    # Fetch all pupils from the database
-    cursor.execute('SELECT * FROM pupils ORDER BY last_name')
+    # Join pupils with year_id and class_id
+    query = '''
+        SELECT 
+            p.pupil_id,
+            p.reg_no,
+            p.first_name,
+            p.last_name,
+            p.gender,
+            p.image,
+            p.date_of_birth,
+            sy.year_name AS study_year,
+            sy.level,
+            c.class_name,
+            c.teacher_in_charge,
+            c.room_number
+        FROM 
+            pupils p
+        JOIN 
+            study_year sy ON p.year_id = sy.year_id  -- Updated column name
+        JOIN 
+            classes c ON p.class_id = c.class_id    -- Updated column name
+        ORDER BY 
+            p.last_name
+    '''
+    
+    cursor.execute(query)
     pupils = cursor.fetchall()
 
     # Close the cursor and connection
     cursor.close()
     connection.close()
 
-    return render_template('pupils/pupils.html', pupils=pupils,segment='pupils')
+    return render_template('pupils/pupils.html', pupils=pupils, segment='pupils')
+
+
 
 
 # Route to add a new pupil
@@ -40,6 +66,10 @@ def pupils():
 def add_pupil():
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
+    cursor.execute('SELECT * FROM study_year ORDER BY year_name')
+    study_years = cursor.fetchall()
+    cursor.execute('SELECT * FROM classes ORDER BY class_name')
+    classes = cursor.fetchall()
 
     if request.method == 'POST':
         # Retrieve form data
@@ -90,7 +120,7 @@ def add_pupil():
     cursor.close()
     connection.close()
 
-    return render_template('pupils/add_pupil.html', segment='add_pupil')
+    return render_template('pupils/add_pupil.html',classes=classes, study_years=study_years,segment='add_pupil')
 
 
 

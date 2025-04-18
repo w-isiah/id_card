@@ -16,20 +16,35 @@
 
   <!-- Custom Styles -->
   <style>
-    /* Adjusting the container size */
-    .id-card-container {
+    .images {
       display: flex;
-      justify-content: space-between;
+      justify-content: center;
       flex-wrap: wrap;
       gap: 10px;
-      padding: 10px;
+      margin-top: 10px;
+    }
+
+    .photo {
+      width: 60px;
+      height: 60px;
+      border-radius: 10%;
+      object-fit: cover;
+      border: 2px solid #666;
+    }
+
+    .id-card-container {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 30px;
+      padding: 2rem;
     }
 
     .id-card {
       position: relative;
-      width: 480px;
-      height: 260px;
-      padding: 10px;
+      width: 260px;
+      height: 420px;
+      padding: 15px;
       border: 2px solid #333;
       border-radius: 12px;
       background: url('/static/uploads/id_image/bg.jpg') center/cover no-repeat;
@@ -48,56 +63,39 @@
       position: absolute;
       inset: 0;
       border-radius: 12px;
-      background-color: rgba(255, 255, 255, 0.2);
+      background-color: rgba(255, 255, 255, 0.1);
       z-index: 0;
     }
 
-    /* Header Styling */
-    .id-card h4 {
-      font-size: 14px;
+    .id-card h4, .id-card h5 {
       font-weight: bold;
-      color: #0056b3;
+      margin-bottom: 8px;
+    }
+
+    .id-card h4 { text-align:  center; font-size: 14px; color: #0056b3; }
+    .id-card h5 { font-size: 15px; color: #2e2e2e; }
+    .id-card p { font-size: 13px; margin: 4px 0; }
+    .id-card p strong { color: #333; }
+
+    .id-section, .id-details, .id-photo {
+      z-index: 1;
       text-align: center;
-      margin: 4px 0;
+      border-top: 1px solid #ccc;
+      padding-top: 1px;
     }
 
-    /* Info Section */
-    .id-section p {
-      font-size: 12px;
-      margin: 2px 0;
-      text-align: center;
-    }
+    .id-section h5 { color: #00695c; }
+    .id-section p strong { color: #444; }
+    .id-section em { color: #cc0000; }
 
-    .id-section p strong {
-      color: #333;
-    }
-
-    /* Images Styling */
-    .images {
-      display: flex;
-      justify-content: center;
-      gap: 5px;
-      margin-top: 8px;
-    }
-
-    .photo {
-      width: 40px;
-      height: 40px;
-      border-radius: 10%;
-      object-fit: cover;
-      border: 2px solid #666;
-    }
-
-    /* QR Code Styling */
     .qr-code {
-      width: 40px;
-      margin-top: 8px;
+      width: 70px;
+      margin-top: 10px;
     }
 
-    /* Print Button */
     .print-button-container {
       text-align: center;
-      margin: 10px 0;
+      margin: 20px 0;
     }
 
     .print-button-container .btn {
@@ -106,7 +104,6 @@
       color: #fff;
     }
 
-    /* Print Styles */
     @media print {
       body * { visibility: hidden; }
       #print-area, #print-area * { visibility: visible; }
@@ -143,55 +140,55 @@
 
         <!-- Front Side -->
         <div class="id-card">
-          <!-- Header -->
           <div class="header">
+            <h4>AUTHORITY ID</h4>
             <h4>UGANDA MARTYRS JUNIOR</h4>
             <h4>BOYS SCHOOL, NAMILYANGO</h4>
-            <h4>AUTHORITY ID</h4>
           </div>
 
-          <!-- Personal Details Section -->
           <div class="id-section">
-            <p><strong>Student:</strong> {{ data.pupil_first_name }} {{ data.other_name }} {{ data.pupil_last_name }}</p>
+            <p><strong>Child Name:</strong> {{ data.pupil_first_name }} {{ data.other_name }} {{ data.pupil_last_name }}</p>
             <p><strong>Class:</strong> {{ data.class }}</p>
             <p><strong>Reg. No:</strong> {{ data.reg_no }}</p>
+            <p><strong>Father's Name:</strong> {{ data.father_first_name }} {{ data.father_last_name }}</p>
+            <p><strong>Mother's Name:</strong> {{ data.mother_first_name }} {{ data.mother_last_name }}</p>
           </div>
 
-          <!-- Family Details Section -->
-          <div class="id-section">
-            <p><strong>Father:</strong> {{ data.father_first_name }} {{ data.father_last_name }}</p>
-            <p><strong>Mother:</strong> {{ data.mother_first_name }} {{ data.mother_last_name }}</p>
+          <div class="id-details">
+            <p><strong>Issue Date:</strong> {{ data.date_issued }}</p>
+            <p><strong>Expiry Date:</strong> {{ data.date_expiry }}</p>
           </div>
 
-          <!-- Images Section -->
           <div class="images">
             <img class="photo" src="/static/uploads/{{ data.pupil_image or 'default-avatar.png' }}" alt="Student Photo">
             <img class="photo" src="/static/uploads/{{ data.father_image or 'default-avatar.png' }}" alt="Father Photo">
             <img class="photo" src="/static/uploads/{{ data.mother_image or 'default-avatar.png' }}" alt="Mother Photo">
           </div>
 
+          <div class="images">
+            <img class="photo" src="/static/uploads/{{ data.father_sign or 'default-avatar.png' }}" alt="Father Signature">
+            <img class="photo" src="/static/uploads/{{ data.mother_sign or 'default-avatar.png' }}" alt="Mother Signature">
+          </div>
         </div>
 
         <!-- Back Side -->
         <div class="id-card">
-          <!-- School Contact Information Section -->
           <div class="id-section">
+            <p><strong>This is a property of</strong></p>
+            <p><strong>UGANDA MARTYRS JUNIOR</strong></p>
+            <p><strong>BOYS SCHOOL, NAMILYANGO</strong></p>
             <p><strong>Location:</strong> Waka</p>
             <p><strong>Contact:</strong> 759623689</p>
-            <p><strong>Email:</strong> info@school.com</p>
+            <p><strong>Email:</strong> @gmail.com</p>
             <p><strong>Address:</strong> P.O.BOX 63, Masaka</p>
           </div>
 
-          <!-- QR Code and Signature Section -->
-          <div class="images">
-            <span>Authorization Signature</span>
-            <img class="photo" src="/static/uploads/{{ data.mother_sign or 'default-avatar.png' }}" alt="Mother Signature">
-            <img class="qr-code" src="/static/uploads/qr_{{ data.pupil_id }}.png" alt="QR Code">
-          </div>
+          <span>Authorization Signature</span>
+          <img class="photo" src="/static/uploads/{{ data.mother_sign or 'default-avatar.png' }}" alt="Mother Signature">
+          <img class="qr-code" src="/static/uploads/qr_{{ data.pupil_id }}.png" alt="QR Code">
 
-          <!-- Footer Message -->
           <div class="id-section">
-            <p>If found, please return to the address above.</p>
+            <p>If found, please return to the address above</p>
           </div>
         </div>
 

@@ -16,6 +16,8 @@
   <!-- DataTables CSS -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css">
+  <!-- Select2 -->
+  <link rel="stylesheet" href="/static/assets/css/select2.min.css" />
 
   <!-- Custom CSS for Flash Messages -->
   <style>
@@ -164,22 +166,27 @@
 
                   <!-- Class -->
                   <div class="row mb-3">
-                    <label for="class" class="col-sm-2 col-form-label">Class:</label>
+                    <label for="class_id" class="col-sm-2 col-form-label">Class:</label>
                     <div class="col-sm-10">
-                      <input type="text" name="class_name" class="form-control" placeholder="Enter Class" required />
+                      <select name="class_name" class="form-control select2" required>
+                        {% for class in classes %}
+                          <option value="{{ class.class_id }}">{{ class.class_name }}</option>
+                        {% endfor %}
+                      </select>
                     </div>
                   </div>
 
                   <!-- Study Year -->
-                  <div class="form-group row mb-3">
-                    <label for="study_year" class="col-sm-2 col-form-label">Study Year:</label>
+                  <div class="row mb-3">
+                    <label for="year_id" class="col-sm-2 col-form-label">Study Year:</label>
                     <div class="col-sm-10">
-                      <input type="text" name="study_year" class="form-control" placeholder="Enter Study Year" required>
+                      <select name="study_year" class="form-control select2" required>
+                        {% for study_year in study_years %}
+                          <option value="{{ study_year.year_id }}">{{ study_year.year_name }}</option>
+                        {% endfor %}
+                      </select>
                     </div>
                   </div>
-
-
-
 
                   <!-- Admission Date -->
                   <div class="row mb-3">
@@ -282,9 +289,13 @@
   <script src="/static/assets/js/adminlte.min.js"></script>
   <!-- Demo Script -->
   <script src="/static/assets/js/demo.js"></script>
+  <!-- Select2 -->
+  <script src="/static/assets/js/select2.min.js"></script>
 
   <script>
     $(document).ready(function () {
+      $('.select2').select2();
+
       const $flash = $('#flashMessageContainer');
       if ($flash.length) {
         $flash.fadeIn(400).delay(3500).fadeOut(600);

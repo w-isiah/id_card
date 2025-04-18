@@ -1,27 +1,27 @@
 {% extends "layouts/base.html" %}
 
-{% block title %}Dashboard{% endblock %}
+{% block title %}Study Years{% endblock %}
 
 {% block body_class %}sidebar-mini{% endblock %}
 
 {% block stylesheets %}
   <!-- Google Font: Source Sans Pro -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-  
+
   <!-- Font Awesome -->
   <link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
-  
+
   <!-- Ionicons -->
   <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
-  
+
   <!-- AdminLTE Theme -->
   <link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
-  
+
   <!-- DataTables CSS -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css">
-  
-  <!-- Custom CSS for Flash Messages -->
+
+  <!-- Flash Messages CSS -->
   <style>
     .alert-container {
       position: fixed;
@@ -33,7 +33,6 @@
       width: 90%;
       display: none;
     }
-
     .alert {
       opacity: 1;
       transition: opacity 0.5s ease-in-out;
@@ -43,12 +42,10 @@
       display: flex;
       align-items: center;
     }
-
     .alert i {
       font-size: 1.2rem;
       margin-right: 10px;
     }
-
     .alert .close {
       margin-left: auto;
       font-size: 1.2rem;
@@ -85,13 +82,12 @@
     <div class="container-fluid">
       <div class="row mb-2">
         <div class="col-sm-6">
-          <h1>Pupils List</h1>
+          <h1>Study Years</h1>
         </div>
         <div class="col-sm-6">
           <ol class="breadcrumb float-sm-right">
             <li class="breadcrumb-item"><a href="/index">Home</a></li>
-            <li class="breadcrumb-item"><a href="/pupils">Pupils</a></li>
-            <li class="breadcrumb-item active">Pupils List</li>
+            <li class="breadcrumb-item active">Study Years</li>
           </ol>
         </div>
       </div>
@@ -105,61 +101,43 @@
         <div class="col-12">
           <div class="card">
             <div class="card-header">
-              <h3 class="card-title">Pupils List</h3>
+              <h3 class="card-title">List of Study Years</h3>
             </div>
 
             <!-- Card Body -->
             <div class="card-body">
               <div class="table-responsive">
-                <table id="categoriesTable" class="display stripe nowrap" style="width:100%">
+                <table id="studyYearTable" class="display stripe nowrap" style="width:100%">
                   <thead>
                     <tr>
-                      <th>Reg No</th>
-                      <th>Name</th>
-                      <th>Class</th>
-                      <th>Study Year</th>
-                      <th>Gender</th>
-                      <th>Image</th>
+                      <th>Year ID</th>
+                      <th>Year Name</th>
+                      <th>Level</th>
                       <th>Edit</th>
                       <th>Delete</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {% for pupil in pupils %}
-                    <tr class="gradeX">
-                      <!-- Display First Name and Last Name -->
-                        <td>{{ pupil.reg_no}} </td>
-                      <td>{{ pupil.last_name }} {{ pupil.first_name }} </td>
-                      <td>{{ pupil.class_name}} </td>
-                      <td>{{ pupil.study_year}} </td>
-                      <td>{{ pupil.gender}} </td>
+                    {% for year in study_years %}
+                    <tr>
+                      <td>{{ year.year_id }}</td>
+                      <td>{{ year.year_name }}</td>
+                      <td>{{ year.level }}</td>
 
+                      <!-- Edit -->
                       <td>
-                          {% if pupil.image %}
-                            <img src="/static/uploads/{{ pupil.image }}" alt="Product Image" style="width: 100px; height: 100px; object-fit: cover; border-radius: 5px;">
-                          {% else %}
-                            <span>No Image</span>
-                          {% endif %}
-                        </td>
-
-
-
-                      <!-- Edit Button -->
-                      <td>
-                        <a href="/edit_pupil/{{ pupil.pupil_id }}" 
-                           class="btn btn-sm btn-warning" 
-                           style="--bs-btn-padding-y: .25rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .75rem;">
+                        <a href="/edit_study_year/{{ year.year_id }}" 
+                           class="btn btn-sm btn-warning">
                           Edit
                         </a>
                       </td>
 
-                      <!-- Delete Button (Visible to Admin only) -->
+                      <!-- Delete (Admin Only) -->
                       <td>
                         {% if session['role'] == 'admin' %}
-                        <a href="/delete_pupil/{{ pupil.pupil_id }}" 
+                        <a href="/delete_study_year/{{ year.year_id }}" 
                            class="btn btn-sm btn-danger" 
-                           style="--bs-btn-padding-y: .25rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .75rem;"
-                           onclick="return confirm('Are you sure you want to delete {{ pupil.first_name }}?')">
+                           onclick="return confirm('Are you sure you want to delete {{ year.year_name }}?')">
                           Delete
                         </a>
                         {% else %}
@@ -183,21 +161,20 @@
 {% block javascripts %}
   <!-- jQuery -->
   <script src="/static/assets/plugins/jquery/jquery.min.js"></script>
-  
+
   <!-- Bootstrap Bundle -->
   <script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-  
+
   <!-- AdminLTE -->
   <script src="/static/assets/js/adminlte.js"></script>
-  
+
   <!-- DataTables -->
   <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
   <script src="https://cdn.datatables.net/responsive/2.3.0/js/dataTables.responsive.min.js"></script>
 
-  <!-- Custom JS for Flash Message Fade-in/Fade-out -->
   <script>
     $(document).ready(function() {
-      $('#categoriesTable').DataTable({
+      $('#studyYearTable').DataTable({
         paging: true,
         searching: true,
         ordering: true,
@@ -210,7 +187,7 @@
           }
         }
       });
-      
+
       const $flash = $('#flashMessageContainer');
       if ($flash.length) {
         $flash.fadeIn(400).delay(3500).fadeOut(600);
