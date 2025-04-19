@@ -28,233 +28,10 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_EXTENSIONS']
 
 
-@blueprint.route('/results')
-def results():
-    """Fetch and filter results by Reg No, Name, Class, and Study Year."""
-    connection = get_db_connection()
-    cursor = connection.cursor(dictionary=True)
-
-    # Fetch all study years and classes for dropdowns
-    cursor.execute('SELECT year_id, year_name AS study_year FROM study_year ORDER BY year_name')
-    study_years = cursor.fetchall()
-
-    cursor.execute('SELECT class_id, class_name FROM classes ORDER BY class_name')
-    class_list = cursor.fetchall()
-
-    # Get search filters from the request
-    reg_no = request.args.get('reg_no', '').strip()
-    name = request.args.get('name', '').strip()
-    class_id = request.args.get('class_name', '').strip()
-    study_year_id = request.args.get('study_year', '').strip()
-
-    filters = []
-    params = {}
-
-    if reg_no:
-        filters.append("p.reg_no LIKE %(reg_no)s")
-        params['reg_no'] = f"%{reg_no}%"
-
-    if name:
-        filters.append("(p.first_name LIKE %(name)s OR p.last_name LIKE %(name)s)")
-        params['name'] = f"%{name}%"
-
-    if class_id:
-        filters.append("p.class_id = %(class_id)s")
-        params['class_id'] = class_id
-
-    if study_year_id:
-        filters.append("p.year_id = %(study_year_id)s")
-        params['study_year_id'] = study_year_id
-
-    results = []
-
-    # Only run the query if filters are applied
-    if filters:
-        query = '''
-            SELECT 
-                p.result_id,
-                p.reg_no,
-                CONCAT(p.first_name, ' ', p.last_name) AS full_name,
-                p.gender,
-                p.image,
-                p.date_of_birth,
-                sy.year_name AS study_year,
-                c.class_name
-            FROM results p
-            JOIN study_year sy ON p.year_id = sy.year_id
-            JOIN classes c ON p.class_id = c.class_id
-            WHERE ''' + " AND ".join(filters) + " ORDER BY p.last_name"
-
-        cursor.execute(query, params)
-        results = cursor.fetchall()
-
-    cursor.close()
-    connection.close()
-
-    return render_template(
-        'results/results.html',
-        results=results,
-        segment='results',
-        class_list=class_list,
-        study_years=study_years,
-        filters={
-            'reg_no': reg_no,
-            'name': name,
-            'class_name': class_id,
-            'study_year': study_year_id
-        }
-    )
 
 
 
 
-
-
-# Route to add a new result
-@blueprint.route('/add_result', methods=['GET', 'POST'])
-def add_result():
-    connection = get_db_connection()
-    cursor = connection.cursor(dictionary=True)
-    cursor.execute('SELECT * FROM study_year ORDER BY year_name')
-    study_years = cursor.fetchall()
-    cursor.execute('SELECT * FROM classes ORDER BY class_name')
-    classes = cursor.fetchall()
-
-    if request.method == 'POST':
-        # Retrieve form data
-        reg_no = request.form.get('reg_no')  # You can generate or get this as needed
-        first_name = request.form.get('first_name')
-        other_name = request.form.get('other_name')
-        last_name = request.form.get('last_name')
-        date_of_birth = request.form.get('date_of_birth')
-        gender = request.form.get('gender')
-        class_name = request.form.get('class_name')
-        admission_date = request.form.get('admission_date')
-        study_year = request.form.get('study_year')
-        
-        address = request.form.get('address')
-        emergency_contact = request.form.get('emergency_contact')
-        medical_info = request.form.get('medical_info')
-        special_needs = request.form.get('special_needs')
-        attendance_record = request.form.get('attendance_record')
-        academic_performance = request.form.get('academic_performance')
-        notes = request.form.get('notes')
-
-        # Handle image upload
-        image_file = request.files.get('image')
-        image_filename = None  # Default if no image is uploaded
-
-        if image_file and allowed_file(image_file.filename):
-            filename = secure_filename(image_file.filename)
-            #image_filename = f"{reg_no}_{filename}"  # Rename with reg_no to avoid conflicts
-            image_filename = filename
-            
-            # Ensure the directory exists before saving the file
-            image_folder = os.path.join(current_app.config['UPLOAD_FOLDER'])
-            if not os.path.exists(image_folder):
-                os.makedirs(image_folder)  # Create the folder if it doesn't exist
-
-            image_path = os.path.join(image_folder, image_filename)
-            image_file.save(image_path)  # Save image
-
-        # Insert new result into the database
-        cursor.execute('''INSERT INTO results 
-            (reg_no, first_name, other_name, last_name, image, date_of_birth, gender, class, admission_date, study_year, address, emergency_contact, medical_info, special_needs, attendance_record, academic_performance, notes) 
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
-            (reg_no, first_name, other_name, last_name, image_filename, date_of_birth, gender, class_name, admission_date, study_year, address, emergency_contact, medical_info, special_needs, attendance_record, academic_performance, notes))
-        
-        connection.commit()
-        flash("result successfully added!", "success")
-
-    cursor.close()
-    connection.close()
-
-    return render_template('results/add_result.html',classes=classes, study_years=study_years,segment='add_result')
-
-
-
-
-
-
-
-# Route to edit an existing result
-@blueprint.route('/edit_result/<int:result_id>', methods=['GET', 'POST'])
-def edit_result(result_id):
-    # Connect to the database
-    connection = get_db_connection()
-    cursor = connection.cursor(dictionary=True)
-
-    # Fetch the result data from the database
-    cursor.execute('SELECT * FROM results WHERE result_id = %s', (result_id,))
-    result = cursor.fetchone()
-
-    cursor.execute('SELECT * FROM study_year ORDER BY year_name')
-    study_years = cursor.fetchall()
-    cursor.execute('SELECT * FROM classes ORDER BY class_name')
-    classes = cursor.fetchall()
-
-
-
-    if not result:
-        flash("result not found!")
-        return redirect(url_for('results_blueprint.results'))  # Redirect to results list page or home
-
-    if request.method == 'POST':
-        # Get the form data
-        first_name = request.form.get('first_name')
-        other_name = request.form.get('other_name')
-        last_name = request.form.get('last_name')
-        date_of_birth = request.form.get('date_of_birth')
-        gender = request.form.get('gender')
-        class_name = request.form.get('class_name')  # Renamed 'class' to 'class_name' to avoid conflict with Python keyword
-        study_year = request.form.get('study_year')
-      
-        address = request.form.get('address')
-        emergency_contact = request.form.get('emergency_contact')
-        medical_info = request.form.get('medical_info')
-        special_needs = request.form.get('special_needs')
-        attendance_record = request.form.get('attendance_record')
-        academic_performance = request.form.get('academic_performance')
-        notes = request.form.get('notes')
-
-        # Handle image upload
-        image_filename = result['image']  # Default to existing image if no new one is uploaded
-        image_file = request.files.get('image')
-
-        if image_file and allowed_file(image_file.filename):
-            filename = secure_filename(image_file.filename)
-            image_filename = f"{result_id}_{filename}"  # Rename with result ID to avoid conflicts
-            
-            # Ensure the directory exists before saving the file
-            image_folder = os.path.join(current_app.config['UPLOAD_FOLDER'])
-            if not os.path.exists(image_folder):
-                os.makedirs(image_folder)  # Create the folder if it doesn't exist
-
-            image_path = os.path.join(image_folder, image_filename)
-            image_file.save(image_path)  # Save new image
-
-        # Update the result data in the database
-        cursor.execute(''' 
-            UPDATE results
-            SET first_name = %s, other_name = %s, last_name = %s, date_of_birth = %s, gender = %s,
-                class_id = %s, year_id = %s,  address = %s, emergency_contact = %s,
-                medical_info = %s, special_needs = %s, attendance_record = %s, academic_performance = %s,
-                notes = %s, image = %s
-            WHERE result_id = %s
-        ''', (first_name, other_name, last_name, date_of_birth, gender, class_name, study_year, 
-              address, emergency_contact, medical_info, special_needs, attendance_record, academic_performance,
-              notes, image_filename, result_id))
-
-        # Commit the transaction
-        connection.commit()
-
-        flash("result updated successfully!", "success")
-        return redirect(url_for('results_blueprint.results'))  # Redirect to result list or home
-
-    cursor.close()
-    connection.close()
-
-    return render_template('results/edit_result.html',classes=classes, study_years=study_years, result=result)
 
 
 
@@ -268,75 +45,98 @@ def edit_result(result_id):
 
 @blueprint.route('/pdownload_template', methods=['GET'])
 def pdownload_template():
-    class_id = request.args.get("class_name")
-    year_id = request.args.get("study_year")
-
-    if not class_id or not year_id:
-        flash("Please select both Class and Study Year to download a template.", "warning")
-        return redirect(url_for('results_blueprint.pupload_excel'))  # Redirect back to upload page to select filters
-
-    # Connect to the database
     conn = get_db_connection()
     if not conn:
         return "Database connection failed", 500
 
     cursor = conn.cursor(dictionary=True)
+
     try:
-        # Fetch names from IDs
-        cursor.execute("SELECT class_name FROM classes WHERE class_id = %s", (class_id,))
-        class_row = cursor.fetchone()
-        class_name = class_row["class_name"] if class_row else "Unknown"
+        # Helper function to fetch a list of values from a table
+        def fetch_column_values(query, column_name):
+            cursor.execute(query)
+            return [row[column_name] for row in cursor.fetchall()]
 
-        cursor.execute("SELECT year_name FROM study_year WHERE year_id = %s", (year_id,))
-        year_row = cursor.fetchone()
-        study_year = year_row["year_name"] if year_row else "Unknown"
+        classes = fetch_column_values("SELECT class_name FROM classes ORDER BY class_name", "class_name")
+        study_years = fetch_column_values("SELECT year_name FROM study_year ORDER BY year_name", "year_name")
+        assessments = fetch_column_values("SELECT assessment_name FROM assessment ORDER BY assessment_name", "assessment_name")
+        terms = fetch_column_values("SELECT term_name FROM terms ORDER BY term_name", "term_name")
+        reg_nos = fetch_column_values("SELECT reg_no FROM pupils ORDER BY last_name", "reg_no")
 
-        cursor.execute("SELECT assessment_name FROM assessment ORDER BY assessment_name")
-        assessments = [row["assessment_name"] for row in cursor.fetchall()]
     finally:
         cursor.close()
         conn.close()
 
     # Create Excel workbook
     wb = openpyxl.Workbook()
-    ws_template = wb.active
-    ws_template.title = "Results Template"
+    ws1 = wb.active
+    ws1.title = "Results Template"
 
-    headers = ["reg_no", "first_name", "other_name", "last_name", "class", "study_year", "assessment", "notes"]
-    ws_template.append(headers)
+    headers = [
+        "reg_no", "first_name", "other_name", "last_name",
+        "class", "term", "assessment", "study_year", "notes",
+        "Math", "English", "Science", "Social Studies", "R.E", "Computer"
+    ]
+    ws1.append(headers)
 
-    # Fill default class and year values in the first 99 rows
-    for row in range(2, 101):
-        ws_template[f"E{row}"] = class_name
-        ws_template[f"F{row}"] = study_year
+    # Add second sheet for dropdown values
+    ws2 = wb.create_sheet("drop_down_data")
+    ws2.append(["reg_nos", "classes", "study_years", "assessments", "terms"])
+    ws2.append([
+        ", ".join(reg_nos),
+        ", ".join(classes),
+        ", ".join(study_years),
+        ", ".join(assessments),
+        ", ".join(terms)
+    ])
 
-    # Add dropdowns for assessment only
-    ws_dropdown = wb.create_sheet("drop_down_data")
-    ws_dropdown.append(["assessments"])
-    for a in assessments:
-        ws_dropdown.append([a])
-    wb.create_named_range("Assessments", ws_dropdown, f"$A$2:$A${len(assessments)+1}")
+    # Create Data Validations
+    dv_reg_no = DataValidation(type="list", formula1=f'"{",".join(reg_nos)}"', allow_blank=True)
+    dv_class = DataValidation(type="list", formula1=f'"{",".join(classes)}"', allow_blank=True)
+    dv_term = DataValidation(type="list", formula1=f'"{",".join(terms)}"', allow_blank=True)
+    dv_assessment = DataValidation(type="list", formula1=f'"{",".join(assessments)}"', allow_blank=True)
+    dv_year = DataValidation(type="list", formula1=f'"{",".join(study_years)}"', allow_blank=True)
 
-    dv = openpyxl.worksheet.datavalidation.DataValidation(type="list", formula1="=Assessments", allow_blank=True)
-    ws_template.add_data_validation(dv)
-    dv.add("G2:G100")
+    # Add validations to the sheet
+    ws1.add_data_validation(dv_reg_no)
+    ws1.add_data_validation(dv_class)
+    ws1.add_data_validation(dv_term)
+    ws1.add_data_validation(dv_assessment)
+    ws1.add_data_validation(dv_year)
 
+    # Apply validations to columns (A=1, B=2, ...)
+    dv_reg_no.add("A2:A100")       # reg_no column
+    dv_class.add("E2:E100")        # class column
+    dv_term.add("F2:F100")         # term column
+    dv_assessment.add("G2:G100")   # assessment column
+    dv_year.add("H2:H100")         # study_year column
+
+    # Save to output and return as file
     output = BytesIO()
-    wb.save(output)
-    output.seek(0)
+    try:
+        wb.save(output)
+        output.seek(0)
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name="results_template.xlsx",
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    except Exception as e:
+        return f"Error saving workbook: {e}", 500
 
-    return send_file(
-        output,
-        as_attachment=True,
-        download_name="filtered_results_template.xlsx",
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+
+
+
+
+
 
 
 @blueprint.route('/pupload_excel', methods=['GET', 'POST'])
 def pupload_excel():
-    # Load dropdown data
+
     conn = get_db_connection()
+    # Fetch all study years and classes for dropdowns
     cursor = conn.cursor(dictionary=True)
     cursor.execute('SELECT year_id, year_name AS study_year FROM study_year ORDER BY year_name')
     study_years = cursor.fetchall()
@@ -355,13 +155,11 @@ def pupload_excel():
             flash('Invalid file format. Please upload an Excel file.', 'danger')
             return redirect(request.url)
 
-        # Save file securely
-        filename = f"{uuid.uuid4()}_{secure_filename(file.filename)}"
+        filename = secure_filename(file.filename)
         file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
         file.save(file_path)
 
         try:
-            # Read and process the Excel file
             df = pd.read_excel(file_path)
             processed_data, errors, existing_reg_nos, duplicate_reg_nos = validate_excel_data(df)
 
@@ -376,25 +174,19 @@ def pupload_excel():
             if existing_reg_nos:
                 flash(f"Existing reg_no(s): {', '.join(existing_reg_nos)} (skipped).", 'warning')
 
-            # Insert valid records into the database
             insert_into_database(processed_data)
+
             flash(f"{len(processed_data)} record(s) uploaded successfully!", 'success')
+            return redirect(url_for('results_blueprint.upload_excel'))
 
         except pd.errors.EmptyDataError:
             flash('Uploaded file is empty.', 'danger')
         except Exception as e:
             flash(f'Error processing the file: {str(e)}', 'danger')
-        finally:
-            if os.path.exists(file_path):
-                os.remove(file_path)
 
-        return redirect(url_for('pupload_excel'))
+        return redirect(url_for('results_blueprint.upload_excel'))
 
-    return render_template('results/upload_excel.html',
-                           study_years=study_years,
-                           class_list=class_list)
-
-
+    return render_template('results/upload_excel.html',study_years=study_years,class_list=class_list)
 
 
 

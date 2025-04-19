@@ -1,14 +1,21 @@
 {% extends "layouts/base.html" %}
 
-{% block title %}Upload Pupil Results{% endblock %}
+{% block title %}Dashboard{% endblock %}
 {% block body_class %}sidebar-mini{% endblock %}
 
 {% block stylesheets %}
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700&display=fallback">
+  <!-- Fonts & Icons -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
   <link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
-  <link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
-  <link rel="stylesheet" href="/static/assets/css/select2.min.css">
+  <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
 
+  <!-- Theme & Plugins -->
+  <link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css">
+  <link rel="stylesheet" href="/static/assets/css/select2.min.css" />
+
+  <!-- Flash Message Styling -->
   <style>
     .alert-container {
       position: fixed;
@@ -18,13 +25,25 @@
       z-index: 9999;
       max-width: 600px;
       width: 90%;
+      display: none;
     }
-    .custom-file-label::after {
-      content: "Browse";
+    .alert {
+      opacity: 1;
+      transition: opacity 0.5s ease-in-out;
+      margin-bottom: 10px;
+      padding: 0.75rem 1.25rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
     }
-    .custom-file-input:focus ~ .custom-file-label {
-      border-color: #28a745;
-      box-shadow: 0 0 0 0.2rem rgba(40,167,69,.25);
+    .alert i {
+      font-size: 1.2rem;
+      margin-right: 10px;
+    }
+    .alert .close {
+      margin-left: auto;
+      font-size: 1.2rem;
+      line-height: 1;
     }
   </style>
 {% endblock %}
@@ -38,8 +57,13 @@
       <div class="alert-container" id="flashMessageContainer">
         {% for category, message in messages %}
           <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-            <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-circle' if category == 'warning' else 'times-circle' if category == 'danger' else 'info-circle' }}"></i>
-            {{ message }}
+            <i class="fas fa-{{
+              'check-circle' if category == 'success'
+              else 'exclamation-circle' if category == 'warning'
+              else 'times-circle' if category == 'danger'
+              else 'info-circle'
+            }}"></i>
+            <span>{{ message }}</span>
             <button type="button" class="close" data-dismiss="alert" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
@@ -52,87 +76,55 @@
   <!-- Page Header -->
   <section class="content-header">
     <div class="container-fluid">
-      <h1><i class="fas fa-upload"></i> Upload Pupil Results</h1>
+      <h1>Manage Results</h1>
     </div>
   </section>
 
   <!-- Main Content -->
   <section class="content">
     <div class="container-fluid">
-      <div class="card shadow-sm">
-        <div class="card-header bg-light">
-          <h3 class="card-title"><i class="fas fa-file-excel"></i> Upload Excel Results</h3>
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Pupil List Upload</h3>
         </div>
         <div class="card-body">
 
-          <!-- Instructions -->
-          <div class="alert alert-info">
-            <i class="fas fa-info-circle"></i>
-            Please select Class and Study Year to filter the data. After selecting, you can download the template and upload the completed file.
-          </div>
-
-          <!-- Filter Form -->
-          <form method="GET" action="{{ url_for('results_blueprint.pdownload_template') }}" class="mb-4" id="filterForm">
-            <div class="form-row align-items-end">
-              <div class="col-md-4">
-                <label for="class_name"><strong>Select Class</strong></label>
-                <select name="class_name" id="class_name" class="form-control select2" required>
-                  <option value="">-- Choose Class --</option>
-                  {% for c in class_list %}
-                    <option value="{{ c.class_id }}">{{ c.class_name }}</option>
-                  {% endfor %}
-                </select>
-              </div>
-
-              <div class="col-md-4">
-                <label for="study_year"><strong>Select Study Year</strong></label>
-                <select name="study_year" id="study_year" class="form-control select2" required>
-                  <option value="">-- Choose Year --</option>
-                  {% for y in study_years %}
-                    <option value="{{ y.year_id }}">{{ y.study_year }}</option>
-                  {% endfor %}
-                </select>
-              </div>
-
-              <div class="col-md-4 d-flex align-items-end justify-content-between">
-                <button type="submit" class="btn btn-outline-primary mr-2">
-                  <i class="fas fa-search"></i> Apply Filters
-                </button>
-                <a href="{{ url_for('results_blueprint.pupload_excel') }}" class="btn btn-secondary">
-                  <i class="fas fa-sync-alt"></i> Reset
-                </a>
-              </div>
+          <!-- Filters -->
+          <div class="row mb-3">
+            <div class="col-md-3">
+              <select name="class_name" id="class_name" class="form-control select2">
+                <option value="">Class</option>
+                {% for c in class_list %}
+                  <option value="{{ c.class_id }}">
+                    {{ c.class_name }}
+                  </option>
+                {% endfor %}
+              </select>
             </div>
-          </form>
 
-          <div id="templateDownloadSection" style="display: none;">
-            <hr>
-            <!-- Download Template Button -->
-            <form method="GET" action="{{ url_for('results_blueprint.pdownload_template') }}" class="mb-4">
-              <button type="submit" class="btn btn-outline-primary">
-                <i class="fas fa-download"></i> Download Template
-              </button>
-            </form>
+            <div class="col-md-3">
+              <select name="study_year" id="study_year" class="form-control select2">
+                <option value="">Study Year</option>
+                {% for y in study_years %}
+                  <option value="{{ y.year_id }}" >
+                    {{ y.study_year }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
           </div>
 
-          <hr>
+          <!-- Download Template -->
+          <a href="{{ url_for('results_blueprint.pdownload_template') }}" class="btn btn-info mb-4">Download Template</a>
 
-          <!-- Upload Excel File Form -->
-          <form action="" method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
+          <!-- Upload Form -->
+          <form action="{{ url_for('results_blueprint.pupload_excel') }}" method="POST" enctype="multipart/form-data">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-
             <div class="form-group">
-              <label for="file"><strong>Select Excel File</strong></label>
-              <div class="custom-file">
-                <input type="file" class="custom-file-input" id="file" name="file" accept=".xls,.xlsx" required>
-                <label class="custom-file-label" for="file">Choose file...</label>
-              </div>
-              <small class="form-text text-muted">Allowed: .xls, .xlsx | Max size: 5MB</small>
+              <label for="file">Select Excel File:</label>
+              <input type="file" class="form-control" id="file" name="file" required />
             </div>
-
-            <button type="submit" class="btn btn-success mt-3">
-              <i class="fas fa-upload"></i> Submit Results
-            </button>
+            <button type="submit" class="btn btn-success">Upload</button>
           </form>
 
         </div>
@@ -143,11 +135,19 @@
 {% endblock %}
 
 {% block javascripts %}
+  <!-- Core JS -->
   <script src="/static/assets/plugins/jquery/jquery.min.js"></script>
   <script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-  <script src="/static/assets/js/adminlte.min.js"></script>
+  <script src="/static/assets/js/adminlte.js"></script>
+
+  <!-- DataTables -->
+  <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/responsive/2.3.0/js/dataTables.responsive.min.js"></script>
+
+  <!-- Select2 -->
   <script src="/static/assets/js/select2.min.js"></script>
 
+  <!-- Init Scripts -->
   <script>
     $(document).ready(function () {
       $('.select2').select2();
@@ -156,47 +156,6 @@
       if ($flash.length) {
         $flash.fadeIn(400).delay(3500).fadeOut(600);
       }
-
-      $('#file').on('change', function () {
-        const fileName = $(this).val().split('\\').pop();
-        $(this).next('.custom-file-label').html(fileName);
-      });
-
-      // Show Download Template button only after filters are applied
-      $('#filterForm').on('submit', function (e) {
-        e.preventDefault();
-
-        const className = $('#class_name').val();
-        const studyYear = $('#study_year').val();
-
-        if (className && studyYear) {
-          // Show the Download Template button if both filters are applied
-          $('#templateDownloadSection').show();
-        } else {
-          // Hide the button if filters are not applied
-          $('#templateDownloadSection').hide();
-        }
-
-        // Proceed with form submission after validation
-        this.submit();
-      });
-
-      // Bootstrap validation
-      (function () {
-        'use strict';
-        window.addEventListener('load', function () {
-          const forms = document.getElementsByClassName('needs-validation');
-          Array.prototype.forEach.call(forms, function (form) {
-            form.addEventListener('submit', function (event) {
-              if (!form.checkValidity()) {
-                event.preventDefault();
-                event.stopPropagation();
-              }
-              form.classList.add('was-validated');
-            }, false);
-          });
-        }, false);
-      })();
     });
   </script>
 {% endblock %}
