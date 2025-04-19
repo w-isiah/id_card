@@ -40,8 +40,8 @@ def gen_ids():
             p.last_name AS pupil_last_name,
             p.gender, 
             p.date_of_birth,
-            p.class,
-            p.study_year,
+            p.class_id,
+            p.year_id,
             p.image AS pupil_image,
 
             -- Father's Info
@@ -68,7 +68,7 @@ def gen_ids():
             g.sign_image AS guardian_sign,
 
             -- Class Info
-            c.class_name,
+            c.class_id,
             c.year,
             c.teacher_in_charge,
             c.room_number
@@ -77,7 +77,7 @@ def gen_ids():
         LEFT JOIN fathers f ON p.pupil_id = f.pupil_id
         LEFT JOIN mothers m ON p.pupil_id = m.pupil_id
         LEFT JOIN guardians g ON p.pupil_id = g.pupil_id
-        LEFT JOIN classes c ON p.class = c.class_name
+        LEFT JOIN classes c ON p.class_id = c.class_id
     """)
 
     gen_id = cursor.fetchall()
@@ -115,8 +115,8 @@ def generate_id_card(pupil_id):
             p.last_name AS pupil_last_name,
             p.gender, 
             p.date_of_birth,
-            p.class,
-            p.study_year,
+            p.class_id,
+            p.year_id,
             p.image AS pupil_image,
 
             -- Father's Info
@@ -143,16 +143,17 @@ def generate_id_card(pupil_id):
             g.sign_image AS guardian_sign,
 
             -- Class Info
-            c.class_name,
+            c.class_id,
             c.year,
             c.teacher_in_charge,
-            c.room_number
+            c.room_number,
+            c.class_name
 
         FROM pupils p
         LEFT JOIN fathers f ON p.pupil_id = f.pupil_id
         LEFT JOIN mothers m ON p.pupil_id = m.pupil_id
         LEFT JOIN guardians g ON p.pupil_id = g.pupil_id
-        LEFT JOIN classes c ON p.class = c.class_name
+        LEFT JOIN classes c ON p.class_id = c.class_id
         WHERE p.pupil_id = %s
     """, (pupil_id,))
     
