@@ -8,14 +8,11 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
   <link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
   <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
-
-  <!-- Theme & Plugins -->
   <link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css">
   <link rel="stylesheet" href="/static/assets/css/select2.min.css" />
 
-  <!-- Flash Message Styling -->
   <style>
     .alert-container {
       position: fixed;
@@ -51,7 +48,6 @@
 {% block content %}
 <div class="content-wrapper">
 
-  <!-- Flash Messages -->
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       <div class="alert-container" id="flashMessageContainer">
@@ -73,14 +69,12 @@
     {% endif %}
   {% endwith %}
 
-  <!-- Page Header -->
   <section class="content-header">
     <div class="container-fluid">
       <h1>Manage Results</h1>
     </div>
   </section>
 
-  <!-- Main Content -->
   <section class="content">
     <div class="container-fluid">
       <div class="card">
@@ -89,40 +83,58 @@
         </div>
         <div class="card-body">
 
-          <!-- Filters -->
-          <div class="row mb-3">
-            <div class="col-md-3">
-              <select name="class_name" id="class_name" class="form-control select2">
-                <option value="">Class</option>
-                {% for c in class_list %}
-                  <option value="{{ c.class_id }}">
-                    {{ c.class_name }}
-                  </option>
-                {% endfor %}
-              </select>
+          <!-- Filter Form -->
+          <form method="GET" action="{{ url_for('results_blueprint.pdownload_template') }}">
+            <div class="row mb-3">
+              <div class="col-md-4">
+                <label for="class_name">Class</label>
+                <select name="class_id" class="form-control select2" required>
+                  <option value="">Select Class</option>
+                  {% for c in class_list %}
+                    <option value="{{ c.class_id }}" {% if c.class_id == selected_class_id %}selected{% endif %}>
+                      {{ c.class_name }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div class="col-md-4">
+                <label for="study_year">Study Year</label>
+                <select name="year_id" class="form-control select2" required>
+                  <option value="">Select Study Year</option>
+                  {% for y in study_years %}
+                    <option value="{{ y.year_id }}" {% if y.year_id == selected_study_year_id %}selected{% endif %}>
+                      {{ y.study_year }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary btn-block">Download Template</button>
+              </div>
             </div>
+          </form>
 
-            <div class="col-md-3">
-              <select name="study_year" id="study_year" class="form-control select2">
-                <option value="">Study Year</option>
-                {% for y in study_years %}
-                  <option value="{{ y.year_id }}" >
-                    {{ y.study_year }}
-                  </option>
-                {% endfor %}
-              </select>
-            </div>
-          </div>
+          <!-- Show download template button only if filters were applied -->
+          {% if filters_applied %}
+            <form method="GET" action="{{ url_for('results_blueprint.pdownload_template') }}">
+              <input type="hidden" name="class_id" value="{{ selected_class_id }}">
+              <input type="hidden" name="study_year_id" value="{{ selected_study_year_id }}">
+              <div class="text-right mb-4">
+                <button type="submit" class="btn btn-info">Download Template</button>
+              </div>
+            </form>
+          {% endif %}
 
-          <!-- Download Template -->
-          <a href="{{ url_for('results_blueprint.pdownload_template') }}" class="btn btn-info mb-4">Download Template</a>
+          <hr />
 
-          <!-- Upload Form -->
+          <!-- Upload Excel File -->
           <form action="{{ url_for('results_blueprint.pupload_excel') }}" method="POST" enctype="multipart/form-data">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
             <div class="form-group">
               <label for="file">Select Excel File:</label>
-              <input type="file" class="form-control" id="file" name="file" required />
+              <input type="file" class="form-control" name="file" required />
             </div>
             <button type="submit" class="btn btn-success">Upload</button>
           </form>
@@ -135,27 +147,21 @@
 {% endblock %}
 
 {% block javascripts %}
-  <!-- Core JS -->
-  <script src="/static/assets/plugins/jquery/jquery.min.js"></script>
-  <script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-  <script src="/static/assets/js/adminlte.js"></script>
+<script src="/static/assets/plugins/jquery/jquery.min.js"></script>
+<script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/static/assets/js/adminlte.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.3.0/js/dataTables.responsive.min.js"></script>
+<script src="/static/assets/js/select2.min.js"></script>
 
-  <!-- DataTables -->
-  <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-  <script src="https://cdn.datatables.net/responsive/2.3.0/js/dataTables.responsive.min.js"></script>
+<script>
+  $(document).ready(function () {
+    $('.select2').select2();
 
-  <!-- Select2 -->
-  <script src="/static/assets/js/select2.min.js"></script>
-
-  <!-- Init Scripts -->
-  <script>
-    $(document).ready(function () {
-      $('.select2').select2();
-
-      const $flash = $('#flashMessageContainer');
-      if ($flash.length) {
-        $flash.fadeIn(400).delay(3500).fadeOut(600);
-      }
-    });
-  </script>
+    const $flash = $('#flashMessageContainer');
+    if ($flash.length) {
+      $flash.fadeIn(400).delay(3500).fadeOut(600);
+    }
+  });
+</script>
 {% endblock %}

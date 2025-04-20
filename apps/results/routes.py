@@ -45,29 +45,61 @@ def allowed_file(filename):
 
 @blueprint.route('/pdownload_template', methods=['GET'])
 def pdownload_template():
+    class_id = request.args.get('class_id')
+    year_id = request.args.get('year_id')
+
+    if not class_id or not year_id:
+        flash("Missing class or study year selection", "error")
+        return redirect(url_for('results_blueprint.pupload_excel'))  # Redirect to a route where the message can be shown
+
     conn = get_db_connection()
     if not conn:
-        return "Database connection failed", 500
+        flash("Database connection failed", "error")
+        return redirect(url_for('results_blueprint.pupload_excel'))  # Redirect to appropriate route
 
     cursor = conn.cursor(dictionary=True)
 
     try:
-        # Helper function to fetch a list of values from a table
+        # Fetch helper
         def fetch_column_values(query, column_name):
             cursor.execute(query)
             return [row[column_name] for row in cursor.fetchall()]
 
+        # Dropdown values
         classes = fetch_column_values("SELECT class_name FROM classes ORDER BY class_name", "class_name")
         study_years = fetch_column_values("SELECT year_name FROM study_year ORDER BY year_name", "year_name")
         assessments = fetch_column_values("SELECT assessment_name FROM assessment ORDER BY assessment_name", "assessment_name")
         terms = fetch_column_values("SELECT term_name FROM terms ORDER BY term_name", "term_name")
-        reg_nos = fetch_column_values("SELECT reg_no FROM pupils ORDER BY last_name", "reg_no")
+
+        # Get the class name based on class_id
+        cursor.execute("""
+            SELECT class_name FROM classes WHERE class_id = %s
+        """, (class_id,))
+        class_name = cursor.fetchone()
+        if not class_name:
+            flash("Class not found", "error")
+            return redirect(url_for('results_blueprint.pupload_excel'))  # Redirect to appropriate route
+        class_name = class_name['class_name']
+
+        # Filtered pupils
+        cursor.execute("""
+            SELECT reg_no, first_name, other_name, last_name
+            FROM pupils
+            WHERE class_id = %s AND year_id = %s
+            ORDER BY last_name
+        """, (class_id, year_id))
+        pupils = cursor.fetchall()
 
     finally:
         cursor.close()
         conn.close()
 
-    # Create Excel workbook
+    # If no pupils are found, flash an error message
+    if not pupils:
+        flash("There are no students in this class for the selected year", "error")
+        return redirect(url_for('results_blueprint.pupload_excel'))  # Redirect to appropriate route
+
+    # Workbook setup
     wb = openpyxl.Workbook()
     ws1 = wb.active
     ws1.title = "Results Template"
@@ -79,53 +111,61 @@ def pdownload_template():
     ]
     ws1.append(headers)
 
-    # Add second sheet for dropdown values
+    # Add pupil rows
+    for pupil in pupils:
+        ws1.append([
+            pupil['reg_no'],
+            pupil['first_name'],
+            pupil['other_name'],
+            pupil['last_name'],
+            class_name,  # Fill the class name
+            "", "", "", "", "", "", "", "", "", "", "", ""
+        ])
+
+    # Dropdown helper
+    def safe_join(values):
+        return ",".join(str(v).replace('"', "'") for v in values)[:255]  # Excel limit
+
+    # Create second sheet for dropdown backup
     ws2 = wb.create_sheet("drop_down_data")
     ws2.append(["reg_nos", "classes", "study_years", "assessments", "terms"])
     ws2.append([
-        ", ".join(reg_nos),
+        ", ".join([p['reg_no'] for p in pupils]),
         ", ".join(classes),
         ", ".join(study_years),
         ", ".join(assessments),
         ", ".join(terms)
     ])
 
-    # Create Data Validations
-    dv_reg_no = DataValidation(type="list", formula1=f'"{",".join(reg_nos)}"', allow_blank=True)
-    dv_class = DataValidation(type="list", formula1=f'"{",".join(classes)}"', allow_blank=True)
-    dv_term = DataValidation(type="list", formula1=f'"{",".join(terms)}"', allow_blank=True)
-    dv_assessment = DataValidation(type="list", formula1=f'"{",".join(assessments)}"', allow_blank=True)
-    dv_year = DataValidation(type="list", formula1=f'"{",".join(study_years)}"', allow_blank=True)
+    # Data Validations
+    dv_class = DataValidation(type="list", formula1=f'"{safe_join(classes)}"', allow_blank=True)
+    dv_term = DataValidation(type="list", formula1=f'"{safe_join(terms)}"', allow_blank=True)
+    dv_assessment = DataValidation(type="list", formula1=f'"{safe_join(assessments)}"', allow_blank=True)
+    dv_year = DataValidation(type="list", formula1=f'"{safe_join(study_years)}"', allow_blank=True)
 
-    # Add validations to the sheet
-    ws1.add_data_validation(dv_reg_no)
     ws1.add_data_validation(dv_class)
     ws1.add_data_validation(dv_term)
     ws1.add_data_validation(dv_assessment)
     ws1.add_data_validation(dv_year)
 
-    # Apply validations to columns (A=1, B=2, ...)
-    dv_reg_no.add("A2:A100")       # reg_no column
-    dv_class.add("E2:E100")        # class column
-    dv_term.add("F2:F100")         # term column
-    dv_assessment.add("G2:G100")   # assessment column
-    dv_year.add("H2:H100")         # study_year column
+    row_count = len(pupils) + 1  # Include header row
+    if row_count > 1:  # Only add data validation if there are pupils
+        dv_class.add(f"E2:E{row_count}")
+        dv_term.add(f"F2:F{row_count}")
+        dv_assessment.add(f"G2:G{row_count}")
+        dv_year.add(f"H2:H{row_count}")
 
-    # Save to output and return as file
+    # Export to BytesIO
     output = BytesIO()
-    try:
-        wb.save(output)
-        output.seek(0)
-        return send_file(
-            output,
-            as_attachment=True,
-            download_name="results_template.xlsx",
-            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-    except Exception as e:
-        return f"Error saving workbook: {e}", 500
+    wb.save(output)
+    output.seek(0)
 
-
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name="filtered_results_template.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
 
 
