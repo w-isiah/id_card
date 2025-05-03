@@ -1,17 +1,15 @@
 {% extends "layouts/base.html" %}
 
-{% block title %}Dashboard{% endblock %}
+{% block title %}Manage Results{% endblock %}
 {% block body_class %}sidebar-mini{% endblock %}
 
 {% block stylesheets %}
-  <!-- Fonts & Icons -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700&display=swap">
   <link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
-  <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
-  <link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css">
-  <link rel="stylesheet" href="/static/assets/css/select2.min.css" />
+  <link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
+  <link rel="stylesheet" href="/static/assets/css/select2.min.css">
 
   <style>
     .alert-container {
@@ -19,47 +17,26 @@
       top: 20px;
       left: 50%;
       transform: translateX(-50%);
-      z-index: 9999;
-      max-width: 600px;
+      z-index: 1050;
       width: 90%;
+      max-width: 600px;
       display: none;
     }
-    .alert {
-      opacity: 1;
-      transition: opacity 0.5s ease-in-out;
-      margin-bottom: 10px;
-      padding: 0.75rem 1.25rem;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      display: flex;
-      align-items: center;
-    }
     .alert i {
-      font-size: 1.2rem;
       margin-right: 10px;
-    }
-    .alert .close {
-      margin-left: auto;
-      font-size: 1.2rem;
-      line-height: 1;
     }
   </style>
 {% endblock %}
 
 {% block content %}
 <div class="content-wrapper">
-
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       <div class="alert-container" id="flashMessageContainer">
         {% for category, message in messages %}
           <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-            <i class="fas fa-{{
-              'check-circle' if category == 'success'
-              else 'exclamation-circle' if category == 'warning'
-              else 'times-circle' if category == 'danger'
-              else 'info-circle'
-            }}"></i>
-            <span>{{ message }}</span>
+            <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-circle' if category == 'warning' else 'times-circle' if category == 'danger' else 'info-circle' }}"></i>
+            {{ message }}
             <button type="button" class="close" data-dismiss="alert" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
@@ -78,18 +55,16 @@
   <section class="content">
     <div class="container-fluid">
       <div class="card">
-        <div class="card-header">
-          <h3 class="card-title">Pupil List Upload</h3>
-        </div>
+        <div class="card-header"><h3 class="card-title">Download & Upload Template</h3></div>
         <div class="card-body">
 
           <!-- Filter Form -->
-          <form method="GET" action="{{ url_for('results_blueprint.pdownload_template') }}">
-            <div class="row mb-3">
+          <form method="GET" action="{{ url_for('results_blueprint.pdownload_template') }}" class="mb-4">
+            <div class="row">
               <div class="col-md-4">
-                <label for="class_name">Class</label>
+                <label for="class_id">Class</label>
                 <select name="class_id" class="form-control select2" required>
-                  <option value="">Select Class</option>
+                  <option value="">-- Select Class --</option>
                   {% for c in class_list %}
                     <option value="{{ c.class_id }}" {% if c.class_id == selected_class_id %}selected{% endif %}>
                       {{ c.class_name }}
@@ -99,9 +74,9 @@
               </div>
 
               <div class="col-md-4">
-                <label for="study_year">Study Year</label>
+                <label for="year_id">Study Year</label>
                 <select name="year_id" class="form-control select2" required>
-                  <option value="">Select Study Year</option>
+                  <option value="">-- Select Study Year --</option>
                   {% for y in study_years %}
                     <option value="{{ y.year_id }}" {% if y.year_id == selected_study_year_id %}selected{% endif %}>
                       {{ y.study_year }}
@@ -110,33 +85,38 @@
                 </select>
               </div>
 
-              <div class="col-md-4 d-flex align-items-end">
-                <button type="submit" class="btn btn-primary btn-block">Download Template</button>
+              <div class="col-md-4">
+                <label for="term_id">Term</label>
+                <select name="term_id" class="form-control select2" required>
+                  <option value="">-- Select Term --</option>
+                  {% for t in terms %}
+                    <option value="{{ t.term_id }}" {% if t.term_id == selected_term_id %}selected{% endif %}>
+                      {{ t.term_name }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+
+            <div class="row mt-3">
+              <div class="col-md-12 text-right">
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-download"></i> Download Template
+                </button>
               </div>
             </div>
           </form>
 
-          <!-- Show download template button only if filters were applied -->
-          {% if filters_applied %}
-            <form method="GET" action="{{ url_for('results_blueprint.pdownload_template') }}">
-              <input type="hidden" name="class_id" value="{{ selected_class_id }}">
-              <input type="hidden" name="study_year_id" value="{{ selected_study_year_id }}">
-              <div class="text-right mb-4">
-                <button type="submit" class="btn btn-info">Download Template</button>
-              </div>
-            </form>
-          {% endif %}
-
-          <hr />
-
-          <!-- Upload Excel File -->
-          <form action="{{ url_for('results_blueprint.pupload_excel') }}" method="POST" enctype="multipart/form-data">
+          <!-- Upload Form -->
+          <form method="POST" action="{{ url_for('results_blueprint.pupload_excel') }}" enctype="multipart/form-data">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
             <div class="form-group">
-              <label for="file">Select Excel File:</label>
-              <input type="file" class="form-control" name="file" required />
+              <label for="file">Select Excel File</label>
+              <input type="file" name="file" class="form-control" accept=".xlsx" required>
             </div>
-            <button type="submit" class="btn btn-success">Upload</button>
+            <button type="submit" class="btn btn-success">
+              <i class="fas fa-upload"></i> Upload Results
+            </button>
           </form>
 
         </div>
@@ -149,18 +129,17 @@
 {% block javascripts %}
 <script src="/static/assets/plugins/jquery/jquery.min.js"></script>
 <script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="/static/assets/js/adminlte.js"></script>
+<script src="/static/assets/js/adminlte.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/responsive/2.3.0/js/dataTables.responsive.min.js"></script>
 <script src="/static/assets/js/select2.min.js"></script>
 
 <script>
-  $(document).ready(function () {
+  $(function () {
     $('.select2').select2();
-
     const $flash = $('#flashMessageContainer');
     if ($flash.length) {
-      $flash.fadeIn(400).delay(3500).fadeOut(600);
+      $flash.fadeIn().delay(3500).fadeOut();
     }
   });
 </script>

@@ -45,88 +45,98 @@ def allowed_file(filename):
 
 @blueprint.route('/pdownload_template', methods=['GET'])
 def pdownload_template():
+    import openpyxl
+    from openpyxl.worksheet.datavalidation import DataValidation
+    from io import BytesIO
+
     class_id = request.args.get('class_id')
     year_id = request.args.get('year_id')
+    term_id = request.args.get('term_id')
 
-    if not class_id or not year_id:
-        flash("Missing class or study year selection", "error")
-        return redirect(url_for('results_blueprint.pupload_excel'))  # Redirect to a route where the message can be shown
+    if not all([class_id, year_id, term_id]):
+        flash("Please select class, study year, and term.", "error")
+        return redirect(url_for('results_blueprint.pupload_excel'))
 
     conn = get_db_connection()
     if not conn:
-        flash("Database connection failed", "error")
-        return redirect(url_for('results_blueprint.pupload_excel'))  # Redirect to appropriate route
+        flash("Failed to connect to the database.", "error")
+        return redirect(url_for('results_blueprint.pupload_excel'))
 
     cursor = conn.cursor(dictionary=True)
 
     try:
-        # Fetch helper
-        def fetch_column_values(query, column_name):
+        def fetch_column(query, column):
             cursor.execute(query)
-            return [row[column_name] for row in cursor.fetchall()]
+            return [row[column] for row in cursor.fetchall()]
 
         # Dropdown values
-        classes = fetch_column_values("SELECT class_name FROM classes ORDER BY class_name", "class_name")
-        study_years = fetch_column_values("SELECT year_name FROM study_year ORDER BY year_name", "year_name")
-        assessments = fetch_column_values("SELECT assessment_name FROM assessment ORDER BY assessment_name", "assessment_name")
-        terms = fetch_column_values("SELECT term_name FROM terms ORDER BY term_name", "term_name")
+        classes = fetch_column("SELECT class_name FROM classes ORDER BY class_name", "class_name")
+        study_years = fetch_column("SELECT year_name FROM study_year ORDER BY year_name", "year_name")
+        assessments = fetch_column("SELECT assessment_name FROM assessment ORDER BY assessment_name", "assessment_name")
+        terms = fetch_column("SELECT term_name FROM terms ORDER BY term_name", "term_name")
 
-        # Get the class name based on class_id
-        cursor.execute("""
-            SELECT class_name FROM classes WHERE class_id = %s
-        """, (class_id,))
-        class_name = cursor.fetchone()
-        if not class_name:
-            flash("Class not found", "error")
-            return redirect(url_for('results_blueprint.pupload_excel'))  # Redirect to appropriate route
-        class_name = class_name['class_name']
+        # Get class and term names
+        cursor.execute("SELECT class_name FROM classes WHERE class_id = %s", (class_id,))
+        class_row = cursor.fetchone()
+        if not class_row:
+            flash("Invalid class selected.", "error")
+            return redirect(url_for('results_blueprint.pupload_excel'))
+        class_name = class_row['class_name']
 
-        # Filtered pupils
+        cursor.execute("SELECT term_name FROM terms WHERE term_id = %s", (term_id,))
+        term_row = cursor.fetchone()
+        if not term_row:
+            flash("Invalid term selected.", "error")
+            return redirect(url_for('results_blueprint.pupload_excel'))
+        term_name = term_row['term_name']
+
+        # Get pupils in selected class, year, term
         cursor.execute("""
             SELECT reg_no, first_name, other_name, last_name
             FROM pupils
-            WHERE class_id = %s AND year_id = %s
+            WHERE class_id = %s AND year_id = %s AND term_id = %s
             ORDER BY last_name
-        """, (class_id, year_id))
+        """, (class_id, year_id, term_id))
         pupils = cursor.fetchall()
 
     finally:
         cursor.close()
         conn.close()
 
-    # If no pupils are found, flash an error message
     if not pupils:
-        flash("There are no students in this class for the selected year", "error")
-        return redirect(url_for('results_blueprint.pupload_excel'))  # Redirect to appropriate route
+        flash("No students found for the selected filters.", "error")
+        return redirect(url_for('results_blueprint.pupload_excel'))
 
-    # Workbook setup
+    # === Excel Generation ===
     wb = openpyxl.Workbook()
     ws1 = wb.active
     ws1.title = "Results Template"
 
-    headers = [
-        "reg_no", "first_name", "other_name", "last_name",
-        "class", "term", "assessment", "study_year", "notes",
-        "Math", "English", "Science", "Social Studies", "R.E", "Computer"
-    ]
+    # Define headers
+    headers = ["reg_no", "first_name", "other_name", "last_name", "class", "term", "assessment", "study_year", "notes",
+               "Math", "English", "Science", "Social Studies", "R.E", "Computer"]
     ws1.append(headers)
 
-    # Add pupil rows
+    # Add student data
     for pupil in pupils:
         ws1.append([
             pupil['reg_no'],
             pupil['first_name'],
             pupil['other_name'],
             pupil['last_name'],
-            class_name,  # Fill the class name
-            "", "", "", "", "", "", "", "", "", "", "", ""
+            class_name,
+            term_name,
+            "",  # assessment
+            "",  # study_year
+            "",  # notes
+            "", "", "", "", "", ""  # subjects
         ])
 
-    # Dropdown helper
+    # Helper to safely format dropdown options
     def safe_join(values):
-        return ",".join(str(v).replace('"', "'") for v in values)[:255]  # Excel limit
+        return ",".join(str(v).replace('"', "'") for v in values)[:255]
 
-    # Create second sheet for dropdown backup
+    # Add second sheet with dropdown backup values
     ws2 = wb.create_sheet("drop_down_data")
     ws2.append(["reg_nos", "classes", "study_years", "assessments", "terms"])
     ws2.append([
@@ -137,25 +147,17 @@ def pdownload_template():
         ", ".join(terms)
     ])
 
-    # Data Validations
+    # Data validation setup
     dv_class = DataValidation(type="list", formula1=f'"{safe_join(classes)}"', allow_blank=True)
     dv_term = DataValidation(type="list", formula1=f'"{safe_join(terms)}"', allow_blank=True)
     dv_assessment = DataValidation(type="list", formula1=f'"{safe_join(assessments)}"', allow_blank=True)
     dv_year = DataValidation(type="list", formula1=f'"{safe_join(study_years)}"', allow_blank=True)
 
-    ws1.add_data_validation(dv_class)
-    ws1.add_data_validation(dv_term)
-    ws1.add_data_validation(dv_assessment)
-    ws1.add_data_validation(dv_year)
+    for dv, col in zip([dv_class, dv_term, dv_assessment, dv_year], ['E', 'F', 'G', 'H']):
+        ws1.add_data_validation(dv)
+        dv.add(f"{col}2:{col}{len(pupils) + 1}")
 
-    row_count = len(pupils) + 1  # Include header row
-    if row_count > 1:  # Only add data validation if there are pupils
-        dv_class.add(f"E2:E{row_count}")
-        dv_term.add(f"F2:F{row_count}")
-        dv_assessment.add(f"G2:G{row_count}")
-        dv_year.add(f"H2:H{row_count}")
-
-    # Export to BytesIO
+    # Prepare file for download
     output = BytesIO()
     wb.save(output)
     output.seek(0)
@@ -174,21 +176,27 @@ def pdownload_template():
 
 @blueprint.route('/pupload_excel', methods=['GET', 'POST'])
 def pupload_excel():
-
     conn = get_db_connection()
-    # Fetch all study years and classes for dropdowns
     cursor = conn.cursor(dictionary=True)
+
+    # Fetch all dropdown data
     cursor.execute('SELECT year_id, year_name AS study_year FROM study_year ORDER BY year_name')
     study_years = cursor.fetchall()
 
     cursor.execute('SELECT class_id, class_name FROM classes ORDER BY class_name')
     class_list = cursor.fetchall()
 
+    cursor.execute('SELECT term_id, term_name FROM terms ORDER BY term_name')
+    terms = cursor.fetchall()
+
+    cursor.execute('SELECT assessment_id, assessment_name FROM assessment ORDER BY assessment_name')
+    assessments = cursor.fetchall()
+
     if request.method == 'POST':
         file = request.files.get('file')
 
         if not file or file.filename == '':
-            flash('No file selected', 'danger')
+            flash('No file selected.', 'danger')
             return redirect(request.url)
 
         if not allowed_file(file.filename):
@@ -214,19 +222,25 @@ def pupload_excel():
             if existing_reg_nos:
                 flash(f"Existing reg_no(s): {', '.join(existing_reg_nos)} (skipped).", 'warning')
 
-            insert_into_database(processed_data)
+            insert_scores_into_database(processed_data)
 
-            flash(f"{len(processed_data)} record(s) uploaded successfully!", 'success')
-            return redirect(url_for('results_blueprint.upload_excel'))
+            flash(f"{len(processed_data)} score record(s) uploaded successfully!", 'success')
+            return redirect(url_for('results_blueprint.pupload_excel'))
 
         except pd.errors.EmptyDataError:
             flash('Uploaded file is empty.', 'danger')
         except Exception as e:
             flash(f'Error processing the file: {str(e)}', 'danger')
 
-        return redirect(url_for('results_blueprint.upload_excel'))
+        return redirect(url_for('results_blueprint.pupload_excel'))
 
-    return render_template('results/upload_excel.html',study_years=study_years,class_list=class_list)
+    return render_template(
+        'results/upload_excel.html',
+        study_years=study_years,
+        class_list=class_list,
+        terms=terms,
+        assessments=assessments
+    )
 
 
 
@@ -240,8 +254,7 @@ def validate_excel_data(df):
     duplicate_reg_nos = []
     seen_reg_nos = set()
 
-    # Required columns
-    required_columns = {'reg_no', 'class', 'study_year'}
+    required_columns = {'reg_no', 'class', 'study_year', 'term', 'assessment'}
     missing_columns = required_columns - set(df.columns)
     if missing_columns:
         raise ValueError(f"Missing required columns: {', '.join(missing_columns)}")
@@ -250,25 +263,35 @@ def validate_excel_data(df):
         cursor = connection.cursor()
 
         # Fetch mappings
-        cursor.execute("SELECT `class_name`, `class_id` FROM `classes`")
-        class_map = {str(row[0]).strip(): int(row[1]) for row in cursor.fetchall()}
+        cursor.execute("SELECT class_name, class_id FROM classes")
+        class_map = {row[0].strip(): row[1] for row in cursor.fetchall()}
 
-        cursor.execute("SELECT `year_name`, `year_id` FROM `study_year`")
-        year_map = {str(row[0]).strip(): int(row[1]) for row in cursor.fetchall()}
+        cursor.execute("SELECT year_name, year_id FROM study_year")
+        year_map = {row[0].strip(): row[1] for row in cursor.fetchall()}
 
-        cursor.execute("SELECT `reg_no` FROM `results`")
-        existing_db_reg_nos = {str(row[0]).strip() for row in cursor.fetchall()}
+        cursor.execute("SELECT term_name, term_id FROM terms")
+        term_map = {row[0].strip(): row[1] for row in cursor.fetchall()}
+
+        cursor.execute("SELECT assessment_name, assessment_id FROM assessment")
+        assessment_map = {row[0].strip(): row[1] for row in cursor.fetchall()}
+
+        cursor.execute("SELECT reg_no, class_id, year_id, term_id, assessment_id FROM scores")
+        existing_score_keys = {
+            (row[0], row[1], row[2], row[3], row[4]) for row in cursor.fetchall()
+        }
 
         for index, row in df.iterrows():
             if row.isnull().all():
-                continue  # Skip empty rows
+                continue
 
-            reg_no = str(row.get('reg_no')).strip() if pd.notna(row.get('reg_no')) else ''
-            class_name = str(row.get('class')).strip() if pd.notna(row.get('class')) else ''
-            year_name = str(row.get('study_year')).strip() if pd.notna(row.get('study_year')) else ''
+            reg_no = str(row.get('reg_no')).strip()
+            class_name = str(row.get('class')).strip()
+            year_name = str(row.get('study_year')).strip()
+            term_name = str(row.get('term')).strip()
+            assessment_name = str(row.get('assessment')).strip()
 
-            if not reg_no or not class_name or not year_name:
-                errors.append(f"Row {index + 2}: Missing required fields (reg_no: '{reg_no}')")
+            if not reg_no or not class_name or not year_name or not term_name or not assessment_name:
+                errors.append(f"Row {index + 2}: Missing required fields.")
                 continue
 
             if reg_no in seen_reg_nos:
@@ -276,41 +299,44 @@ def validate_excel_data(df):
                 continue
             seen_reg_nos.add(reg_no)
 
-            if reg_no in existing_db_reg_nos:
-                existing_reg_nos.append(reg_no)
-                continue
-
             class_id = class_map.get(class_name)
             year_id = year_map.get(year_name)
+            term_id = term_map.get(term_name)
+            assessment_id = assessment_map.get(assessment_name)
 
             if not class_id:
                 errors.append(f"Row {index + 2}: Class '{class_name}' not found.")
             if not year_id:
                 errors.append(f"Row {index + 2}: Study year '{year_name}' not found.")
+            if not term_id:
+                errors.append(f"Row {index + 2}: Term '{term_name}' not found.")
+            if not assessment_id:
+                errors.append(f"Row {index + 2}: Assessment '{assessment_name}' not found.")
 
-            if class_id and year_id:
+            if class_id and year_id and term_id and assessment_id:
+                key = (reg_no, class_id, year_id, term_id, assessment_id)
+                if key in existing_score_keys:
+                    existing_reg_nos.append(reg_no)
+                    continue
+
                 data = {
                     'reg_no': reg_no,
-                    'first_name': row.get('first_name'),
-                    'other_name': row.get('other_name'),
-                    'last_name': row.get('last_name'),
-                    'date_of_birth': row.get('date_of_birth'),
-                    'gender': row.get('gender'),
                     'class_id': class_id,
-                    'admission_date': row.get('admission_date'),
                     'year_id': year_id,
-                    'address': row.get('address'),
-                    'emergency_contact': row.get('emergency_contact'),
-                    'medical_info': row.get('medical_info'),
-                    'special_needs': row.get('special_needs'),
-                    'attendance_record': row.get('attendance_record'),
-                    'academic_performance': row.get('academic_performance'),
+                    'term_id': term_id,
+                    'assessment_id': assessment_id,
+                    'math': row.get('Math'),
+                    'english': row.get('English'),
+                    'science': row.get('Science'),
+                    'social_studies': row.get('Social Studies'),
+                    're': row.get('R.E'),
+                    'computer': row.get('Computer'),
                     'notes': row.get('notes')
                 }
 
-                # Convert NaN to None
+                # Clean up NaN to None
                 for k, v in data.items():
-                    if isinstance(v, float) and pd.isna(v):
+                    if pd.isna(v):
                         data[k] = None
 
                 processed_data.append(data)
@@ -324,22 +350,18 @@ def validate_excel_data(df):
 
 
 
-def insert_into_database(processed_data):
+def insert_scores_into_database(processed_data):
     if not processed_data:
-        print("No data to insert.")
+        print("No score data to insert.")
         return
 
     insert_query = """
-        INSERT INTO `results` (
-            `reg_no`, `first_name`, `other_name`, `last_name`,
-            `date_of_birth`, `gender`, `class_id`, `admission_date`,
-            `year_id`, `address`, `emergency_contact`, `medical_info`,
-            `special_needs`, `attendance_record`, `academic_performance`, `notes`
+        INSERT INTO `scores` (
+            `reg_no`, `class_id`, `term_id`, `year_id`, `assessment_id`,
+            `math`, `english`, `science`, `social_studies`, `re`, `computer`, `notes`
         ) VALUES (
-            %(reg_no)s, %(first_name)s, %(other_name)s, %(last_name)s,
-            %(date_of_birth)s, %(gender)s, %(class_id)s, %(admission_date)s,
-            %(year_id)s, %(address)s, %(emergency_contact)s, %(medical_info)s,
-            %(special_needs)s, %(attendance_record)s, %(academic_performance)s, %(notes)s
+            %(reg_no)s, %(class_id)s, %(term_id)s, %(year_id)s, %(assessment_id)s,
+            %(math)s, %(english)s, %(science)s, %(social_studies)s, %(re)s, %(computer)s, %(notes)s
         )
     """
 
@@ -348,18 +370,18 @@ def insert_into_database(processed_data):
             cursor = connection.cursor()
 
             for data in processed_data:
-                # Convert pandas Timestamp to date
-                for date_field in ['date_of_birth', 'admission_date']:
-                    if isinstance(data[date_field], pd.Timestamp):
-                        data[date_field] = data[date_field].date()
+                # Convert any NaNs to None (already handled earlier but double-check)
+                for field in ['math', 'english', 'science', 'social_studies', 're', 'computer', 'notes']:
+                    if isinstance(data.get(field), float) and pd.isna(data[field]):
+                        data[field] = None
 
                 cursor.execute(insert_query, data)
 
             connection.commit()
-            print(f"{len(processed_data)} records successfully inserted.")
+            print(f"{len(processed_data)} score record(s) inserted into database.")
 
     except Exception as e:
-        print(" Error inserting data:", e)
+        print("❌ Error inserting score data:", e)
 
 
 
@@ -368,6 +390,7 @@ def insert_into_database(processed_data):
 
 
 
+  
 @blueprint.route('/delete_result/<int:results_id>')
 def delete_result(results_id):
     """Deletes a results from the database."""

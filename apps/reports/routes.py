@@ -1,0 +1,244 @@
+from apps.reports import blueprint
+from flask import render_template, request, redirect, url_for, flash, session
+import mysql.connector
+from werkzeug.utils import secure_filename
+from mysql.connector import Error
+from datetime import datetime
+import os
+import random
+import logging
+import re  # <-- Add this line
+from apps import get_db_connection
+from jinja2 import TemplateNotFound
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@blueprint.route('/reports', methods=['GET'])
+def reports():
+    """Fetches pupil marks per subject for a given assessment and renders the reports page."""
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    # Fetch available filters (for dropdowns)
+    cursor.execute("SELECT * FROM classes")
+    class_list = cursor.fetchall()
+
+    cursor.execute("SELECT * FROM study_year")
+    study_years = cursor.fetchall()
+
+    cursor.execute("SELECT * FROM terms")
+    terms = cursor.fetchall()
+
+    cursor.execute("SELECT * FROM assessment")
+    assessments = cursor.fetchall()
+
+    # Retrieve query parameters with default values (for applied filters)
+    class_id = request.args.get('class_id', type=int)
+    year_id = request.args.get('year_id', type=int)
+    term_id = request.args.get('term_id', type=int)
+    assessment_name = request.args.get('assessment_name', type=str)
+
+    # Initialize filters as a dictionary to track applied filters
+    filters = {
+        'class_id': class_id,
+        'year_id': year_id,
+        'term_id': term_id,
+        'assessment_name': assessment_name
+    }
+
+    # If no filters are applied, return an empty list immediately
+    if not any(filters.values()):
+        demo_data = []  # No filters applied, return an empty list
+        cursor.close()
+        connection.close()
+        return render_template(
+            'reports/reports.html',
+            reports=demo_data,
+            class_list=class_list,
+            study_years=study_years,
+            terms=terms,
+            assessments=assessments,
+            selected_class_id=None,
+            selected_study_year_id=None,
+            selected_term_id=None,
+            selected_assessment_name=None,
+            segment='reports'
+        )
+
+    # Base query to fetch the report data
+    query = """
+    SELECT 
+        p.reg_no,
+        CONCAT(p.first_name, ' ', p.other_name, ' ', p.last_name) AS full_name,
+        t.term_name,
+        a.assessment_name,
+        s.math,
+        s.english,
+        s.science,
+        s.social_studies,
+        s.re,
+        s.computer,
+        p.pupil_id
+    FROM 
+        scores s
+    JOIN 
+        pupils p ON s.reg_no = p.reg_no
+    JOIN 
+        assessment a ON s.assessment_id = a.assessment_id
+    JOIN 
+        terms t ON s.term_id = t.term_id
+    WHERE 
+        1=1
+    """
+
+    # Add conditions to the query based on provided filters
+    filter_conditions = []
+    filter_values = []
+
+    # Dynamically add filter conditions
+    if filters['class_id']:
+        filter_conditions.append("s.class_id = %s")
+        filter_values.append(filters['class_id'])
+    
+    if filters['year_id']:
+        filter_conditions.append("s.year_id = %s")
+        filter_values.append(filters['year_id'])
+
+    if filters['term_id']:
+        filter_conditions.append("s.term_id = %s")
+        filter_values.append(filters['term_id'])
+
+    if filters['assessment_name']:
+        filter_conditions.append("a.assessment_name LIKE %s")
+        filter_values.append(f"%{filters['assessment_name']}%")
+
+    # If filters are applied, add conditions to the query
+    if filter_conditions:
+        query += " AND " + " AND ".join(filter_conditions)
+
+    # Execute the query with parameters
+    cursor.execute(query, tuple(filter_values))
+    report_data = cursor.fetchall()
+
+    cursor.close()
+    connection.close()
+
+    # Return the rendered template with the report data and available filters
+    return render_template(
+        'reports/reports.html',
+        reports=report_data,
+        class_list=class_list,
+        study_years=study_years,
+        terms=terms,
+        assessments=assessments,
+        selected_class_id=class_id,
+        selected_study_year_id=year_id,
+        selected_term_id=term_id,
+        selected_assessment_name=assessment_name,
+        segment='reports'
+    )
+
+
+
+
+
+
+
+
+
+
+
+
+
+@blueprint.route('/report_card/<string:reg_no>', methods=['GET'])
+def report_card(reg_no):
+    """Generates a detailed report card for a pupil grouped by assessments."""
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    query = """
+        SELECT 
+            p.reg_no,
+            CONCAT(p.first_name, ' ', p.other_name, ' ', p.last_name) AS full_name,
+            a.assessment_name,
+            s.math,
+            s.english,
+            s.science,
+            s.social_studies,
+            s.re,
+            s.computer
+        FROM 
+            scores s
+        JOIN 
+            pupils p ON s.reg_no = p.reg_no
+        JOIN 
+            assessment a ON s.assessment_id = a.assessment_id
+        WHERE 
+            p.reg_no = %s
+        ORDER BY 
+            a.assessment_id
+    """
+    cursor.execute(query, (reg_no,))
+    records = cursor.fetchall()
+    cursor.close()
+    connection.close()
+
+    if not records:
+        return "No report card found for this pupil.", 404
+
+    pupil_name = records[0]['full_name']
+    assessments = []  # Will hold structured per-assessment info
+    overall_total = 0
+    overall_count = 0
+
+    for row in records:
+        subjects = {
+            'Math': row['math'],
+            'English': row['english'],
+            'Science': row['science'],
+            'Social Studies': row['social_studies'],
+            'RE': row['re'],
+            'Computer': row['computer']
+        }
+        assessment_total = sum(score for score in subjects.values() if score is not None)
+        assessment_count = sum(1 for score in subjects.values() if score is not None)
+
+        assessments.append({
+            'name': row['assessment_name'],
+            'scores': subjects,
+            'total': assessment_total,
+            'average': round(assessment_total / assessment_count, 2) if assessment_count else 0
+        })
+
+        overall_total += assessment_total
+        overall_count += assessment_count
+
+    overall_average = round(overall_total / overall_count, 2) if overall_count else 0
+
+    return render_template(
+        'reports/report_card.html',
+        student_name=pupil_name,
+        assessments=assessments,
+        overall_total=overall_total,
+        overall_average=overall_average
+    )
+
