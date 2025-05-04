@@ -16,22 +16,6 @@ from jinja2 import TemplateNotFound
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 @blueprint.route('/reports', methods=['GET'])
 def reports():
     """Fetches pupil marks per subject for a given assessment and renders the reports page."""
@@ -57,7 +41,6 @@ def reports():
     term_id = request.args.get('term_id', type=int)
     assessment_name = request.args.get('assessment_name', type=str)
 
-    # Initialize filters as a dictionary to track applied filters
     filters = {
         'class_id': class_id,
         'year_id': year_id,
@@ -91,12 +74,8 @@ def reports():
         CONCAT(p.first_name, ' ', p.other_name, ' ', p.last_name) AS full_name,
         t.term_name,
         a.assessment_name,
-        s.math,
-        s.english,
-        s.science,
-        s.social_studies,
-        s.re,
-        s.computer,
+        sub.subject_name,
+        s.Mark,
         p.pupil_id
     FROM 
         scores s
@@ -106,46 +85,30 @@ def reports():
         assessment a ON s.assessment_id = a.assessment_id
     JOIN 
         terms t ON s.term_id = t.term_id
-    WHERE 
-        1=1
+    JOIN 
+        subjects sub ON s.subject_id = sub.subject_id
+    WHERE 1=1
     """
 
-    # Add conditions to the query based on provided filters
-    filter_conditions = []
-    filter_values = []
-
-    # Dynamically add filter conditions
-    if filters['class_id']:
-        filter_conditions.append("s.class_id = %s")
-        filter_values.append(filters['class_id'])
+    # Add filters to query
+    if class_id:
+        query += f" AND p.class_id = {class_id}"
+    if year_id:
+        query += f" AND p.year_id = {year_id}"
+    if term_id:
+        query += f" AND s.term_id = {term_id}"
+    if assessment_name:
+        query += f" AND a.assessment_name = '{assessment_name}'"
     
-    if filters['year_id']:
-        filter_conditions.append("s.year_id = %s")
-        filter_values.append(filters['year_id'])
-
-    if filters['term_id']:
-        filter_conditions.append("s.term_id = %s")
-        filter_values.append(filters['term_id'])
-
-    if filters['assessment_name']:
-        filter_conditions.append("a.assessment_name LIKE %s")
-        filter_values.append(f"%{filters['assessment_name']}%")
-
-    # If filters are applied, add conditions to the query
-    if filter_conditions:
-        query += " AND " + " AND ".join(filter_conditions)
-
-    # Execute the query with parameters
-    cursor.execute(query, tuple(filter_values))
-    report_data = cursor.fetchall()
-
+    cursor.execute(query)
+    reports = cursor.fetchall()
+    
     cursor.close()
     connection.close()
 
-    # Return the rendered template with the report data and available filters
     return render_template(
         'reports/reports.html',
-        reports=report_data,
+        reports=reports,
         class_list=class_list,
         study_years=study_years,
         terms=terms,
@@ -156,6 +119,7 @@ def reports():
         selected_assessment_name=assessment_name,
         segment='reports'
     )
+
 
 
 

@@ -198,8 +198,6 @@ def pdownload_template():
 
 
 
-
-
 @blueprint.route('/pupload_excel', methods=['GET', 'POST'])
 def pupload_excel():
     conn = get_db_connection()
@@ -243,21 +241,28 @@ def pupload_excel():
             df = pd.read_excel(file_path)
             processed_data, errors, existing_reg_nos, duplicate_reg_nos = validate_excel_data(df)
 
-            if duplicate_reg_nos:
-                flash(f"Duplicate reg_no(s) found: {', '.join(duplicate_reg_nos)}", 'danger')
-                return redirect(request.url)
-
+            # Handle validation errors
             if errors:
                 flash('Errors encountered:\n' + '\n'.join(errors), 'danger')
                 return redirect(request.url)
 
+            # Handle duplicate reg_no
+            if duplicate_reg_nos:
+                flash(f"Duplicate reg_no(s) found: {', '.join(duplicate_reg_nos)}", 'danger')
+                return redirect(request.url)
+
+            # Handle existing records and skip insertion if found
             if existing_reg_nos:
                 flash(f"Existing reg_no(s): {', '.join(existing_reg_nos)} (skipped).", 'warning')
+                return redirect(url_for('results_blueprint.pupload_excel'))
 
-            # Insert validated data into the database
-            insert_scores_into_database(processed_data)
+            # If there are no errors or existing records, insert data into the database
+            if processed_data:
+                insert_scores_into_database(processed_data)  # Ensure the insert function is correct
+                flash(f"{len(processed_data)} score record(s) uploaded successfully!", 'success')
+            else:
+                flash('No new records to insert.', 'info')
 
-            flash(f"{len(processed_data)} score record(s) uploaded successfully!", 'success')
             return redirect(url_for('results_blueprint.pupload_excel'))
 
         except pd.errors.EmptyDataError:
@@ -294,18 +299,18 @@ def validate_excel_data(df):
     processed_data = []
     errors = []
     existing_reg_nos = []
-    duplicate_reg_nos = []
-    seen_reg_nos = set()
+    seen_keys = set()
 
-    # Standardize and check required columns
+    # Normalize column names
     df.columns = df.columns.str.lower()
+
+    # Required columns
     required_columns = {'reg_no', 'class', 'study_year', 'term', 'assessment', 'subject', 'mark'}
     missing_columns = required_columns - set(df.columns)
-
     if missing_columns:
         raise ValueError(f"Missing required columns: {', '.join(missing_columns)}")
 
-    # Get user_id from session
+    # Get current user ID from session
     user_id = session.get('id')
     if not user_id:
         raise ValueError("Missing or invalid user session ID.")
@@ -314,8 +319,7 @@ def validate_excel_data(df):
         with get_db_connection() as connection:
             cursor = connection.cursor()
 
-            # Load mappings from DB
-            mappings = {}
+            # Get mapping dictionaries from DB
             mapping_queries = {
                 'classes': "SELECT class_name, class_id FROM classes",
                 'study_year': "SELECT year_name, year_id FROM study_year",
@@ -324,25 +328,28 @@ def validate_excel_data(df):
                 'subjects': "SELECT subject_name, subject_id FROM subjects",
             }
 
+            mappings = {}
             for key, query in mapping_queries.items():
                 cursor.execute(query)
                 mappings[key] = {row[0].strip(): row[1] for row in cursor.fetchall()}
 
-            # Check for existing records
-            cursor.execute("SELECT reg_no, class_id, year_id, term_id, assessment_id, subject_id FROM scores")
+            # Load existing score keys
+            cursor.execute("""
+                SELECT reg_no, class_id, year_id, term_id, assessment_id, subject_id FROM scores
+            """)
             existing_score_keys = {
                 (row[0], row[1], row[2], row[3], row[4], row[5]) for row in cursor.fetchall()
             }
 
     except Exception as e:
         errors.append(f"Database error: {str(e)}")
-        return processed_data, errors, existing_reg_nos, duplicate_reg_nos
+        return processed_data, errors, existing_reg_nos, []
 
     for index, row in df.iterrows():
         if row.isnull().all():
             continue
 
-        # Extract and clean fields
+        # Extract fields
         reg_no = str(row.get('reg_no')).strip()
         class_name = str(row.get('class')).strip()
         year_name = str(row.get('study_year')).strip()
@@ -352,15 +359,12 @@ def validate_excel_data(df):
         mark = row.get('mark')
         notes = row.get('notes') if 'notes' in row else None
 
+        # Validate required fields
         if not all([reg_no, class_name, year_name, term_name, assessment_name, subject_name, mark]):
             errors.append(f"Row {index + 2}: Missing required fields.")
             continue
 
-        if reg_no in seen_reg_nos:
-            duplicate_reg_nos.append(reg_no)
-            continue
-        seen_reg_nos.add(reg_no)
-
+        # Convert names to IDs
         class_id = mappings['classes'].get(class_name)
         year_id = mappings['study_year'].get(year_name)
         term_id = mappings['terms'].get(term_name)
@@ -383,11 +387,13 @@ def validate_excel_data(df):
             errors.append(f"Row {index + 2}: " + "; ".join(row_errors))
             continue
 
+        # Skip if full key already exists in DB
         key = (reg_no, class_id, year_id, term_id, assessment_id, subject_id)
         if key in existing_score_keys:
             existing_reg_nos.append(reg_no)
             continue
 
+        # Prepare valid data
         data = {
             'user_id': user_id,
             'reg_no': reg_no,
@@ -402,15 +408,14 @@ def validate_excel_data(df):
 
         processed_data.append(data)
 
-    # ✅ Fixed: user_id is passed into the function call
+    # Insert if any valid records found
     if processed_data:
         try:
             insert_scores_into_database(processed_data)
         except Exception as e:
-            errors.append(f"Failed to insert score data: {str(e)}")
+            errors.append(f"Failed to insert data: {str(e)}")
 
-    return processed_data, errors, existing_reg_nos, duplicate_reg_nos
-
+    return processed_data, errors, existing_reg_nos, []
 
 
 
@@ -435,6 +440,7 @@ def insert_scores_into_database(processed_data):
         data['Mark'] = None if pd.isna(data.get('Mark')) else data.get('Mark')
         data['notes'] = None if pd.isna(data.get('notes')) else data.get('notes')
 
+    # Prepare the insert query
     insert_query = """
         INSERT INTO scores (
             user_id, reg_no, class_id, term_id, year_id,
@@ -445,12 +451,38 @@ def insert_scores_into_database(processed_data):
         )
     """
 
+    # Prepare the query to check for existing records
+    check_existing_query = """
+        SELECT COUNT(*) FROM scores
+        WHERE reg_no = %(reg_no)s
+        AND class_id = %(class_id)s
+        AND year_id = %(year_id)s
+        AND term_id = %(term_id)s
+        AND assessment_id = %(assessment_id)s
+        AND subject_id = %(subject_id)s
+    """
+
     try:
         with get_db_connection() as connection:
             with connection.cursor() as cursor:
-                cursor.executemany(insert_query, processed_data)
-            connection.commit()
-            print(f"✅ Successfully inserted {len(processed_data)} record(s).")
+                # Loop through all records and check if they already exist
+                for data in processed_data:
+                    cursor.execute(check_existing_query, {
+                        'reg_no': data['reg_no'],
+                        'class_id': data['class_id'],
+                        'year_id': data['year_id'],
+                        'term_id': data['term_id'],
+                        'assessment_id': data['assessment_id'],
+                        'subject_id': data['subject_id']
+                    })
+                    existing_count = cursor.fetchone()[0]
+                    
+                    # If the record doesn't exist, insert it
+                    if existing_count == 0:
+                        cursor.execute(insert_query, data)
+
+                connection.commit()
+                print(f"✅ Successfully inserted {len(processed_data)} record(s).")
     except Exception as e:
         print(f"❌ Error inserting data: {e}")
         raise

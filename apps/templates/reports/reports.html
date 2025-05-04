@@ -49,11 +49,7 @@
       <div class="alert-container" id="flashMessageContainer">
         {% for category, message in messages %}
           <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-            <i class="fas fa-{{ 
-              'check-circle' if category == 'success' 
-              else 'exclamation-circle' if category == 'warning' 
-              else 'times-circle' if category == 'danger' 
-              else 'info-circle' }}"></i>
+            <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-circle' if category == 'warning' else 'times-circle' if category == 'danger' else 'info-circle' }}"></i>
             <span>{{ message }}</span>
             <button type="button" class="close" data-dismiss="alert" aria-label="Close">
               <span aria-hidden="true">&times;</span>
@@ -88,7 +84,7 @@
         <div class="row">
           <div class="col-md-3">
             <label for="class_id">Class</label>
-            <select name="class_id" class="form-control" required>
+            <select name="class_id" class="form-control">
               <option value="">-- Select Class --</option>
               {% for c in class_list %}
                 <option value="{{ c.class_id }}" {% if c.class_id == selected_class_id %}selected{% endif %}>
@@ -99,7 +95,7 @@
           </div>
           <div class="col-md-3">
             <label for="year_id">Study Year</label>
-            <select name="year_id" class="form-control" required>
+            <select name="year_id" class="form-control">
               <option value="">-- Select Study Year --</option>
               {% for y in study_years %}
                 <option value="{{ y.year_id }}" {% if y.year_id == selected_study_year_id %}selected{% endif %}>
@@ -110,7 +106,7 @@
           </div>
           <div class="col-md-3">
             <label for="term_id">Term</label>
-            <select name="term_id" class="form-control" required>
+            <select name="term_id" class="form-control">
               <option value="">-- Select Term --</option>
               {% for t in terms %}
                 <option value="{{ t.term_id }}" {% if t.term_id == selected_term_id %}selected{% endif %}>
@@ -121,7 +117,7 @@
           </div>
           <div class="col-md-3">
             <label for="assessment_name">Assessment</label>
-            <select name="assessment_name" class="form-control" required>
+            <select name="assessment_name" class="form-control">
               <option value="">-- Select Assessment --</option>
               {% for a in assessments %}
                 <option value="{{ a.assessment_name }}" {% if a.assessment_name == selected_assessment_name %}selected{% endif %}>
@@ -155,38 +151,24 @@
                   <th>Full Name</th>
                   <th>Term</th>
                   <th>Assessment</th>
-                  <th>Math</th>
-                  <th>English</th>
-                  <th>Science</th>
-                  <th>Social Studies</th>
-                  <th>RE</th>
-                  <th>Computer</th>
+                  <th>Subject</th>
+                  <th>Mark</th>
                 </tr>
               </thead>
               <tbody>
-                
-                  {% for report in reports %}
-                    <tr>
-                      <td>{{ report.reg_no }}</td>
-                      <td>
-                        <a href="{{ url_for('reports_blueprint.report_card', reg_no=report.reg_no) }}"
-                           class="btn btn-sm btn-warning">
-                          Report
-                        </a>
-                      </td>
-                      <td>{{ report.full_name }}</td>
-                      <td>{{ report.term_name }}</td>
-                      <td>{{ report.assessment_name }}</td>
-                      <td>{{ report.math }}</td>
-                      <td>{{ report.english }}</td>
-                      <td>{{ report.science }}</td>
-                      <td>{{ report.social_studies }}</td>
-                      <td>{{ report.re }}</td>
-                      <td>{{ report.computer }}</td>
-                    </tr>
-                  {% endfor %}
-                
-               
+                {% for report in reports %}
+                  <tr>
+                    <td>{{ report.reg_no }}</td>
+                    <td>
+                      <!--<a href="{{ url_for('reports_blueprint.report_card', reg_no=report.reg_no) }}" class="btn btn-sm btn-warning">Report</a>-->
+                    </td>
+                    <td>{{ report.full_name }}</td>
+                    <td>{{ report.term_name }}</td>
+                    <td>{{ report.assessment_name }}</td>
+                    <td>{{ report.subject_name }}</td>
+                    <td>{{ report.Mark }}</td>
+                  </tr>
+                {% endfor %}
               </tbody>
             </table>
           </div>
