@@ -1,19 +1,18 @@
+# apps/config.py
 import random
 import string
 import os
-
 from datetime import timedelta
 
 class Config:
     """Base configuration class."""
-    # Absolute path to the current directory
     basedir = os.path.abspath(os.path.dirname(__file__))
 
     # Upload folder paths
     UPLOAD_FOLDER = os.path.join(basedir, 'static', 'uploads')
-    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif','xlsx', 'xls'}
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'xlsx', 'xls'}
 
-    # Secret key for Flask (generated securely)
+    # Secret key for Flask
     SECRET_KEY = ''.join(random.choices(string.ascii_letters + string.digits, k=32))
 
     # MySQL Configuration
@@ -22,12 +21,11 @@ class Config:
     MYSQL_PASSWORD = os.getenv('MYSQL_PASSWORD', '')
     MYSQL_DATABASE = os.getenv('MYSQL_DATABASE', 'id_card')
 
-    # Session timeout after 30 minutes of inactivity
-    PERMANENT_SESSION_LIFETIME = timedelta(minutes=30)
+    # Session timeout (7 days)
+    PERMANENT_SESSION_LIFETIME = timedelta(days=7)
 
     @staticmethod
     def init_app(app):
         """Initialize the app with the configuration."""
         app.config.from_object(Config)
-        # Ensure the upload folder exists
         os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)

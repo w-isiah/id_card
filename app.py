@@ -8,7 +8,7 @@ app = create_app(Config)
 
 def run_flask():
     """Run Flask app."""
-    app.run(debug=app.config['DEBUG'], use_reloader=False)  # Prevent Flask from running twice
+    app.run(debug=app.config['DEBUG'], use_reloader=False)
 
 if __name__ == "__main__":
     run_flask()

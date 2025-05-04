@@ -2,13 +2,14 @@ from flask import render_template, redirect, request, url_for, flash, session,cu
 from apps import get_db_connection
 from apps.authentication import blueprint
 from datetime import datetime
-from werkzeug.security import generate_password_hash, check_password_hash
+
 from werkzeug.utils import secure_filename
 import os
 import mysql.connector
 from datetime import datetime, timedelta
 
-# Access the upload folder from the current Flask app configuration
+
+
 def allowed_file(filename):
     """Check if the uploaded file has a valid extension."""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_EXTENSIONS']
@@ -18,6 +19,9 @@ def allowed_file(filename):
 @blueprint.route('/', methods=['GET', 'POST'])
 def route_default():
     return redirect(url_for('authentication_blueprint.login'))
+
+
+
 
 
 @blueprint.route('/login', methods=['GET', 'POST'])
@@ -35,13 +39,13 @@ def login():
                     user = cursor.fetchone()
 
                     if user:
-                        # Compare the password directly (insecure)
+                        # Compare the password directly (no hashing)
                         if user['password'] == password:  # Direct comparison (no hashing)
                             try:
                                 # Insert a new login record in the user_activity table
                                 cursor.execute("INSERT INTO user_activity (user_id, login_time) VALUES (%s, %s)", 
                                                (user['id'], datetime.utcnow()))
-                            
+                                
                                 # Set user as online (update `is_online` field to 1)
                                 cursor.execute("UPDATE users SET is_online = 1 WHERE id = %s", (user['id'],))
                                 connection.commit()  # Commit the changes to the database
@@ -57,29 +61,29 @@ def login():
                                     'last_activity': datetime.utcnow()
                                 })
                                 session.permanent = True  # Make the session permanent
+                                
+                                print(f"Session updated with user_id: {session.get('id')}")  # Debugging line
 
                                 flash('Login successful!', 'success')
                                 return redirect(url_for('home_blueprint.index'))  # Redirect to home page after successful login
                             except Exception as e:
-                                # Log the error to the console
                                 print(f"Error during session handling or user activity logging: {str(e)}")
                                 flash('An error occurred during the login process. Please try again later.', 'danger')
                                 return redirect(url_for('authentication_blueprint.login'))  # Redirect back to login page in case of error
-
                         else:
                             flash('Incorrect password.', 'danger')
                             return redirect(url_for('authentication_blueprint.login'))  # Redirect to login if password is incorrect
                     else:
-                        
-                        
                         flash('Username not found', 'danger')
-
                         return redirect(url_for('authentication_blueprint.login'))  # Redirect to login if username is not found
 
         except Exception as e:
             flash(f"An error occurred: {str(e)}", 'danger')  # Handle any database or other errors
 
     return render_template('accounts/login.html')  # Render the login page on GET request
+
+
+
 
 
 
