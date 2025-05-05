@@ -30,22 +30,26 @@ def allowed_file(filename):
 
 @blueprint.route('/r_pupils')
 def r_pupils():
-    """Fetch and filter pupils by Reg No, Name, Class, and Study Year."""
+    """Fetch and filter pupils by Reg No, Name, Class, Study Year, and Term."""
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
-    # Fetch all study years and classes for dropdowns
+    # Fetch all study years, classes, and terms for dropdowns
     cursor.execute('SELECT year_id, year_name AS study_year FROM study_year ORDER BY year_name')
     study_years = cursor.fetchall()
 
     cursor.execute('SELECT class_id, class_name FROM classes ORDER BY class_name')
     class_list = cursor.fetchall()
 
+    cursor.execute('SELECT term_id, term_name FROM terms ORDER BY term_name')
+    terms = cursor.fetchall()
+
     # Get search filters from the request
     reg_no = request.args.get('reg_no', '').strip()
     name = request.args.get('name', '').strip()
     class_id = request.args.get('class_name', '').strip()
     study_year_id = request.args.get('study_year', '').strip()
+    term_id = request.args.get('term', '').strip()
 
     filters = []
     params = {}
@@ -66,9 +70,12 @@ def r_pupils():
         filters.append("p.year_id = %(study_year_id)s")
         params['study_year_id'] = study_year_id
 
+    if term_id:
+        filters.append("p.term_id = %(term_id)s")
+        params['term_id'] = term_id
+
     pupils = []
 
-    # Only run the query if filters are applied
     if filters:
         query = '''
             SELECT 
@@ -79,10 +86,12 @@ def r_pupils():
                 p.image,
                 p.date_of_birth,
                 sy.year_name AS study_year,
-                c.class_name
+                c.class_name,
+                t.term_name
             FROM pupils p
             JOIN study_year sy ON p.year_id = sy.year_id
             JOIN classes c ON p.class_id = c.class_id
+            JOIN terms t ON p.term_id = t.term_id
             WHERE ''' + " AND ".join(filters) + " ORDER BY p.last_name"
 
         cursor.execute(query, params)
@@ -92,16 +101,18 @@ def r_pupils():
     connection.close()
 
     return render_template(
-        'pupils/pupils.html',
+        'register/r_pupils.html',
         pupils=pupils,
         segment='pupils',
         class_list=class_list,
         study_years=study_years,
+        terms=terms,
         filters={
             'reg_no': reg_no,
             'name': name,
             'class_name': class_id,
-            'study_year': study_year_id
+            'study_year': study_year_id,
+            'term': term_id
         }
     )
 
@@ -114,86 +125,80 @@ def r_pupils():
 
 
 
+@blueprint.route('/register_pupil', methods=['POST'])
+def register_pupil():
 
 
-# Route to edit an existing pupil
-@blueprint.route('/r_edit_pupil/<int:pupil_id>', methods=['GET', 'POST'])
-def r_edit_pupil(pupil_id):
-    # Connect to the database
+    #student_ids = request.form.getlist('student_ids')  # List of selected student IDs
+    assigned_by = session['id']  # Current user's ID from session
+
+
+    selected_pupil_ids = request.form.getlist('pupil_ids')
+    term_id = request.form.get('term')  # Correct key from form
+    flash_messages = []
+
+    if not selected_pupil_ids:
+        flash('No pupils were selected.', 'warning')
+        return redirect(url_for('register_blueprint.r_pupils'))
+    
+    if not term_id:
+        flash('No term was selected.', 'warning')
+        return redirect(url_for('register_blueprint.r_pupils'))
+
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
-    # Fetch the pupil data from the database
-    cursor.execute('SELECT * FROM pupils WHERE pupil_id = %s', (pupil_id,))
-    pupil = cursor.fetchone()
+    try:
+        for pupil_id in selected_pupil_ids:
+            # Get current term_id for the pupil
+            cursor.execute("SELECT term_id FROM pupils WHERE pupil_id = %s", (pupil_id,))
+            result = cursor.fetchone()
 
-    cursor.execute('SELECT * FROM study_year ORDER BY year_name')
-    study_years = cursor.fetchall()
-    cursor.execute('SELECT * FROM classes ORDER BY class_name')
-    classes = cursor.fetchall()
+            if not result:
+                flash_messages.append(f'Pupil {pupil_id} not found in the database, skipping.')
+                continue
 
+            current_term_id = result['term_id']
 
+            if str(current_term_id) == str(term_id):
+                flash_messages.append(f'Pupil {pupil_id} is already assigned to the selected term.')
+                continue
 
-    if not pupil:
-        flash("Pupil not found!")
-        return redirect(url_for('pupils_blueprint.pupils'))  # Redirect to pupils list page or home
+            # Perform the update if needed
+            cursor.execute("""
+                UPDATE pupils SET term_id = %s WHERE pupil_id = %s
+            """, (term_id, pupil_id))
 
-    if request.method == 'POST':
-        # Get the form data
-        first_name = request.form.get('first_name')
-        other_name = request.form.get('other_name')
-        last_name = request.form.get('last_name')
-        date_of_birth = request.form.get('date_of_birth')
-        gender = request.form.get('gender')
-        class_name = request.form.get('class_name')  # Renamed 'class' to 'class_name' to avoid conflict with Python keyword
-        study_year = request.form.get('study_year')
-      
-        address = request.form.get('address')
-        emergency_contact = request.form.get('emergency_contact')
-        medical_info = request.form.get('medical_info')
-        special_needs = request.form.get('special_needs')
-        attendance_record = request.form.get('attendance_record')
-        academic_performance = request.form.get('academic_performance')
-        notes = request.form.get('notes')
-
-        # Handle image upload
-        image_filename = pupil['image']  # Default to existing image if no new one is uploaded
-        image_file = request.files.get('image')
-
-        if image_file and allowed_file(image_file.filename):
-            filename = secure_filename(image_file.filename)
-            image_filename = f"{pupil_id}_{filename}"  # Rename with pupil ID to avoid conflicts
-            
-            # Ensure the directory exists before saving the file
-            image_folder = os.path.join(current_app.config['UPLOAD_FOLDER'])
-            if not os.path.exists(image_folder):
-                os.makedirs(image_folder)  # Create the folder if it doesn't exist
-
-            image_path = os.path.join(image_folder, image_filename)
-            image_file.save(image_path)  # Save new image
-
-        # Update the pupil data in the database
-        cursor.execute(''' 
-            UPDATE pupils
-            SET first_name = %s, other_name = %s, last_name = %s, date_of_birth = %s, gender = %s,
-                class_id = %s, year_id = %s,  address = %s, emergency_contact = %s,
-                medical_info = %s, special_needs = %s, attendance_record = %s, academic_performance = %s,
-                notes = %s, image = %s
-            WHERE pupil_id = %s
-        ''', (first_name, other_name, last_name, date_of_birth, gender, class_name, study_year, 
-              address, emergency_contact, medical_info, special_needs, attendance_record, academic_performance,
-              notes, image_filename, pupil_id))
-
-        # Commit the transaction
         connection.commit()
 
-        flash("Pupil updated successfully!", "success")
-        return redirect(url_for('pupils_blueprint.pupils'))  # Redirect to pupil list or home
+        # Flash messages from processing
+        for message in flash_messages:
+            flash(message, 'warning' if 'already' in message or 'skipping' in message else 'success')
 
-    cursor.close()
-    connection.close()
+        # Flash overall success if applicable
+        if not flash_messages or all('already' not in msg and 'skipping' not in msg for msg in flash_messages):
+            flash(f'{len(selected_pupil_ids)} pupil(s) assigned to term successfully.', 'success')
 
-    return render_template('pupils/edit_pupil.html',classes=classes, study_years=study_years, pupil=pupil)
+    except Exception as e:
+        connection.rollback()
+        flash(f'Error while assigning pupils to term: {str(e)}', 'danger')
+
+    finally:
+        cursor.close()
+        connection.close()
+
+    return redirect(url_for('register_blueprint.r_pupils'))
+
+
+
+
+
+
+
+
+
+
+
 
 
 
