@@ -71,12 +71,13 @@ def reports():
     query = """
     SELECT 
         p.reg_no,
-        CONCAT(p.first_name, ' ', p.other_name, ' ', p.last_name) AS full_name,
+        TRIM(CONCAT(p.first_name, ' ', COALESCE(p.other_name, ''), ' ', p.last_name)) AS full_name,
         t.term_name,
         a.assessment_name,
         sub.subject_name,
         s.Mark,
-        p.pupil_id
+        p.pupil_id,
+        y.year_name
     FROM 
         scores s
     JOIN 
@@ -87,6 +88,8 @@ def reports():
         terms t ON s.term_id = t.term_id
     JOIN 
         subjects sub ON s.subject_id = sub.subject_id
+    JOIN 
+        study_year y ON s.year_id = y.year_id
     WHERE 1=1
     """
 

@@ -41,11 +41,15 @@ def pupils():
     cursor.execute('SELECT class_id, class_name FROM classes ORDER BY class_name')
     class_list = cursor.fetchall()
 
+    cursor.execute('SELECT term_id, term_name FROM terms ORDER BY term_name')
+    terms = cursor.fetchall()
+
     # Get search filters from the request
     reg_no = request.args.get('reg_no', '').strip()
     name = request.args.get('name', '').strip()
     class_id = request.args.get('class_name', '').strip()
     study_year_id = request.args.get('study_year', '').strip()
+    term_id = request.args.get('term', '').strip()
 
     filters = []
     params = {}
@@ -66,6 +70,11 @@ def pupils():
         filters.append("p.year_id = %(study_year_id)s")
         params['study_year_id'] = study_year_id
 
+    if term_id:
+        filters.append("p.term_id = %(term_id)s")
+        params['term_id'] = term_id
+
+
     pupils = []
 
     # Only run the query if filters are applied
@@ -74,15 +83,17 @@ def pupils():
             SELECT 
                 p.pupil_id,
                 p.reg_no,
-                CONCAT(p.first_name, ' ', p.last_name) AS full_name,
+                TRIM(CONCAT(p.first_name, ' ', COALESCE(p.other_name, ''), ' ', p.last_name)) AS full_name,
                 p.gender,
                 p.image,
                 p.date_of_birth,
                 sy.year_name AS study_year,
-                c.class_name
+                c.class_name,
+                t.term_name
             FROM pupils p
             JOIN study_year sy ON p.year_id = sy.year_id
             JOIN classes c ON p.class_id = c.class_id
+            JOIN terms t ON p.term_id = t.term_id
             WHERE ''' + " AND ".join(filters) + " ORDER BY p.last_name"
 
         cursor.execute(query, params)
@@ -96,12 +107,14 @@ def pupils():
         pupils=pupils,
         segment='pupils',
         class_list=class_list,
+        terms=terms,
         study_years=study_years,
         filters={
             'reg_no': reg_no,
             'name': name,
             'class_name': class_id,
-            'study_year': study_year_id
+            'study_year': study_year_id,
+            'term': term_id
         }
     )
 
@@ -535,38 +548,32 @@ def delete_pupil(pupils_id):
 
 
 
+
 @blueprint.route('/<template>')
 def route_template(template):
-
+    """
+    Renders dynamic templates from the 'home' folder.
+    """
     try:
-
         if not template.endswith('.html'):
             template += '.html'
-
-        # Detect the current page
+        
         segment = get_segment(request)
-
-        # Serve the file (if exists) from app/templates/home/FILE.html
-        return render_template("pupils/" + template, segment=segment)
+        return render_template("home/" + template, segment=segment)
 
     except TemplateNotFound:
-        return render_template('home/page-404.html'), 404
+        logging.error(f"Template {template} not found")
+        return render_template('home/page-404.html', segment=segment), 404
 
-    except:
-        return render_template('home/page-500.html'), 500
+    except Exception as e:
+        logging.error(f"Error rendering template {template}: {str(e)}")
+        return render_template('home/page-500.html', segment=segment), 500
 
-
-# Helper - Extract current page name from request
 def get_segment(request):
-
-    try:
-
-        segment = request.path.split('/')[-1]
-
-        if segment == '':
-            segment = 'pupils'
-
-        return segment
-
-    except:
-        return None
+    """
+    Extracts the last part of the URL path to identify the current page.
+    """
+    segment = request.path.strip('/').split('/')[-1]
+    if not segment:
+        segment = 'pupils'
+    return segment
