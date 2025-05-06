@@ -42,7 +42,7 @@
 
 {% block content %}
 <div class="content-wrapper">
-  
+
   <!-- Header -->
   <div class="content-header">
     <div class="container-fluid">
@@ -70,18 +70,18 @@
 
   <!-- Flash Messages -->
   {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-    <div class="alert-container" id="flashMessageContainer">
-      {% for category, message in messages %}
-        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-          <strong>{{ message }}</strong>
-          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-      {% endfor %}
+  {% if messages %}
+  <div class="alert-container" id="flashMessageContainer">
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+      <strong>{{ message }}</strong>
+      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+      </button>
     </div>
-    {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
   {% endwith %}
 
   <!-- Main Content -->
@@ -89,19 +89,20 @@
     <div class="container-fluid">
       <div class="row">
         <!-- Info Boxes -->
-   
 
-      
+
+
         <div class="col-lg-3 col-6">
           <div class="small-box bg-warning">
             <div class="inner">
-              <h5>Results Management</h5>
+              <h5>Results & Reports</h5>
               <p>Results</p>
             </div>
-            <div class="icon"><i class="ion ion-person-add"></i></div>
+            <div class="icon"><i class="fas fa-tasks"></i></div>
             <a href="#" class="small-box-footer">More Info <i class="fas fa-arrow-circle-right"></i></a>
           </div>
         </div>
+
 
         
       </div>
@@ -119,37 +120,61 @@
         <div class="card-body p-3">
           <div class="row">
             <div class="col-lg-3 col-6">
-              <div class="small-box bg-info">
+              <div class="small-box bg-primary">
                 <div class="inner">
                   <h5>Results Upload</h5>
                   <p>Marks Upload</p>
                 </div>
-                <div class="icon"><i class="ion ion-bag"></i></div>
-                <a href="{{ url_for('results_blueprint.pupload_excel') }}" class="small-box-footer">View More<i class="fas fa-arrow-circle-right"></i></a>
+                <div class="icon"><i class="fas fa-upload"></i></div>
+                <a href="{{ url_for('results_blueprint.pupload_excel') }}" class="small-box-footer">View More <i class="fas fa-arrow-circle-right"></i></a>
               </div>
             </div>
 
             <div class="col-lg-3 col-6">
-              <div class="small-box bg-info">
+              <div class="small-box bg-warning">
                 <div class="inner">
                   <h5>Results Review</h5>
                   <p>Marks Review</p>
                 </div>
-                <div class="icon"><i class="ion ion-bag"></i></div>
+                <div class="icon"><i class="fas fa-search"></i></div>
                 <a href="{{ url_for('reports_blueprint.reports') }}" class="small-box-footer">View More <i class="fas fa-arrow-circle-right"></i></a>
               </div>
             </div>
 
             <div class="col-lg-3 col-6">
-              <div class="small-box bg-info">
+              <div class="small-box bg-success">
                 <div class="inner">
                   <h5>Grades</h5>
                   <p>Grades Data</p>
                 </div>
-                <div class="icon"><i class="ion ion-bag"></i></div>
+                <div class="icon"><i class="fas fa-graduation-cap"></i></div>
                 <a href="{{ url_for('grades_blueprint.grades') }}" class="small-box-footer">View More <i class="fas fa-arrow-circle-right"></i></a>
               </div>
             </div>
+
+            <div class="col-lg-3 col-6">
+              <div class="small-box bg-info">
+                <div class="inner">
+                  <h5>Term Reports</h5>
+                  <p>Grades Data</p>
+                </div>
+                <div class="icon"><i class="fas fa-chart-bar"></i></div>
+                <a href="/term_reports" class="small-box-footer">View More <i class="fas fa-arrow-circle-right"></i></a>
+              </div>
+            </div>
+
+            <div class="col-lg-3 col-6">
+              <div class="small-box bg-danger">
+                <div class="inner">
+                  <h5>Assessment Reports</h5>
+                  <p>Term Assessments</p>
+                </div>
+                <div class="icon"><i class="fas fa-file-alt"></i></div>
+                <a href="{{ url_for('grades_blueprint.grades') }}" class="small-box-footer">View More <i class="fas fa-arrow-circle-right"></i></a>
+              </div>
+            </div>
+
+
 
 
           </div>

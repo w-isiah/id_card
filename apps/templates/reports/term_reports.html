@@ -7,13 +7,12 @@
   <!-- Fonts and Icons -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
   <link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
-  <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
-
-  <!-- AdminLTE and Plugins -->
-  <link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css">
   <link rel="stylesheet" href="/static/assets/css/select2.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/fixedcolumns/5.0.4/css/fixedColumns.dataTables.css">
+  <link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
+  <link rel="stylesheet" href="/static/assets/css/mine.css">
 
   <style>
     .alert-container {
@@ -48,18 +47,12 @@
 
 {% block content %}
 <div class="content-wrapper">
-
-  <!-- Flash Messages -->
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       <div class="alert-container" id="flashMessageContainer">
         {% for category, message in messages %}
           <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-            <i class="fas fa-{{ 
-              'check-circle' if category == 'success' else 
-              'exclamation-circle' if category == 'warning' else 
-              'times-circle' if category == 'danger' else 
-              'info-circle' }}"></i>
+            <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-circle' if category == 'warning' else 'times-circle' if category == 'danger' else 'info-circle' }}"></i>
             <span>{{ message }}</span>
             <button type="button" class="close" data-dismiss="alert" aria-label="Close">
               <span aria-hidden="true">&times;</span>
@@ -70,13 +63,10 @@
     {% endif %}
   {% endwith %}
 
-  <!-- Header -->
   <section class="content-header">
     <div class="container-fluid">
       <div class="row mb-2">
-        <div class="col-sm-6">
-          <h1>Assessment Marks</h1>
-        </div>
+        <div class="col-sm-6"><h1>Assessment Marks</h1></div>
         <div class="col-sm-6">
           <ol class="breadcrumb float-sm-right">
             <li class="breadcrumb-item"><a href="/results_index">Home</a></li>
@@ -87,14 +77,12 @@
     </div>
   </section>
 
-  <!-- Main Content -->
   <section class="content">
     <div class="container-fluid">
 
       <!-- Filter Form -->
-      <form method="GET" action="{{ url_for('reports_blueprint.reports') }}" class="mb-4">
+      <form method="GET" action="{{ url_for('reports_blueprint.term_reports') }}" class="mb-4">
         <div class="row">
-          <!-- Class -->
           <div class="col-md-3">
             <label for="class_id">Class</label>
             <select name="class_id" class="form-control select2">
@@ -104,8 +92,6 @@
               {% endfor %}
             </select>
           </div>
-
-          <!-- Study Year -->
           <div class="col-md-3">
             <label for="year_id">Study Year</label>
             <select name="year_id" class="form-control select2">
@@ -115,34 +101,15 @@
               {% endfor %}
             </select>
           </div>
-
-          <!-- Term -->
           <div class="col-md-3">
             <label for="term_id">Term</label>
             <select name="term_id" class="form-control select2">
               <option value="">-- Select Term --</option>
               {% for t in terms %}
-              <option value="{{ t.term_id }}" {% if t.term_id == selected_term_id %}selected{% endif %}>{{ t.term_name }}</option>
+                <option value="{{ t.term_id }}" {% if t.term_id == selected_term_id %}selected{% endif %}>{{ t.term_name }}</option>
               {% endfor %}
             </select>
           </div>
-
-
-
-          <!-- subject -->
-          <div class="col-md-3">
-            <label for="subject_id">subject</label>
-            <select name="subject_id" class="form-control select2">
-              <option value="">-- Select subject --</option>
-              {% for s in subjects %}
-              <option value="{{ s.subject_id }}" {% if s.subject_id == selected_subject_id %}selected{% endif %}>{{ s.subject_name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-
-
-
-          <!-- Assessment -->
           <div class="col-md-3">
             <label for="assessment_name">Assessment</label>
             <select name="assessment_name" class="form-control select2">
@@ -154,12 +121,10 @@
           </div>
         </div>
 
-        <!-- Submit -->
         <div class="row mt-3">
           <div class="col-md-12 text-right">
-            <button type="submit" class="btn btn-primary">
-              <i class="fas fa-search"></i> Filter Results
-            </button>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Filter Results</button>
+            <button id="exportExcelButton" class="btn btn-success btn-sm"><i class="fas fa-file-excel"></i> Export to Excel</button>
           </div>
         </div>
       </form>
@@ -171,33 +136,31 @@
         </div>
         <div class="card-body">
           <div class="table-responsive">
-            <table id="reportTable" class="table table-striped display nowrap" style="width:100%">
+            <table id="reportTable" class="table table-striped nowrap" style="width:100%">
+
               <thead>
                 <tr>
                   <th>Reg No</th>
-                  <th>Report</th>
                   <th>Full Name</th>
-                  <th>year</th>
+                  <th>Year</th>
                   <th>Term</th>
                   <th>Assessment</th>
-                  <th>Subject</th>
-                  <th>Mark</th>
+                  {% for subject in subject_names %}
+                    <th>{{ subject }}</th>
+                  {% endfor %}
                 </tr>
               </thead>
               <tbody>
                 {% for report in reports %}
                   <tr>
                     <td>{{ report.reg_no }}</td>
-                    <td>
-                      {# Uncomment the following line if individual report view is implemented #}
-                      {# <a href="{{ url_for('reports_blueprint.report_card', reg_no=report.reg_no) }}" class="btn btn-sm btn-warning">Report</a> #}
-                    </td>
                     <td>{{ report.full_name }}</td>
-                    <td>{{ report.year_name}}</td>
+                    <td>{{ report.year_name }}</td>
                     <td>{{ report.term_name }}</td>
                     <td>{{ report.assessment_name }}</td>
-                    <td>{{ report.subject_name }}</td>
-                    <td>{{ report.Mark }}</td>
+                    {% for subject in subject_names %}
+                      <td>{{ report.marks[subject] }}</td>
+                    {% endfor %}
                   </tr>
                 {% endfor %}
               </tbody>
@@ -212,38 +175,47 @@
 {% endblock %}
 
 {% block javascripts %}
-  <!-- Scripts -->
-<!-- jQuery and Bootstrap -->
-<script src="/static/assets/plugins/jquery/jquery.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-
-<!-- AdminLTE -->
 <script src="/static/assets/js/adminlte.js"></script>
-
-<!-- Plugins -->
 <script src="/static/assets/js/select2.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/2.2.2/js/dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/responsive/2.3.0/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/fixedcolumns/5.0.4/js/dataTables.fixedColumns.min.js"></script>
+<script src="/static/assets/js/mine.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
 
+<script>
+  $(document).ready(function () {
+    $('.select2').select2();
 
-
-
-  <script>
-    $(document).ready(function () {
-      $('.select2').select2();
-
-      $('#reportTable').DataTable({
-        paging: true,
-        searching: true,
-        ordering: true,
-        responsive: true
-      });
-
-      const $flash = $('#flashMessageContainer');
-      if ($flash.length) {
-        $flash.fadeIn(400).delay(3500).fadeOut(600);
-      }
+    $('#reportTable').DataTable({
+      fixedColumns: {
+        left: 2
+      },
+      paging: false,
+      scrollX: true,
+      scrollY: 300,
+      scrollCollapse: true
     });
-  </script>
+
+    const $flash = $('#flashMessageContainer');
+    if ($flash.length) {
+      $flash.fadeIn(400).delay(3500).fadeOut(600);
+    }
+
+    $('#exportExcelButton').click(function (e) {
+      e.preventDefault();
+      exportTableToExcel('reportTable', 'assessment_report');
+    });
+
+    function exportTableToExcel(tableId, filename = 'export') {
+      const table = document.getElementById(tableId);
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.table_to_sheet(table);
+      XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+      XLSX.writeFile(wb, filename + '.xlsx');
+    }
+  });
+</script>
 {% endblock %}
-s
