@@ -4,63 +4,63 @@
 {% block body_class %}sidebar-mini{% endblock %}
 
 {% block stylesheets %}
-  <!-- Fonts and Icons -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-  <link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
-  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
-  <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css">
-  <link rel="stylesheet" href="/static/assets/css/select2.min.css">
-  <link rel="stylesheet" href="https://cdn.datatables.net/fixedcolumns/5.0.4/css/fixedColumns.dataTables.css">
-  <link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
-  <link rel="stylesheet" href="/static/assets/css/mine.css">
+<!-- Fonts and Icons -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+<link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css">
+<link rel="stylesheet" href="/static/assets/css/select2.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/fixedcolumns/5.0.4/css/fixedColumns.dataTables.css">
+<link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
+<link rel="stylesheet" href="/static/assets/css/mine.css">
 
-  <style>
-    .alert-container {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 9999;
-      max-width: 600px;
-      width: 90%;
-      display: none;
-    }
-    .alert {
-      transition: opacity 0.5s ease-in-out;
-      margin-bottom: 10px;
-      padding: 0.75rem 1.25rem;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      display: flex;
-      align-items: center;
-    }
-    .alert i {
-      font-size: 1.2rem;
-      margin-right: 10px;
-    }
-    .alert .close {
-      margin-left: auto;
-      font-size: 1.2rem;
-      line-height: 1;
-    }
-  </style>
+<style>
+  .alert-container {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    max-width: 600px;
+    width: 90%;
+    display: none;
+  }
+  .alert {
+    transition: opacity 0.5s ease-in-out;
+    margin-bottom: 10px;
+    padding: 0.75rem 1.25rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+  }
+  .alert i {
+    font-size: 1.2rem;
+    margin-right: 10px;
+  }
+  .alert .close {
+    margin-left: auto;
+    font-size: 1.2rem;
+    line-height: 1;
+  }
+</style>
 {% endblock %}
 
 {% block content %}
 <div class="content-wrapper">
   {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <div class="alert-container" id="flashMessageContainer">
-        {% for category, message in messages %}
-          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-            <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-circle' if category == 'warning' else 'times-circle' if category == 'danger' else 'info-circle' }}"></i>
-            <span>{{ message }}</span>
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
-        {% endfor %}
-      </div>
-    {% endif %}
+  {% if messages %}
+  <div class="alert-container" id="flashMessageContainer">
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+      <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-circle' if category == 'warning' else 'times-circle' if category == 'danger' else 'info-circle' }}"></i>
+      <span>{{ message }}</span>
+      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
   {% endwith %}
 
   <section class="content-header">
@@ -88,7 +88,7 @@
             <select name="class_id" class="form-control select2">
               <option value="">-- Select Class --</option>
               {% for c in class_list %}
-                <option value="{{ c.class_id }}" {% if c.class_id == selected_class_id %}selected{% endif %}>{{ c.class_name }}</option>
+              <option value="{{ c.class_id }}" {% if c.class_id == selected_class_id %}selected{% endif %}>{{ c.class_name }}</option>
               {% endfor %}
             </select>
           </div>
@@ -97,7 +97,7 @@
             <select name="year_id" class="form-control select2">
               <option value="">-- Select Study Year --</option>
               {% for y in study_years %}
-                <option value="{{ y.year_id }}" {% if y.year_id == selected_study_year_id %}selected{% endif %}>{{ y.year_name }}</option>
+              <option value="{{ y.year_id }}" {% if y.year_id == selected_study_year_id %}selected{% endif %}>{{ y.year_name }}</option>
               {% endfor %}
             </select>
           </div>
@@ -106,7 +106,7 @@
             <select name="term_id" class="form-control select2">
               <option value="">-- Select Term --</option>
               {% for t in terms %}
-                <option value="{{ t.term_id }}" {% if t.term_id == selected_term_id %}selected{% endif %}>{{ t.term_name }}</option>
+              <option value="{{ t.term_id }}" {% if t.term_id == selected_term_id %}selected{% endif %}>{{ t.term_name }}</option>
               {% endfor %}
             </select>
           </div>
@@ -115,7 +115,7 @@
             <select name="assessment_name" class="form-control select2">
               <option value="">-- Select Assessment --</option>
               {% for a in assessments %}
-                <option value="{{ a.assessment_name }}" {% if a.assessment_name == selected_assessment_name %}selected{% endif %}>{{ a.assessment_name }}</option>
+              <option value="{{ a.assessment_name }}" {% if a.assessment_name == selected_assessment_name %}selected{% endif %}>{{ a.assessment_name }}</option>
               {% endfor %}
             </select>
           </div>
@@ -136,8 +136,10 @@
         </div>
         <div class="card-body">
           <div class="table-responsive">
-            <table id="reportTable" class="table table-striped nowrap" style="width:100%">
+          
 
+
+             <table id="reportTable" class="table table-striped nowrap" style="width:100%">
               <thead>
                 <tr>
                   <th>Reg No</th>
@@ -146,25 +148,32 @@
                   <th>Term</th>
                   <th>Assessment</th>
                   {% for subject in subject_names %}
-                    <th>{{ subject }}</th>
+                  <th>{{ subject }} (Mark)</th>
+                  <th>{{ subject }} (Grade)</th>
+                  <th>{{ subject }} (Remark)</th>
                   {% endfor %}
                 </tr>
               </thead>
               <tbody>
                 {% for report in reports %}
-                  <tr>
-                    <td>{{ report.reg_no }}</td>
-                    <td>{{ report.full_name }}</td>
-                    <td>{{ report.year_name }}</td>
-                    <td>{{ report.term_name }}</td>
-                    <td>{{ report.assessment_name }}</td>
-                    {% for subject in subject_names %}
-                      <td>{{ report.marks[subject] }}</td>
-                    {% endfor %}
-                  </tr>
+                <tr>
+                  <td>{{ report.reg_no }}</td>
+                  <td>{{ report.full_name }}</td>
+                  <td>{{ report.year_name }}</td>
+                  <td>{{ report.term_name }}</td>
+                  <td>{{ report.assessment_name }}</td>
+                  {% for subject in subject_names %}
+                  <td>{{ report.marks[subject] }}</td>
+                  <td>{{ report.grades[subject] }}</td>
+                  <td>{{ report.remarks[subject] }}</td>
+                  {% endfor %}
+                </tr>
                 {% endfor %}
               </tbody>
             </table>
+
+
+
           </div>
         </div>
       </div>

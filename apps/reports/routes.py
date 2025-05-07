@@ -233,8 +233,6 @@ def report_card(reg_no):
 
 
 
-
-
 @blueprint.route('/term_reports', methods=['GET'])
 def term_reports():
     connection = get_db_connection()
@@ -283,7 +281,7 @@ def term_reports():
             segment='reports'
         )
 
-    # Main query to fetch data
+    # Main query to fetch data with grades
     query = """
     SELECT 
         p.reg_no,
@@ -292,6 +290,8 @@ def term_reports():
         a.assessment_name,
         sub.subject_name,
         s.Mark,
+        g.grade_letter,
+        g.remark,
         p.pupil_id,
         y.year_name
     FROM 
@@ -301,6 +301,7 @@ def term_reports():
     JOIN terms t ON s.term_id = t.term_id
     JOIN subjects sub ON s.subject_id = sub.subject_id
     JOIN study_year y ON s.year_id = y.year_id
+    JOIN grades g ON s.Mark BETWEEN g.min_score AND g.max_score
     WHERE 1=1
     """
 
@@ -335,9 +336,13 @@ def term_reports():
                 'term_name': row['term_name'],
                 'assessment_name': row['assessment_name'],
                 'year_name': row['year_name'],
-                'marks': {sub: '' for sub in subject_names}
+                'marks': {sub: '' for sub in subject_names},
+                'grades': {sub: '' for sub in subject_names},
+                'remarks': {sub: '' for sub in subject_names}
             }
         pivoted[key]['marks'][row['subject_name']] = row['Mark']
+        pivoted[key]['grades'][row['subject_name']] = row['grade_letter']
+        pivoted[key]['remarks'][row['subject_name']] = row['remark']
 
     reports = list(pivoted.values())
 
