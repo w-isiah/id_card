@@ -10,6 +10,7 @@ import logging
 import re  # <-- Add this line
 from apps import get_db_connection
 from jinja2 import TemplateNotFound
+import numpy as np 
 
 
 
@@ -362,5 +363,136 @@ def term_reports():
         selected_study_year_id=year_id,
         selected_term_id=term_id,
         selected_assessment_name=assessment_name,
+        segment='reports'
+    )
+
+
+
+
+
+
+
+
+@blueprint.route('/scores_reports', methods=['GET'])
+def scores_reports():
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    # Load dropdowns
+    cursor.execute("SELECT * FROM classes")
+    class_list = cursor.fetchall()
+    cursor.execute("SELECT * FROM study_year")
+    study_years = cursor.fetchall()
+    cursor.execute("SELECT * FROM terms")
+    terms = cursor.fetchall()
+    cursor.execute("SELECT * FROM assessment")
+    assessments = cursor.fetchall()
+
+    # Get filters
+    class_id = request.args.get('class_id', type=int)
+    year_id = request.args.get('year_id', type=int)
+    term_id = request.args.get('term_id', type=int)
+    assessment_name = request.args.get('assessment_name', type=str)
+
+    filters = {
+        'class_id': class_id,
+        'year_id': year_id,
+        'term_id': term_id,
+        'assessment_name': assessment_name
+    }
+
+    if not any(filters.values()):
+        return render_template('reports/scores_reports.html',
+            reports=[], subject_names=[], class_list=class_list,
+            study_years=study_years, terms=terms, assessments=assessments,
+            selected_class_id=None, selected_study_year_id=None,
+            selected_term_id=None, selected_assessment_name=None, segment='reports'
+        )
+
+    # Query with filters
+    query = """
+    SELECT 
+        p.reg_no,
+        CONCAT_WS(' ', p.first_name, p.other_name, p.last_name) AS full_name,
+        y.year_name,
+        t.term_name,
+        a.assessment_name,
+        sub.subject_name,
+        s.Mark,
+        g.grade_letter,
+        g.remark
+    FROM scores s
+    JOIN pupils p ON s.reg_no = p.reg_no
+    JOIN assessment a ON s.assessment_id = a.assessment_id
+    JOIN terms t ON s.term_id = t.term_id
+    JOIN subjects sub ON s.subject_id = sub.subject_id
+    JOIN study_year y ON s.year_id = y.year_id
+    LEFT JOIN grades g ON s.Mark BETWEEN g.min_score AND g.max_score
+    WHERE 1=1
+    """
+    params = []
+    if class_id:
+        query += " AND p.class_id = %s"
+        params.append(class_id)
+    if year_id:
+        query += " AND p.year_id = %s"
+        params.append(year_id)
+    if term_id:
+        query += " AND s.term_id = %s"
+        params.append(term_id)
+    if assessment_name:
+        query += " AND a.assessment_name = %s"
+        params.append(assessment_name)
+
+    cursor.execute(query, params)
+    raw_data = cursor.fetchall()
+    cursor.close()
+    connection.close()
+
+    # Process and pivot using NumPy
+    subject_names = sorted({row['subject_name'] for row in raw_data})
+    student_map = {}
+
+    for row in raw_data:
+        reg = row['reg_no']
+        if reg not in student_map:
+            student_map[reg] = {
+                'reg_no': reg,
+                'full_name': row['full_name'],
+                'year_name': row['year_name'],
+                'term_name': row['term_name'],
+                'assessment_name': row['assessment_name'],
+                'marks': {},
+                'grades': {},
+                'remarks': {}
+            }
+        subject = row['subject_name']
+        mark = row['Mark']
+
+        student_map[reg]['marks'][subject] = mark if mark is not None else np.nan
+        student_map[reg]['grades'][subject] = row['grade_letter'] or ''
+        student_map[reg]['remarks'][subject] = row['remark'] or ''
+
+    # Calculate total and average using NumPy
+    reports = []
+    for student in student_map.values():
+        marks_array = np.array([
+            student['marks'].get(subject, np.nan) for subject in subject_names
+        ], dtype=np.float64)
+
+        total = np.nansum(marks_array)
+        count = np.count_nonzero(~np.isnan(marks_array))
+        avg = np.round(total / count, 2) if count > 0 else 0
+
+        student['total_score'] = total
+        student['average_score'] = avg
+        reports.append(student)
+
+    return render_template('reports/scores_reports.html',
+        reports=reports, subject_names=subject_names,
+        class_list=class_list, study_years=study_years,
+        terms=terms, assessments=assessments,
+        selected_class_id=class_id, selected_study_year_id=year_id,
+        selected_term_id=term_id, selected_assessment_name=assessment_name,
         segment='reports'
     )

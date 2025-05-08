@@ -58,9 +58,9 @@
 
 
   /* Hide the duplicate header row inside the table body */
-div.dataTables_scrollBody thead {
-  display: none;
-}
+  div.dataTables_scrollBody thead {
+    display: none;
+  }
 
 </style>
 
@@ -102,7 +102,7 @@ div.dataTables_scrollBody thead {
     <div class="container-fluid">
 
       <!-- Filter Form -->
-      <form method="GET" action="{{ url_for('reports_blueprint.term_reports') }}" class="mb-4">
+      <form method="GET" action="{{ url_for('reports_blueprint.scores_reports') }}" class="mb-4">
         <div class="row">
           <div class="col-md-3">
             <label for="class_id">Class</label>
@@ -160,47 +160,52 @@ div.dataTables_scrollBody thead {
 
 
 
-             <table id="reportTable" class="stripe row-border order-column">
-              <thead>
-                <tr>
-                  <th>Reg No</th>
-                  <th>Full Name</th>
-                  <th>Year</th>
-                  <th>Term</th>
-                  <th>Assessment</th>
-                  {% for subject in subject_names %}
-                  <th>{{ subject }} (Mark)</th>
-                  <th>{{ subject }} (Grade)</th>
-                  <th>{{ subject }} (Remark)</th>
-                  {% endfor %}
-                </tr>
-              </thead>
-              <tbody>
-                {% for report in reports %}
-                <tr>
-                  <td>{{ report.reg_no }}</td>
-                  <td>{{ report.full_name }}</td>
-                  <td>{{ report.year_name }}</td>
-                  <td>{{ report.term_name }}</td>
-                  <td>{{ report.assessment_name }}</td>
-                  {% for subject in subject_names %}
-                  <td>{{ report.marks[subject] }}</td>
-                  <td>{{ report.grades[subject] }}</td>
-                  <td>{{ report.remarks[subject] }}</td>
-                  {% endfor %}
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+   <table id="reportTable" class="display nowrap stripe" style="width:100%">
+  <thead>
+    <tr>
+      <th>Reg No</th>
+      <th>Full Name</th>
+      <th>Year</th>
+      <th>Term</th>
+      <th>Assessment</th>
+      <th>Total Score</th>
+      <th>Average Score</th>
+      {% for subject in subject_names %}
+        <th>{{ subject }} (Mark)</th>
+        <th>{{ subject }} (Grade)</th>
+        <th>{{ subject }} (Remark)</th>
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for student in reports %}
+      <tr>
+        <td>{{ student.reg_no }}</td>
+        <td>{{ student.full_name }}</td>
+        <td>{{ student.year_name }}</td>
+        <td>{{ student.term_name }}</td>
+        <td>{{ student.assessment_name }}</td>
+        <td>{{ student.total_score }}</td>
+        <td>{{ student.average_score }}</td>
+        {% for subject in subject_names %}
+          <td>{{ student.marks[subject] if student.marks[subject] is not none else 'N/A' }}</td>
+          <td>{{ student.grades[subject] }}</td>
+          <td>{{ student.remarks[subject] }}</td>
+        {% endfor %}
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
 
 
 
-          </div>
+
         </div>
       </div>
-
     </div>
-  </section>
+
+  </div>
+</section>
 </div>
 {% endblock %}
 
