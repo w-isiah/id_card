@@ -1,0 +1,143 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Edit Stream{% endblock %}
+{% block body_class %}sidebar-mini{% endblock %}
+
+{% block stylesheets %}
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+<link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
+<link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+<link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+
+  <!-- Flash Messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="alert-container" id="flashMessageContainer">
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+      <i class="fas fa-{{
+        'check-circle' if category == 'success'
+        else 'exclamation-circle' if category == 'warning'
+        else 'times-circle' if category == 'danger'
+        else 'info-circle' }}"></i>
+        {{ message }}
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <!-- Content Header -->
+    <section class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1>Edit Stream</h1>
+          </div>
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="/index">Home</a></li>
+              <li class="breadcrumb-item"><a href="/streams">Streams</a></li>
+              <li class="breadcrumb-item active">Edit Stream</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Edit Form -->
+    <section class="content">
+      <div class="container-fluid">
+        <div class="row">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Stream Information</h3>
+              </div>
+              <div class="card-body">
+                <form action="{{ url_for('streams_blueprint.edit_stream', stream_id=stream.stream_id) }}" method="POST">
+                  <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+
+                  <!-- Stream Name -->
+                  <div class="row mb-3">
+                    <label for="stream_name" class="col-sm-2 col-form-label">Stream Name:</label>
+                    <div class="col-sm-10">
+                      <input type="text" name="stream_name" class="form-control" value="{{ stream.stream_name }}" required>
+                    </div>
+                  </div>
+
+                  <!-- Class (Read-Only) -->
+                  <div class="row mb-3">
+                    <label for="class_display" class="col-sm-2 col-form-label">Class:</label>
+                    <div class="col-sm-10">
+                      <input type="text" class="form-control" id="class_display" value="{{ stream.class_name }}" disabled>
+                    </div>
+                  </div>
+
+
+                  <!-- Description -->
+                  <div class="row mb-3">
+                    <label for="description" class="col-sm-2 col-form-label">Description:</label>
+                    <div class="col-sm-10">
+                      <textarea name="description" class="form-control" rows="3" placeholder="Optional">{{ stream.description or '' }}</textarea>
+                    </div>
+                  </div>
+
+                  <!-- Current Class Info (Read-Only) -->
+                  <div class="row mb-3">
+                    <label class="col-sm-2 col-form-label">Current Class Info:</label>
+                    <div class="col-sm-10">
+                      <p class="form-control-plaintext">
+                        <strong>{{ stream.class_name }}</strong> - Year: {{ stream.year }},
+                        Teacher: {{ stream.teacher_in_charge }},
+                        Room: {{ stream.room_number }}
+                      </p>
+                    </div>
+                  </div>
+
+                  <!-- Room -->
+                  <div class="row mb-3">
+                    <label for="room" class="col-sm-2 col-form-label">Room:</label>
+                    <div class="col-sm-10">
+                      <input type="text" name="room" class="form-control" value="{{ stream.room }}" required>
+                    </div>
+                  </div>
+
+                  <!-- Submit Button -->
+                  <div class="form-actions text-right">
+                    <button type="submit" class="btn btn-sm btn-success">Update Stream</button>
+                  </div>
+                </form>
+              </div>
+              <div class="card-footer text-muted">
+                Ensure the details are accurate before submitting.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+  {% endblock %}
+
+  {% block javascripts %}
+  <script src="/static/assets/plugins/jquery/jquery.min.js"></script>
+  <script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="/static/assets/js/adminlte.min.js"></script>
+  <script>
+    $(function () {
+      const $flash = $('#flashMessageContainer');
+      if ($flash.length) {
+        $flash.fadeIn(400).delay(3500).fadeOut(600);
+      }
+    });
+  </script>
+  {% endblock %}
