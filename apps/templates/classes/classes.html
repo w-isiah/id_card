@@ -7,21 +7,16 @@
 {% block stylesheets %}
   <!-- Google Font: Source Sans Pro -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-  
   <!-- Font Awesome -->
   <link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
-  
   <!-- Ionicons -->
   <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
-  
   <!-- AdminLTE Theme -->
   <link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
-  
   <!-- DataTables CSS -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css">
-  
-  <!-- Custom CSS for Flash Messages -->
+  <!-- Flash Messages Styling -->
   <style>
     .alert-container {
       position: fixed;
@@ -90,7 +85,7 @@
         <div class="col-sm-6">
           <ol class="breadcrumb float-sm-right">
             <li class="breadcrumb-item"><a href="/index">Home</a></li>
-            <li class="breadcrumb-item"><a href="/class">Classes</a></li>
+            <li class="breadcrumb-item"><a href="/classes">Classes</a></li>
             <li class="breadcrumb-item active">Class List</li>
           </ol>
         </div>
@@ -98,20 +93,21 @@
     </div>
   </section>
 
+  <!-- Add Class Button -->
   <section class="content-header">
-  <div class="container-fluid">
-    <div class="row mb-2 align-items-center">
-      <div class="col-sm-6">
-        <h1 class="mb-0">Class List</h1>
-      </div>
-      <div class="col-sm-6 text-sm-right">
-        <a href="/add_classes" class="btn btn-success">
-          <i class="fas fa-plus-circle mr-1"></i> Add a Class
-        </a>
+    <div class="container-fluid">
+      <div class="row mb-2 align-items-center">
+        <div class="col-sm-6">
+          <h1 class="mb-0">Class List</h1>
+        </div>
+        <div class="col-sm-6 text-sm-right">
+          <a href="/add_classes" class="btn btn-success">
+            <i class="fas fa-plus-circle mr-1"></i> Add a Class
+          </a>
+        </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
   <!-- Main Content -->
   <section class="content">
@@ -131,9 +127,7 @@
                     <tr>
                       <th>Name</th>
                       <th>Class Teacher</th>
-                  
                       <th>Year</th>
-                      <th>Room Number</th>
                       <th>Edit</th>
                       <th>Delete</th>
                     </tr>
@@ -141,14 +135,9 @@
                   <tbody>
                     {% for class in classes %}
                     <tr class="gradeX">
-                      <!-- Class Information -->
                       <td>{{ class.class_name }}</td>
-                      <td>{{ class.teacher_in_charge }}</td>
-                  
+                      <td>{{ class.teacher_first_name }} {{ class.teacher_last_name }}</td>
                       <td>{{ class.year }}</td>
-                      <td>{{ class.room_number }}</td>
-
-                      <!-- Edit Button -->
                       <td>
                         <a href="/edit_classes/{{ class.class_id }}" 
                            class="btn btn-sm btn-warning" 
@@ -156,8 +145,6 @@
                           Edit
                         </a>
                       </td>
-
-                      <!-- Delete Button (Visible to Admin only) -->
                       <td>
                         {% if session['role'] == 'admin' %}
                         <a href="/delete_classes/{{ class.class_id }}" 
@@ -187,18 +174,14 @@
 {% block javascripts %}
   <!-- jQuery -->
   <script src="/static/assets/plugins/jquery/jquery.min.js"></script>
-  
   <!-- Bootstrap Bundle -->
   <script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-  
   <!-- AdminLTE -->
   <script src="/static/assets/js/adminlte.js"></script>
-  
   <!-- DataTables -->
   <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
   <script src="https://cdn.datatables.net/responsive/2.3.0/js/dataTables.responsive.min.js"></script>
-
-  <!-- Custom JS for Flash Message Fade-in/Fade-out -->
+  <!-- Flash Message JS -->
   <script>
     $(document).ready(function() {
       $('#categoriesTable').DataTable({

@@ -98,8 +98,6 @@
   </div>
 </section>
 
-
-
   <!-- Main Content -->
   <section class="content">
     <div class="container-fluid">
@@ -118,9 +116,11 @@
                     <tr>
                       <th>Name</th>
                       <th>Gender</th>
-                      <th>Capacity</th>
                       <th>Description</th>
-                      <th>Dorm Master ID</th>
+                      <th>Dorm Master</th> <!-- Updated this column -->
+                      <th>Room Name</th>  
+                      <th>Room Capacity</th>  
+                      <th>Room Description</th>  
                       <th>Edit</th>
                       <th>Delete</th>
                     </tr>
@@ -128,23 +128,29 @@
                   <tbody>
                     {% for dorm in dorms %}
                     <tr>
-                      <td>{{ dorm.name }}</td>
+                      <td>{{ dorm.dorm_name }}</td>
                       <td>{{ dorm.gender }}</td>
-                      <td>{{ dorm.capacity }}</td>
-                      <td>{{ dorm.description }}</td>
-                      <td>{{ dorm.dorm_master_id }}</td>
-
+                      <td>{{ dorm.dorm_description }}</td>
+                      <td>
+                        {% if dorm.teacher_first_name and dorm.teacher_last_name %}
+                          {{ dorm.teacher_first_name }} {{ dorm.teacher_last_name }}
+                        {% else %}
+                          No Dorm Master
+                        {% endif %}
+                      </td>
+                      <td>{{ dorm.room_name if dorm.room_name else 'No Room' }}</td>
+                      <td>{{ dorm.room_capacity if dorm.room_capacity else 'N/A' }}</td>
+                      <td>{{ dorm.room_description if dorm.room_description else 'No Description' }}</td>
                       <td>
                         <a href="/edit_dorms/{{ dorm.dormitory_id }}" class="btn btn-sm btn-warning">
                           Edit
                         </a>
                       </td>
-
                       <td>
                         {% if session['role'] == 'admin' %}
                         <a href="/delete_dorms/{{ dorm.dormitory_id }}" 
                            class="btn btn-sm btn-danger" 
-                           onclick="return confirm('Are you sure you want to delete {{ dorm.name }}?')">
+                           onclick="return confirm('Are you sure you want to delete {{ dorm.dorm_name }}?')">
                           Delete
                         </a>
                         {% else %}

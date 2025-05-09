@@ -59,7 +59,7 @@
 
 {% block content %}
 <div class="content-wrapper">
-  
+
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       <div class="alert-container" id="flashMessageContainer">
@@ -80,113 +80,90 @@
     {% endif %}
   {% endwith %}
 
-
-
-
-
-<!-- Content Header -->
-<section class="content-header">
-  <div class="container-fluid">
-    <div class="row mb-2">
-      <div class="col-sm-6">
-        <h1>Stream List</h1>
-      </div>
-      <div class="col-sm-6">
-        <ol class="breadcrumb float-sm-right">
-          <li class="breadcrumb-item"><a href="/index">Home</a></li>
-          <li class="breadcrumb-item active">Streams</li>
-        </ol>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Add Stream Button -->
-<section class="content-header">
-  <div class="container-fluid">
-    <div class="row mb-2 align-items-center">
-      <div class="col-sm-6">
-        <h1 class="mb-0">Manage Streams</h1>
-      </div>
-      <div class="col-sm-6 text-sm-right">
-        <a href="/add_stream" class="btn btn-success">
-          <i class="fas fa-plus-circle mr-1"></i> Add a Stream
-        </a>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Main Content -->
-<section class="content">
-  <div class="container-fluid">
-    <div class="row">
-      <div class="col-12">
-        <div class="card">
-          <div class="card-header">
-            <h3 class="card-title">Stream List</h3>
-          </div>
-
-          <div class="card-body">
-            <div class="table-responsive">
-              <table id="categoriesTable" class="display stripe nowrap" style="width:100%">
-                <thead>
-                  <tr>
-                    <th>Stream Name</th>
-                    <th>Class ID</th>
-                    <th>Description</th>
-                    <th>Room </th>
-                    <th>Created At</th>
-                    <th>Updated At</th>
-                    <th>Edit</th>
-                    <th>Delete</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for stream in streams %}
-                  <tr>
-                    <td>{{ stream.stream_name }}</td>
-                    <td>{{ stream.class_name }}</td>
-                    <td>{{ stream.description or "—" }}</td>
-                    <td>{{ stream.room_name}}</td>
-                    <td>{{ stream.created_at.strftime('%Y-%m-%d %H:%M') if stream.created_at else "—" }}</td>
-                    <td>{{ stream.updated_at.strftime('%Y-%m-%d %H:%M') if stream.updated_at else "—" }}</td>
-                    <td>
-                      <a href="/edit_stream/{{ stream.stream_id }}" class="btn btn-sm btn-warning">
-                        Edit
-                      </a>
-                    </td>
-                    <td>
-                      {% if session['role'] == 'admin' %}
-                      <a href="/delete_stream/{{ stream.stream_id }}" class="btn btn-sm btn-danger"
-                         onclick="return confirm('Are you sure you want to delete {{ stream.stream_name }}?')">
-                        Delete
-                      </a>
-                      {% else %}
-                      <span>—</span>
-                      {% endif %}
-                    </td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
+  <!-- Page Header -->
+  <section class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6">
+          <h1>Room List</h1>
+        </div>
+        <div class="col-sm-6 text-sm-right">
+          <a href="/add_room" class="btn btn-success">
+            <i class="fas fa-plus-circle mr-1"></i> Add a Room
+          </a>
         </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
+  <!-- Main Content -->
+  <section class="content">
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Room List</h3>
+            </div>
 
+            <div class="card-body">
+              <div class="table-responsive">
+                <table id="categoriesTable" class="display stripe nowrap" style="width:100%">
+                  <thead>
+                    <tr>
+                      <th>Room Name</th>
+                      <th>Capacity</th>
+                      <th>Description</th>
+                      <th>Edit</th>
+                      <th>Delete</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for room in rooms %}
+                    <tr class="gradeX">
+                      <td>{{ room.room_name }}</td>
+                      <td>{{ room.capacity }}</td>
+                      <td>{{ room.description }}</td>
 
+                      <td>
+                        <a href="/edit_room/{{ room.room_id }}" 
+                           class="btn btn-sm btn-warning"
+                           style="--bs-btn-padding-y: .25rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .75rem;">
+                          Edit
+                        </a>
+                      </td>
 
+                      <td>
+                        {% if session['role'] == 'admin' %}
+                        <a href="/delete_room/{{ room.room_id }}"
+                           class="btn btn-sm btn-danger"
+                           style="--bs-btn-padding-y: .25rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .75rem;"
+                           onclick="return confirm('Are you sure you want to delete {{ room.room_name }}?')">
+                          Delete
+                        </a>
+                        {% else %}
+                        <span>—</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 </div>
 {% endblock %}
 
 {% block javascripts %}
-  <!-- jQuery -->
+  
+
+
+    <!-- jQuery -->
   <script src="/static/assets/plugins/jquery/jquery.min.js"></script>
   
   <!-- Bootstrap Bundle -->
@@ -200,6 +177,9 @@
   <script src="https://cdn.datatables.net/responsive/2.3.0/js/dataTables.responsive.min.js"></script>
 
   <!-- Custom JS for Flash Message Fade-in/Fade-out -->
+
+
+  
   <script>
     $(document).ready(function() {
       $('#categoriesTable').DataTable({

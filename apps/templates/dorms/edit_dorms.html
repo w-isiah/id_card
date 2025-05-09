@@ -13,6 +13,25 @@
 <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
 <!-- AdminLTE Theme -->
 <link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
+
+<style>
+  .alert-container {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    width: 80%;
+    display: none;
+  }
+  .alert {
+    opacity: 1;
+    transition: opacity 1s ease-out;
+    margin-bottom: 10px;
+  }
+</style>
+
+
 {% endblock stylesheets %}
 
 {% block content %}
@@ -49,7 +68,7 @@
         <div class="col-sm-6">
           <ol class="breadcrumb float-sm-right">
             <li class="breadcrumb-item"><a href="/index">Home</a></li>
-            <li class="breadcrumb-item"><a href="/doms">Dormitories</a></li>
+            <li class="breadcrumb-item"><a href="/dorms">Dormitories</a></li>
             <li class="breadcrumb-item active">Edit Dormitory</li>
           </ol>
         </div>
@@ -69,7 +88,7 @@
             <div class="card-body">
               <form action="{{ url_for('dorms_blueprint.edit_dorms', dorm_id=dorm.dormitory_id ) }}" method="POST">
                 <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-                <input type="hidden" name="id" value="{{ dorm.id }}">
+                <input type="hidden" name="id" value="{{ dorm.dormitory_id }}">
 
                 <!-- Name -->
                 <div class="row mb-3">
@@ -87,6 +106,7 @@
                       <option value="">Select Gender</option>
                       <option value="Male" {{ 'selected' if dorm.gender == 'Male' else '' }}>Male</option>
                       <option value="Female" {{ 'selected' if dorm.gender == 'Female' else '' }}>Female</option>
+                      <option value="Mixed" {{ 'selected' if dorm.gender == 'Mixed' else '' }}>Mixed</option>
                     </select>
                   </div>
                 </div>
@@ -109,9 +129,31 @@
 
                 <!-- Dorm Master ID -->
                 <div class="row mb-3">
-                  <label for="dorm_master_id" class="col-sm-2 col-form-label">Dorm Master ID:</label>
+                  <label for="dorm_master_id" class="col-sm-2 col-form-label">Dorm Master:</label>
                   <div class="col-sm-10">
-                    <input type="number" name="dorm_master_id" class="form-control" id="dorm_master_id" value="{{ dorm.dorm_master_id or '' }}" placeholder="Enter Dorm Master ID">
+                    <select name="dorm_master_id" id="dorm_master_id" class="form-control">
+                      <option value="" {% if not dorm.dorm_master_id %}selected{% endif %}>No Dorm Master</option>
+                      {% for teacher in teachers %}
+                        <option value="{{ teacher.teacher_id }}" {% if dorm.dorm_master_id == teacher.teacher_id %}selected{% endif %}>
+                          {{ teacher.first_name }} {{ teacher.last_name }}
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Room -->
+                <div class="row mb-3">
+                  <label for="room_id" class="col-sm-2 col-form-label">Room:</label>
+                  <div class="col-sm-10">
+                    <select name="room_id" id="room_id" class="form-control">
+                      <option value="" {% if not dorm.room_id %}selected{% endif %}>No Room</option>
+                      {% for room in rooms %}
+                        <option value="{{ room.room_id }}" {% if dorm.room_id == room.room_id %}selected{% endif %}>
+                          {{ room.room_name }}
+                        </option>
+                      {% endfor %}
+                    </select>
                   </div>
                 </div>
 

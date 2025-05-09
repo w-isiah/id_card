@@ -14,24 +14,25 @@ from jinja2 import TemplateNotFound
 
 @blueprint.route('/streams')
 def streams():
-    """Fetches all streams with class names and renders the manage streams page."""
+    """Fetches all streams with class names, room names, and renders the manage streams page."""
     try:
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
 
-        # Join streams with classes to get class_name
+        # Join streams with classes and rooms to get class_name and room_name
         cursor.execute("""
             SELECT 
                 stream.stream_id,
-                stream.room,
                 stream.stream_name,
                 stream.description,
                 stream.created_at,
                 stream.updated_at,
                 stream.class_id,
-                classes.class_name
+                classes.class_name,
+                rooms.room_name  -- Adding room_name from rooms table
             FROM stream
             JOIN classes ON stream.class_id = classes.class_id
+            JOIN rooms ON stream.room_id = rooms.room_id  -- Joining the rooms table
         """)
         streams = cursor.fetchall()
 
@@ -59,14 +60,19 @@ def add_stream():
     cursor.execute('SELECT class_id, class_name FROM classes')
     classes = cursor.fetchall()
 
+    # Fetch the list of rooms for the dropdown
+    cursor.execute('SELECT room_id, room_name FROM rooms')
+    rooms = cursor.fetchall()
+
     if request.method == 'POST':
         stream_name = request.form.get('stream_name')
         class_id = request.form.get('class_id')
         description = request.form.get('description')
-        room = request.form.get('room')
+        room_id = request.form.get('room_id')  # Room ID from form
+        user_id = session.get('id')  # Get the user ID from the session
 
         # Validate inputs
-        if not stream_name or not class_id:
+        if not stream_name or not class_id or not room_id:
             flash("Please fill out all required fields!", "warning")
         elif not re.match(r'^[A-Za-z0-9_ ]+$', stream_name):
             flash("Stream name must contain only letters, numbers, and spaces!", "danger")
@@ -82,24 +88,34 @@ def add_stream():
                 if existing_stream:
                     flash("Stream already exists for this class!", "warning")
                 else:
-                    # Check if the room already exists for this class
+                    # Check if the room is already assigned (for any class or stream)
                     cursor.execute(
-                        'SELECT * FROM stream WHERE room = %s AND class_id = %s',
-                        (room, class_id)
+                        'SELECT * FROM room_assignment WHERE room_id = %s',
+                        (room_id,)
                     )
-                    existing_room = cursor.fetchone()
+                    existing_assignment = cursor.fetchone()
 
-                    if existing_room:
-                        flash("Room already exists for this class!", "warning")
+                    if existing_assignment:
+                        flash("Room is already assigned!", "warning")
+                        return redirect(url_for('streams_blueprint.add_stream'))
                     else:
                         # Insert the new stream into the database
                         cursor.execute(
-                            'INSERT INTO stream (stream_name, class_id, description, room) VALUES (%s, %s, %s, %s)',
-                            (stream_name, class_id, description, room)
+                            'INSERT INTO stream (stream_name, class_id, description, room_id) VALUES (%s, %s, %s, %s)',
+                            (stream_name, class_id, description, room_id)
                         )
                         connection.commit()
+
+                        # Insert into room_assignment
+                        stream_id = cursor.lastrowid
+                        cursor.execute(
+                            'INSERT INTO room_assignment (room_id, user_id, assigned_to_type, assigned_to_id) VALUES (%s, %s, %s, %s)',
+                            (room_id, user_id, 'stream', stream_id)
+                        )
+                        connection.commit()
+
                         flash("Stream successfully added!", "success")
-                        return redirect(url_for('blueprint.streams'))
+                        return redirect(url_for('streams_blueprint.streams'))
 
             except Exception as err:
                 flash(f"Error: {err}", "danger")
@@ -108,8 +124,9 @@ def add_stream():
     cursor.close()
     connection.close()
 
-    # Render the template with the classes for the dropdown
-    return render_template('streams/add_stream.html', classes=classes, segment='streams')
+    # Render the template with the classes and rooms for the dropdown
+    return render_template('streams/add_stream.html', classes=classes, rooms=rooms, segment='streams')
+
 
 
 
@@ -126,7 +143,7 @@ def edit_stream(stream_id):
         # Retrieve the form data
         stream_name = request.form['stream_name']
         description = request.form['description']
-        room = request.form['room']
+        room_id = request.form['room']  # room_id instead of room name
 
         try:
             # Fetch existing stream data to get class_id
@@ -137,7 +154,8 @@ def edit_stream(stream_id):
                 flash("Stream not found.", "danger")
                 return redirect(url_for('streams_blueprint.streams'))
 
-            class_id = stream_data['class_id']  # Preserve original class_id
+            class_id = stream_data['class_id']
+            current_room_id = stream_data['room_id']
 
             # Input validation
             if not stream_name:
@@ -148,7 +166,7 @@ def edit_stream(stream_id):
                 flash("Stream name must contain only letters, numbers, and spaces!", "danger")
                 return redirect(url_for('streams_blueprint.edit_stream', stream_id=stream_id))
 
-            # Check if the stream with the same name already exists in this class
+            # Check for duplicate stream name in the same class
             cursor.execute(
                 'SELECT * FROM stream WHERE stream_name = %s AND class_id = %s AND stream_id != %s',
                 (stream_name, class_id, stream_id)
@@ -158,22 +176,32 @@ def edit_stream(stream_id):
                 flash("A stream with this name already exists in the class!", "warning")
                 return redirect(url_for('streams_blueprint.edit_stream', stream_id=stream_id))
 
-            # Check for duplicate room in the same class (excluding current stream)
-            cursor.execute(
-                'SELECT * FROM stream WHERE room = %s AND class_id = %s AND stream_id != %s',
-                (room, class_id, stream_id)
-            )
-            existing_room = cursor.fetchone()
-            if existing_room:
-                flash("Room already exists for this class!", "warning")
+            # Check if the room is already assigned elsewhere (excluding current assignment)
+            cursor.execute("""
+                SELECT * FROM room_assignment
+                WHERE room_id = %s AND NOT (assigned_to_type = 'stream' AND assigned_to_id = %s)
+            """, (room_id, stream_id))
+            existing_assignment = cursor.fetchone()
+
+            if existing_assignment:
+                flash("Room is already assigned!", "warning")
                 return redirect(url_for('streams_blueprint.edit_stream', stream_id=stream_id))
 
-            # Perform update
+            # Update stream record
             cursor.execute(
-                'UPDATE stream SET stream_name = %s, description = %s, room = %s WHERE stream_id = %s',
-                (stream_name, description, room, stream_id)
+                'UPDATE stream SET stream_name = %s, description = %s, room_id = %s WHERE stream_id = %s',
+                (stream_name, description, room_id, stream_id)
             )
             connection.commit()
+
+            # Update room_assignment
+            cursor.execute("""
+                UPDATE room_assignment
+                SET room_id = %s
+                WHERE assigned_to_type = 'stream' AND assigned_to_id = %s
+            """, (room_id, stream_id))
+            connection.commit()
+
             flash("Stream updated successfully!", "success")
 
         except Exception as e:
@@ -187,21 +215,29 @@ def edit_stream(stream_id):
     else:
         # GET method
         cursor.execute("""
-            SELECT s.*, c.class_name, c.year, c.teacher_in_charge, c.room_number
+            SELECT s.*, c.class_name, c.year, c.teacher_in_charge, r.room_name
             FROM stream s
             JOIN classes c ON s.class_id = c.class_id
+            LEFT JOIN rooms r ON s.room_id = r.room_id
             WHERE s.stream_id = %s
         """, (stream_id,))
         stream_data = cursor.fetchone()
-
         cursor.close()
         connection.close()
 
         if stream_data:
-            return render_template('streams/edit_streams.html', stream=stream_data, segment='streams')
+            connection = get_db_connection()
+            cursor = connection.cursor(dictionary=True)
+            cursor.execute("SELECT * FROM rooms")
+            rooms = cursor.fetchall()
+            cursor.close()
+            connection.close()
+
+            return render_template('streams/edit_streams.html', stream=stream_data, rooms=rooms, segment='streams')
         else:
             flash("Stream not found.", "danger")
             return redirect(url_for('streams_blueprint.streams'))
+
 
 
 

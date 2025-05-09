@@ -67,7 +67,7 @@
         <div class="col-sm-6">
           <ol class="breadcrumb float-sm-right">
             <li class="breadcrumb-item"><a href="/index">Home</a></li>
-            <li class="breadcrumb-item"><a href="/doms">Dormitories</a></li>
+            <li class="breadcrumb-item"><a href="/dorms">Dormitories</a></li>
             <li class="breadcrumb-item active">Add Dormitory</li>
           </ol>
         </div>
@@ -104,15 +104,21 @@
                       <option value="">Select Gender</option>
                       <option value="Male">Male</option>
                       <option value="Female">Female</option>
+                      <option value="Mixed">Mixed</option>
                     </select>
                   </div>
                 </div>
 
-                <!-- Capacity -->
+                <!-- Room Selection -->
                 <div class="row mb-3">
-                  <label for="capacity" class="col-sm-2 col-form-label">Capacity:</label>
+                  <label for="room_id" class="col-sm-2 col-form-label">Room:</label>
                   <div class="col-sm-10">
-                    <input type="number" name="capacity" class="form-control" placeholder="Enter Capacity" required>
+                    <select name="room_id" class="form-control" required>
+                      <option value="">Select Room</option>
+                      {% for room in rooms %}
+                      <option value="{{ room.room_id }}">{{ room.room_name }}</option>
+                      {% endfor %}
+                    </select>
                   </div>
                 </div>
 
@@ -124,13 +130,21 @@
                   </div>
                 </div>
 
-                <!-- Dorm Master ID -->
+
+                 <!-- teacher Selection -->
                 <div class="row mb-3">
-                  <label for="dorm_master_id" class="col-sm-2 col-form-label">Dorm Master ID:</label>
+                  <label for="dorm_master_id" class="col-sm-2 col-form-label">teacher:</label>
                   <div class="col-sm-10">
-                    <input type="number" name="dorm_master_id" class="form-control" placeholder="Enter Dorm Master ID">
+                    <select name="dorm_master_id" class="form-control" required>
+                      <option value="">Select teacher</option>
+                      {% for teacher in teachers %}
+                      <option value="{{ teacher.teacher_id }}">{{ teacher.first_name}} {{ teacher.last_name}}</option>
+                      {% endfor %}
+                    </select>
                   </div>
                 </div>
+
+
 
                 <!-- Submit Button -->
                 <div class="form-actions">

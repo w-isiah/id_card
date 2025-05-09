@@ -81,7 +81,6 @@
                     </div>
                   </div>
 
-
                   <!-- Description -->
                   <div class="row mb-3">
                     <label for="description" class="col-sm-2 col-form-label">Description:</label>
@@ -106,7 +105,14 @@
                   <div class="row mb-3">
                     <label for="room" class="col-sm-2 col-form-label">Room:</label>
                     <div class="col-sm-10">
-                      <input type="text" name="room" class="form-control" value="{{ stream.room }}" required>
+                      <select name="room" class="form-control" required>
+                        <option value="" disabled>Select Room</option>
+                        {% for room in rooms %}
+                          <option value="{{ room.room_id }}" {% if room.room_id == stream.room_id %}selected{% endif %}>
+                            {{ room.room_name }}
+                          </option>
+                        {% endfor %}
+                      </select>
                     </div>
                   </div>
 
@@ -126,18 +132,18 @@
     </section>
 
   </div>
-  {% endblock %}
+{% endblock %}
 
-  {% block javascripts %}
-  <script src="/static/assets/plugins/jquery/jquery.min.js"></script>
-  <script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-  <script src="/static/assets/js/adminlte.min.js"></script>
-  <script>
-    $(function () {
-      const $flash = $('#flashMessageContainer');
-      if ($flash.length) {
-        $flash.fadeIn(400).delay(3500).fadeOut(600);
-      }
-    });
-  </script>
-  {% endblock %}
+{% block javascripts %}
+<script src="/static/assets/plugins/jquery/jquery.min.js"></script>
+<script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/static/assets/js/adminlte.min.js"></script>
+<script>
+  $(function () {
+    const $flash = $('#flashMessageContainer');
+    if ($flash.length) {
+      $flash.fadeIn(400).delay(3500).fadeOut(600);
+    }
+  });
+</script>
+{% endblock %}

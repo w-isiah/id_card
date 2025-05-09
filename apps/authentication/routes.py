@@ -107,7 +107,7 @@ def check_inactivity():
 
             # Check if the session has been inactive for more than 30 minutes
             time_diff = current_time - last_activity
-            if time_diff > timedelta(minutes=30):  # Timeout after 30 minutes
+            if time_diff > timedelta(minutes=2000):  # Timeout after 30 minutes
                 try:
                     # Log the user out and update the logout time in user_activity
                     with get_db_connection() as connection:

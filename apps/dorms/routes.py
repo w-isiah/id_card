@@ -15,19 +15,29 @@ from jinja2 import TemplateNotFound
 
 @blueprint.route('/dorms')
 def dorms():
-    """Fetches all dorms and renders the manage dorms page."""
+    """Fetches all dorms, their associated rooms, and dorm masters (teachers), and renders the manage dorms page."""
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
-    # Fetch all dorms from the database
-    cursor.execute('SELECT * FROM dormitories')
+    # SQL query to fetch all dorms with their associated rooms and dorm masters (teachers)
+    cursor.execute('''
+        SELECT dormitories.dormitory_id, dormitories.name AS dorm_name, dormitories.gender, 
+               dormitories.description AS dorm_description, dormitories.dorm_master_id,
+               rooms.room_id, rooms.room_name, rooms.capacity AS room_capacity, rooms.description AS room_description,
+               teachers.first_name AS teacher_first_name, teachers.last_name AS teacher_last_name
+        FROM dormitories
+        LEFT JOIN rooms ON dormitories.room_id = rooms.room_id
+        LEFT JOIN teachers ON dormitories.dorm_master_id = teachers.teacher_id
+    ''')
+
     dorms = cursor.fetchall()
 
     # Close the cursor and connection
     cursor.close()
     connection.close()
 
-    return render_template('dorms/dorms.html', dorms=dorms,segment='dorms')
+    return render_template('dorms/dorms.html', dorms=dorms, segment='dorms')
+
 
 
 
@@ -35,50 +45,80 @@ def dorms():
 @blueprint.route('/add_dorms', methods=['GET', 'POST'])
 def add_dorms():
     """Handles the adding of a new dormitory."""
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    # Fetch all rooms and teachers for dropdowns
+    cursor.execute('SELECT * FROM rooms')
+    rooms = cursor.fetchall()
+
+    cursor.execute('SELECT * FROM teachers')
+    teachers = cursor.fetchall()
+
     if request.method == 'POST':
-        name = request.form.get('name')
-        gender = request.form.get('gender')
-        capacity = request.form.get('capacity')
-        description = request.form.get('description')
-        dorm_master_id = request.form.get('dorm_master_id')
+        name = request.form.get('name', '').strip()
+        gender = request.form.get('gender', '').strip()
+        description = request.form.get('description', '').strip()
+        dorm_master_id = request.form.get('dorm_master_id', '').strip()
+        room_id = request.form.get('room_id', '').strip()
 
         # Validate required fields
-        if not name or not gender or not capacity:
+        if not name or not gender or not room_id:
             flash("Please fill out all required fields!", "warning")
-        elif not re.match(r'^\d+$', capacity):
-            flash('Capacity must be a valid number!', "danger")
-        elif dorm_master_id and not re.match(r'^\d+$', dorm_master_id):
-            flash('Dorm Master ID must be numeric if provided!', "danger")
+
+        elif dorm_master_id and not dorm_master_id.isdigit():
+            flash("Dorm Master ID must be numeric if provided!", "danger")
+
         else:
-            connection = get_db_connection()
-            cursor = connection.cursor(dictionary=True)
-
             try:
-                # Check if dormitory with same name and gender already exists
-                cursor.execute('SELECT * FROM dormitories WHERE name = %s AND gender = %s', (name, gender))
-                existing_dorm = cursor.fetchone()
-
-                if existing_dorm:
+                # Check for existing dorm with same name and gender
+                cursor.execute(
+                    'SELECT * FROM dormitories WHERE name = %s AND gender = %s',
+                    (name, gender)
+                )
+                if cursor.fetchone():
                     flash("Dormitory already exists with that name and gender!", "warning")
-                else:
-                    # Insert new dormitory
-                    cursor.execute('''
-                        INSERT INTO dormitories (name, gender, capacity, description, dorm_master_id)
-                        VALUES (%s, %s, %s, %s, %s)
-                    ''', (name, gender, int(capacity), description, dorm_master_id if dorm_master_id else None))
 
-                    connection.commit()
-                    flash("Dormitory successfully added!", "success")
+                else:
+                    # Check if selected room is already allocated
+                    cursor.execute(
+                        'SELECT * FROM dormitories WHERE room_id = %s',
+                        (room_id,)
+                    )
+                    if cursor.fetchone():
+                        flash("Selected room is already allocated to another dormitory!", "danger")
+                    else:
+                        # Insert new dormitory
+                        cursor.execute(
+                            '''
+                            INSERT INTO dormitories (name, gender, description, dorm_master_id, room_id)
+                            VALUES (%s, %s, %s, %s, %s)
+                            ''',
+                            (
+                                name,
+                                gender,
+                                description,
+                                int(dorm_master_id) if dorm_master_id else None,
+                                int(room_id)
+                            )
+                        )
+                        connection.commit()
+                        flash("Dormitory successfully added!", "success")
+                        return redirect(url_for('dorms_blueprint.dorms'))
 
             except mysql.connector.Error as err:
                 flash(f"Database error: {err}", "danger")
-            finally:
-                cursor.close()
-                connection.close()
 
-    return render_template('dorms/add_dorms.html', segment='add_dorms')
+    # Cleanup
+    cursor.close()
+    connection.close()
 
-
+    return render_template(
+        'dorms/add_dorms.html',
+        teachers=teachers,
+        rooms=rooms,
+        segment='add_dorms'
+    )
 
 
 
@@ -87,20 +127,21 @@ def add_dorms():
 @blueprint.route('/edit_dorms/<int:dorm_id>', methods=['GET', 'POST'])
 def edit_dorms(dorm_id):
     """Handles editing an existing dormitory record."""
+
     if request.method == 'POST':
         # Get form data
         name = request.form.get('name', '').strip()
         gender = request.form.get('gender', '').strip()
         capacity = request.form.get('capacity', '').strip()
         description = request.form.get('description', '').strip()
-        dorm_master_id = request.form.get('dorm_master_id', '').strip() or None
+        dorm_master_id = request.form.get('dorm_master_id') or None
+        room_id = request.form.get('room_id') or None
 
         # Validate required fields
         if not name or not gender or not capacity:
             flash("Please fill out all required fields!", "warning")
             return redirect(url_for('dorms_blueprint.edit_dorms', dorm_id=dorm_id))
 
-        # Validate numeric fields
         if not capacity.isdigit():
             flash("Capacity must be a valid number.", "danger")
             return redirect(url_for('dorms_blueprint.edit_dorms', dorm_id=dorm_id))
@@ -109,7 +150,7 @@ def edit_dorms(dorm_id):
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
 
-            # Check for duplicate dorm name/gender (excluding current dorm)
+            # Check for duplicate
             cursor.execute("""
                 SELECT * FROM dormitories
                 WHERE name = %s AND gender = %s AND dormitory_id != %s
@@ -121,14 +162,16 @@ def edit_dorms(dorm_id):
             # Update dormitory
             cursor.execute("""
                 UPDATE dormitories
-                SET name = %s, gender = %s, capacity = %s, description = %s, dorm_master_id = %s
+                SET name = %s, gender = %s, capacity = %s, description = %s,
+                    dorm_master_id = %s, room_id = %s
                 WHERE dormitory_id = %s
-            """, (name, gender, int(capacity), description or None, dorm_master_id, dorm_id))
+            """, (name, gender, int(capacity), description or None,
+                  dorm_master_id, room_id, dorm_id))
             connection.commit()
             flash("Dormitory updated successfully!", "success")
 
         except Exception as e:
-            flash(f"An error occurred while updating the dormitory: {e}", "danger")
+            flash(f"An error occurred: {e}", "danger")
 
         finally:
             cursor.close()
@@ -141,22 +184,39 @@ def edit_dorms(dorm_id):
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
 
+            # Fetch dorm
             cursor.execute("SELECT * FROM dormitories WHERE dormitory_id = %s", (dorm_id,))
             dorm = cursor.fetchone()
 
+            # Fetch teachers for dropdown
+            cursor.execute("SELECT teacher_id, first_name, last_name FROM teachers ORDER BY first_name, last_name")
+            teachers = cursor.fetchall()
+
+            # Fetch rooms for dropdown
+            cursor.execute("SELECT room_id, room_name FROM rooms ORDER BY room_name")
+            rooms = cursor.fetchall()
+
         except Exception as e:
-            flash(f"Failed to retrieve dormitory: {e}", "danger")
-            dorm = None
+            flash(f"Failed to retrieve data: {e}", "danger")
+            dorm, teachers, rooms = None, [], []
 
         finally:
             cursor.close()
             connection.close()
 
         if dorm:
-            return render_template('dorms/edit_dorms.html', dorm=dorm, segment='dorms')
+            return render_template(
+                'dorms/edit_dorms.html',
+                dorm=dorm,
+                teachers=teachers,
+                rooms=rooms,
+                segment='dorms'
+            )
         else:
             flash("Dormitory not found.", "danger")
             return redirect(url_for('dorms_blueprint.dorms'))
+
+
 
 
 

@@ -68,7 +68,12 @@
       <div class="alert-container" id="flashMessageContainer">
         {% for category, message in messages %}
           <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-            <strong>{{ message }}</strong>
+            <i class="fas fa-{{ 
+              'check-circle' if category == 'success' 
+              else 'exclamation-circle' if category == 'warning' 
+              else 'times-circle' if category == 'danger' 
+              else 'info-circle' }}"></i>
+            <span>{{ message }}</span>
             <button type="button" class="close" data-dismiss="alert" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>

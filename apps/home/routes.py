@@ -1,54 +1,51 @@
 from apps.home import blueprint
-from flask import render_template, request, session, flash
+from flask import render_template, request, session, flash, redirect, url_for
+from flask_login import login_required, current_user
 from jinja2 import TemplateNotFound
 from apps import get_db_connection
 import logging
 
+from flask import render_template, redirect, url_for, flash
+from apps import get_db_connection
+from datetime import datetime
+
+
+
+
+
 @blueprint.route('/index')
 def index():
-    """
-    Renders the 'index' page of the home section.
-    """
-    connection = get_db_connection()
+    if 'id' not in session:
+        # If the session ID is not present, redirect to the login page
+        flash('Login required to access this page.', 'error')
+        return redirect(url_for('authentication_blueprint.login'))
+
     try:
-        with connection.cursor(dictionary=True) as cursor:
-            # Query for total sales today
-            cursor.execute('''
-                SELECT SUM(total_price) AS total_sales_today
-                FROM sales
-                WHERE DATE(date_updated) = CURDATE();
-            ''')
-            total_sales_today = cursor.fetchone()  # Fetch the result for today
+        # Get DB connection using context manager
+        with get_db_connection() as connection:
+            with connection.cursor(dictionary=True) as cursor:
+                # Retrieve the user by ID from the session
+                cursor.execute("SELECT * FROM users WHERE id = %s", (session['id'],))
+                user = cursor.fetchone()
 
-            # Query for total sales yesterday
-            cursor.execute('''
-                SELECT SUM(total_price) AS total_sales_yesterday
-                FROM sales
-                WHERE DATE(date_updated) = CURDATE() - INTERVAL 1 DAY;
-            ''')
-            total_sales_yesterday = cursor.fetchone()  # Fetch the result for yesterday
+                if not user:
+                    # If the user is not found, prompt to log in again
+                    flash('User not found. Please log in again.', 'error')
+                    return redirect(url_for('authentication_blueprint.login'))
 
-            # Query for products that need to be reordered
-            cursor.execute('SELECT * FROM product_list WHERE reorder_level > quantity ORDER BY name')
-            products_to_reorder = cursor.fetchall()  # Fetch all results for reorder products
+                # Role-based rendering
+                if user['role'] in ['admin', 'director']:
+                    return render_template('home/index.html', segment='index')
+                elif user['role'] == 'class_teacher':
+                    return render_template('home/class_teacher_index.html', segment='index')
 
-    finally:
-        connection.close()  # Ensure the connection is closed after use
+                # If no matching role found, prompt to log in again
+                flash('User not found. Please log in again.', 'error')
+                return redirect(url_for('authentication_blueprint.login'))
 
-    # Format the sales values to UGX
-    def format_to_ugx(amount):
-        if amount is None:
-            return "UGX 0"
-        return f"UGX {amount:,.2f}"
-
-    formatted_sales_today = format_to_ugx(total_sales_today['total_sales_today'] if total_sales_today['total_sales_today'] else 0)
-    formatted_sales_yesterday = format_to_ugx(total_sales_yesterday['total_sales_yesterday'] if total_sales_yesterday['total_sales_yesterday'] else 0)
-
-    return render_template('home/index.html', 
-                           total_sales_today=formatted_sales_today,
-                           total_sales_yesterday=formatted_sales_yesterday,
-                           products_to_reorder=products_to_reorder, 
-                           segment='index')
+    except Exception as e:
+        flash(f"An error occurred: {str(e)}", 'danger')
+        return redirect(url_for('authentication_blueprint.login'))  # Redirect to login page in case of error
 
 
 

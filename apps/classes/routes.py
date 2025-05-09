@@ -15,19 +15,46 @@ from jinja2 import TemplateNotFound
 
 @blueprint.route('/classes')
 def classes():
-    """Fetches all classes and renders the manage classes page."""
+    """Fetches all classes with room and teacher details and renders the manage classes page."""
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
-    # Fetch all classes from the database
-    cursor.execute('SELECT * FROM classes')
+    # Fetch classes with associated room and teacher information using LEFT JOIN
+    cursor.execute("""
+        SELECT 
+            c.class_id,
+            c.class_name,
+            c.year,
+            c.teacher_in_charge,
+            t.first_name AS teacher_first_name,
+            t.last_name AS teacher_last_name,
+            r.room_name,
+            r.capacity,
+            r.description
+        FROM classes c
+        LEFT JOIN rooms r ON c.room_id = r.room_id
+        LEFT JOIN teachers t ON c.teacher_in_charge = t.teacher_id
+    """)
+
     classes = cursor.fetchall()
 
     # Close the cursor and connection
     cursor.close()
     connection.close()
 
-    return render_template('classes/classes.html', classes=classes,segment='classes')
+    return render_template('classes/classes.html', classes=classes, segment='classes')
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -35,37 +62,43 @@ def classes():
 @blueprint.route('/add_classes', methods=['GET', 'POST'])
 def add_classes():
     """Handles the adding of a new class."""
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    # Fetch all teachers from the database
+    cursor.execute('SELECT * FROM teachers')
+    teachers = cursor.fetchall()
+
     if request.method == 'POST':
         class_name = request.form.get('class_name')
         year = request.form.get('year')
-        teacher_in_charge = request.form.get('teacher_in_charge')
-        room_number = request.form.get('room_number')
+        teacher_in_charge_id = request.form.get('teacher_in_charge')
+        user_id = session.get('id')  # Assuming you'll use this later or for audit
 
         # Validate input
         if not class_name or not year:
             flash("Please fill out all required fields!", "warning")
-        #elif not re.match(r'^[A-Za-z0-9_ ]+$', class_name):
-        #    flash('Class name must contain only letters, numbers, and spaces!', "danger")
-        elif not re.match(r'^[0-9]+$', year):  # Ensuring year is numeric (you can modify the pattern as needed)
+        elif not re.match(r'^[0-9]+$', year):  # Ensuring year is numeric
             flash('Year must be a valid number!', "danger")
         else:
-            connection = get_db_connection()
-            cursor = connection.cursor(dictionary=True)
-
             try:
                 # Check if the class already exists
-                cursor.execute('SELECT * FROM classes WHERE class_name = %s AND year = %s', (class_name, year))
+                cursor.execute(
+                    'SELECT * FROM classes WHERE class_name = %s AND year = %s',
+                    (class_name, year)
+                )
                 existing_class = cursor.fetchone()
 
                 if existing_class:
                     flash("Class already exists for the given year!", "warning")
                 else:
-                    # Insert the new class into the database
-                    cursor.execute('''
-                        INSERT INTO classes (class_name, year, teacher_in_charge, room_number)
-                        VALUES (%s, %s, %s, %s)
-                    ''', (class_name, year, teacher_in_charge, room_number))
+                    # Insert the new class into the database (no room fields)
+                    cursor.execute(''' 
+                        INSERT INTO classes (class_name, year, teacher_in_charge) 
+                        VALUES (%s, %s, %s)
+                    ''', (class_name, year, teacher_in_charge_id))
                     connection.commit()
+
                     flash("Class successfully added!", "success")
 
             except mysql.connector.Error as err:
@@ -74,7 +107,7 @@ def add_classes():
                 cursor.close()
                 connection.close()
 
-    return render_template('classes/add_classes.html', segment='add_classes')
+    return render_template('classes/add_classes.html', teachers=teachers, segment='add_classes')
 
 
 
@@ -82,34 +115,44 @@ def add_classes():
 
 
 
+
+
+
+
+
+
+
+
+
+# Route for editing an existing class
 @blueprint.route('/edit_classes/<int:class_id>', methods=['GET', 'POST'])
 def edit_classes(class_id):
     """Handles editing an existing class."""
+
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    # Fetch all teachers from the database
+    cursor.execute('SELECT * FROM teachers')
+    teachers = cursor.fetchall()
+
     if request.method == 'POST':
         # Retrieve the form data
         class_name = request.form['class_name']
         year = request.form['year']
         teacher_in_charge = request.form['teacher_in_charge']
-        room_number = request.form['room_number']
 
         # Validate the input
-        if not class_name or not year:
+        if not class_name or not year or not teacher_in_charge:
             flash("Please fill out all required fields!", "warning")
             return redirect(url_for('classes_blueprint.edit_classes', class_id=class_id))
-        
-        #if not re.match(r'^[A-Za-z0-9_ ]+$', class_name):
-        #    flash("Class name must contain only letters, numbers, and spaces!", "danger")
-        #    return redirect(url_for('classes_blueprint.edit_classes', class_id=class_id))
 
         if not re.match(r'^[0-9]+$', year):
             flash("Year must be a valid number!", "danger")
             return redirect(url_for('classes_blueprint.edit_classes', class_id=class_id))
 
         try:
-            connection = get_db_connection()
-            cursor = connection.cursor()
-
-            # Check if the class name already exists in the database for the same year
+            # Check if the class name already exists in the database for the same year (excluding current class)
             cursor.execute("""
                 SELECT * FROM classes 
                 WHERE class_name = %s AND year = %s AND class_id != %s
@@ -123,9 +166,9 @@ def edit_classes(class_id):
             # Update the class details in the database
             cursor.execute("""
                 UPDATE classes
-                SET class_name = %s, year = %s, teacher_in_charge = %s, room_number = %s
+                SET class_name = %s, year = %s, teacher_in_charge = %s
                 WHERE class_id = %s
-            """, (class_name, year, teacher_in_charge, room_number, class_id))
+            """, (class_name, year, teacher_in_charge, class_id))
             connection.commit()
 
             flash("Class updated successfully!", "success")
@@ -140,18 +183,16 @@ def edit_classes(class_id):
 
     elif request.method == 'GET':
         # Retrieve the class to pre-fill the form
-        connection = get_db_connection()
-        cursor = connection.cursor(dictionary=True)
         cursor.execute("SELECT * FROM classes WHERE class_id = %s", (class_id,))
         class_data = cursor.fetchone()
-        cursor.close()
-        connection.close()
 
         if class_data:
-            return render_template('classes/edit_classes.html', classes=class_data, segment='classes')
+            # Pass the class data to the template to pre-fill the form fields
+            return render_template('classes/edit_classes.html', teachers=teachers, classes=class_data, segment='classes')
         else:
             flash("Class not found.", "danger")
             return redirect(url_for('classes_blueprint.classes'))
+
 
 
 
