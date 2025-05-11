@@ -16,7 +16,7 @@ from openpyxl.worksheet.datavalidation import DataValidation
 import mysql.connector
 from mysql.connector import Error
 
-from apps.register import blueprint
+from apps.stream_assign import blueprint
 from apps import get_db_connection
 
 import numpy as np
@@ -29,8 +29,8 @@ def allowed_file(filename):
 
 
 
-@blueprint.route('/r_pupils')
-def r_pupils():
+@blueprint.route('/stream_assign')
+def stream_assign():
     """Fetch and filter pupils by Reg No, Name, Class, Study Year, Term, and Stream."""
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
@@ -124,7 +124,7 @@ def r_pupils():
     connection.close()
 
     return render_template(
-        'register/r_pupils.html',
+        'stream_assign/stream_assign.html',
         pupils=pupils,
         segment='pupils',
         class_list=class_list,
@@ -163,11 +163,11 @@ def register_pupil():
 
     if not selected_pupil_ids:
         flash('No pupils were selected.', 'warning')
-        return redirect(url_for('register_blueprint.r_pupils'))
+        return redirect(url_for('register_blueprint.stream_assign'))
     
     if not term_id:
         flash('No term was selected.', 'warning')
-        return redirect(url_for('register_blueprint.r_pupils'))
+        return redirect(url_for('register_blueprint.stream_assign'))
 
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
@@ -211,7 +211,7 @@ def register_pupil():
         cursor.close()
         connection.close()
 
-    return redirect(url_for('register_blueprint.r_pupils'))
+    return redirect(url_for('register_blueprint.stream_assign'))
 
 
 

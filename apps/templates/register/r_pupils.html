@@ -105,6 +105,18 @@
           </div>
 
            <div class="col-md-3">
+            <select name="stream" class="form-control select2">
+              <option value="">Stream</option>
+              {% for c in streams %}
+                <option value="{{ c.stream_id }}" {% if filters.stream_name == c.stream_id|string %}selected{% endif %}>
+                  {{ c.class_name }}{{ c.stream_name }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+
+           <div class="col-md-3">
             <select name="term" class="form-control select2">
               <option value="">Term</option>
               {% for t in terms %}
