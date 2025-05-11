@@ -51,14 +51,13 @@ def allowed_file(filename):
     """Check if the uploaded file has a valid extension."""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_EXTENSIONS']
 
-
 @blueprint.route('/pupils')
 def pupils():
-    """Fetch and filter pupils by Reg No, Name, Class, Study Year, and Term."""
+    """Fetch and filter pupils based on multiple criteria."""
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
-    # Dropdown data
+    # Load dropdown data
     cursor.execute('SELECT year_id, year_name AS study_year FROM study_year ORDER BY year_name')
     study_years = cursor.fetchall()
 
@@ -68,7 +67,17 @@ def pupils():
     cursor.execute('SELECT term_id, term_name FROM terms ORDER BY term_name')
     terms = cursor.fetchall()
 
-    # Filters from request
+    # Collect filters from request
+    filters = []
+    params = {}
+
+    def add_filter(column, param_name, value, use_like=False):
+        if value:
+            clause = f"{column} LIKE %({param_name})s" if use_like else f"{column} = %({param_name})s"
+            filters.append(clause)
+            params[param_name] = f"%{value}%" if use_like else value
+
+    # Get query parameters
     reg_no = request.args.get('reg_no', '').strip()
     name = request.args.get('name', '').strip()
     class_id = request.args.get('class_name', '').strip()
@@ -77,68 +86,53 @@ def pupils():
     residential_status = request.args.get('residential_status', '').strip()
     nin_number = request.args.get('nin_number', '').strip()
     home_district = request.args.get('home_district', '').strip()
+    emis_number = request.args.get('emis_number', '').strip()
 
-    filters = []
-    params = {}
-
-    if reg_no:
-        filters.append("p.reg_no LIKE %(reg_no)s")
-        params['reg_no'] = f"%{reg_no}%"
+    # Apply filters
+    add_filter("p.reg_no", "reg_no", reg_no, use_like=True)
+    add_filter("p.nin_number", "nin_number", nin_number, use_like=True)
+    add_filter("p.emis_number", "emis_number", emis_number, use_like=True)
+    add_filter("p.home_district", "home_district", home_district, use_like=True)
+    add_filter("p.class_id", "class_id", class_id)
+    add_filter("p.year_id", "study_year_id", study_year_id)
+    add_filter("p.term_id", "term_id", term_id)
+    add_filter("p.residential_status", "residential_status", residential_status)
 
     if name:
-        filters.append("(p.first_name LIKE %(name)s OR p.last_name LIKE %(name)s OR p.other_name LIKE %(name)s)")
+        filters.append("""
+            (p.first_name LIKE %(name)s OR 
+             p.last_name LIKE %(name)s OR 
+             p.other_name LIKE %(name)s)
+        """)
         params['name'] = f"%{name}%"
 
-    if class_id:
-        filters.append("p.class_id = %(class_id)s")
-        params['class_id'] = class_id
-
-    if study_year_id:
-        filters.append("p.year_id = %(study_year_id)s")
-        params['study_year_id'] = study_year_id
-
-    if term_id:
-        filters.append("p.term_id = %(term_id)s")
-        params['term_id'] = term_id
-
-    if residential_status:
-        filters.append("p.residential_status = %(residential_status)s")
-        params['residential_status'] = residential_status
-
-    if nin_number:
-        filters.append("p.nin_number LIKE %(nin_number)s")
-        params['nin_number'] = f"%{nin_number}%"
-
-    if home_district:
-        filters.append("p.home_district LIKE %(home_district)s")
-        params['home_district'] = f"%{home_district}%"
-
     pupils = []
-
     if filters:
-        query = f'''
+        query = f"""
             SELECT 
                 p.pupil_id,
                 p.reg_no,
+                p.emis_number,
                 TRIM(CONCAT(p.first_name, ' ', COALESCE(p.other_name, ''), ' ', p.last_name)) AS full_name,
                 p.gender,
-                p.image,
                 p.date_of_birth,
                 p.admission_date,
+                c.class_name,
+                COALESCE(s.stream_name, 'None') AS stream_name,
+                sy.year_name AS study_year,
+                COALESCE(t.term_name, 'None') AS term_name,
                 p.nin_number,
-                p.emis_number,
                 p.residential_status,
                 p.home_district,
-                sy.year_name AS study_year,
-                c.class_name,
-                t.term_name
+                p.image
             FROM pupils p
-            LEFT JOIN study_year sy ON p.year_id = sy.year_id
             LEFT JOIN classes c ON p.class_id = c.class_id
+            LEFT JOIN stream s ON p.stream_id = s.stream_id
+            LEFT JOIN study_year sy ON p.year_id = sy.year_id
             LEFT JOIN terms t ON p.term_id = t.term_id
-            WHERE {' AND '.join(filters)}
+            WHERE {" AND ".join(filters)}
             ORDER BY p.last_name
-        '''
+        """
         cursor.execute(query, params)
         pupils = cursor.fetchall()
 
@@ -154,6 +148,7 @@ def pupils():
         study_years=study_years,
         filters={
             'reg_no': reg_no,
+            'emis_number': emis_number,
             'name': name,
             'class_name': class_id,
             'study_year': study_year_id,

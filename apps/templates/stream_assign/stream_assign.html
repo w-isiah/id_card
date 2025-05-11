@@ -75,17 +75,17 @@
 {% block content %}
 <div class="content-wrapper">
   {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <div id="flashMessageContainer" class="alert-container">
-        {% for category, message in messages %}
-          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-            <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'warning' %}exclamation-circle{% elif category == 'danger' %}times-circle{% else %}info-circle{% endif %}"></i>
-            <span>{{ message }}</span>
-            <button type="button" class="close" data-dismiss="alert">&times;</button>
-          </div>
-        {% endfor %}
-      </div>
-    {% endif %}
+  {% if messages %}
+  <div id="flashMessageContainer" class="alert-container">
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+      <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'warning' %}exclamation-circle{% elif category == 'danger' %}times-circle{% else %}info-circle{% endif %}"></i>
+      <span>{{ message }}</span>
+      <button type="button" class="close" data-dismiss="alert">&times;</button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
   {% endwith %}
 
   <section class="content-header">
@@ -141,8 +141,9 @@
           <h3 class="card-title">Pupil List</h3>
         </div>
         <div class="card-body">
-          <f orm method="POST" action="{{ url_for('stream_assign_blueprint.stream_term_assign') }}">
+          <form method="POST" action="{{ url_for('stream_assign_blueprint.stream_term_assign') }}">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+
 
             <div class="d-flex justify-content-between align-items-center mb-3">
               <h5 class="m-0">Stream Selection for Pupils</h5>
@@ -215,11 +216,12 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
 <script src="/static/assets/js/adminlte.js"></script>
 <script src="/static/assets/js/mine.js"></script>
-
 <script>
   $(function () {
+    // Initialize Select2
     $('.select2').select2({ width: '100%' });
 
+    // Initialize DataTable
     const table = $('#pupilTable').DataTable({
       fixedColumns: { left: 1 },
       paging: false,
@@ -228,6 +230,7 @@
       scrollCollapse: true
     });
 
+    // "Select All" checkbox functionality
     $('#select_all').on('change', function () {
       $('.pupil_checkbox').prop('checked', this.checked);
     });
@@ -239,6 +242,7 @@
       );
     });
 
+    // Load all streams
     let allStreams = [];
 
     fetch('/streams_data')
@@ -246,6 +250,7 @@
       .then(data => { allStreams = data; })
       .catch(err => console.error('Stream fetch error:', err));
 
+    // Show streams for the clicked row's class
     $('#pupilTable tbody').on('click', 'tr', function () {
       const classId = $(this).find('td[data-class-id]').data('class-id');
       const container = $('#streamCheckboxContainer');
@@ -261,11 +266,11 @@
       }
 
       matched.forEach(stream => {
-        const checkboxId = `stream_${stream.stream_id}`;
+        const radioId = `stream_${stream.stream_id}`;
         container.append(`
           <div class="form-check">
-            <input type="checkbox" class="form-check-input" name="stream_ids[]" value="${stream.stream_id}" id="${checkboxId}">
-            <label class="form-check-label" for="${checkboxId}">
+            <input type="radio" class="form-check-input" name="stream_id" value="${stream.stream_id}" id="${radioId}">
+            <label class="form-check-label" for="${radioId}">
               ${stream.stream_name} || ${stream.class_name}
             </label>
           </div>
@@ -273,10 +278,11 @@
       });
     });
 
+    // Notification popup
     function showNotification(message) {
       $('#notification-message').text(message);
       $('#notification').fadeIn();
-      setTimeout(function () {
+      setTimeout(() => {
         $('#notification').fadeOut();
       }, 9000);
     }
@@ -285,6 +291,7 @@
       $('#notification').fadeOut();
     });
 
+    // Form validation before submission
     $('form').on('submit', function (e) {
       const classVal = $('#classSelect').val();
       const yearVal = $('select[name="study_year"]').val();
@@ -304,3 +311,4 @@
   });
 </script>
 {% endblock %}
+

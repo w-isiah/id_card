@@ -25,7 +25,7 @@
     transform: translateX(-50%);
     z-index: 9999;
     width: 80%;
-    display: none;  /* Initially hidden */
+    display: none;
   }
 
   .alert {
@@ -44,24 +44,6 @@
 <!-- Content Wrapper -->
 <div class="content-wrapper">
 
-  <!-- Content Header -->
-  <section class="content-header">
-    <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <h1>Customers</h1>
-        </div>
-        <div class="col-sm-6">
-          <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="/index">Home</a></li>
-            <li class="breadcrumb-item"><a href="/categories">Categories</a></li>
-            <li class="breadcrumb-item active">Category List</li>
-          </ol>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <!-- Flash Messages -->
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
@@ -78,63 +60,78 @@
     {% endif %}
   {% endwith %}
 
+  <!-- Content Header -->
+  <section class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6">
+          <h1>Categories</h1>
+        </div>
+        <div class="col-sm-6">
+          <ol class="breadcrumb float-sm-right">
+            <li class="breadcrumb-item"><a href="/index">Home</a></li>
+            <li class="breadcrumb-item"><a href="/categories">Categories</a></li>
+            <li class="breadcrumb-item active">Category List</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Main Content -->
   <section class="content">
     <div class="container-fluid">
       <div class="row">
         <div class="col-12">
           <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">Category List</h3>
+           
+
+
+           <div class="card-header d-flex justify-content-between align-items-center">
+              <h3 class="card-title mb-0">Category List</h3>
+              <div class="btn-group ms-auto" role="group">
+                <a href="/add_category" class="btn btn-primary btn-sm">Add Category</a>
+                <a href="/inventory_index" class="btn btn-success btn-sm">Inventory Dashboard</a>
+              </div>
             </div>
+
+
+
 
             <!-- Card Body -->
             <div class="card-body">
               <div class="table-responsive">
-                <table id="customers" class="display stripe nowrap" style="width:100%">
+                <table id="categoriesTable" class="display stripe nowrap" style="width:100%">
                   <thead>
                     <tr>
                       <th>Name</th>
-                      <th>Contact</th>
-                      <th>Address</th>
+                      
                       <th>Edit</th>
                       <th>Delete</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {% for i in customer %}
+                    {% for category in categories %}
                     <tr class="gradeX">
-                      <td>{{ i.name }}</td>
-                      <td>{{ i.contact }}</td>
-                      <td>{{ i.address }}</td>
+                      <td>{{ category.name }}</td>
+                  
 
-                     
-
-
-                       <!-- Edit Button -->
+                      <!-- Edit Button -->
                       <td>
-                          <a href="/edit_customer/{{ i.CustomerID }}"  
+                        <a href="/edit_category/{{ category.CategoryID }}" 
                            class="btn btn-sm btn-warning" 
                            style="--bs-btn-padding-y: .25rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .75rem;">
                           Edit
                         </a>
                       </td>
 
-
-
-
-
-              
-
-
-
-                       <!-- Delete Button (Visible to Admin only) -->
+                      <!-- Delete Button (Visible to Admin only) -->
                       <td>
                         {% if session['role'] == 'admin' %}
-                       <a href="/delete_customer/{{ i.CustomerID }}"
+                        <a href="/delete_category/{{ category.CategoryID }}" 
                            class="btn btn-sm btn-danger" 
                            style="--bs-btn-padding-y: .25rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .75rem;"
-                           onclick="return confirm('Are you sure you want to delete {{ i.name }}?')">
+                           onclick="return confirm('Are you sure you want to delete {{ category.name }}?')">
                           Delete
                         </a>
                         {% else %}
@@ -142,9 +139,6 @@
                         <span>Admin</span>
                         {% endif %}
                       </td>
-
-
-
                     </tr>
                     {% endfor %}
                   </tbody>
@@ -174,9 +168,11 @@
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/responsive/2.3.0/js/dataTables.responsive.min.js"></script>
 
+<!-- Custom JS to handle Flash Message Fade-in/Fade-out -->
 <script>
   $(document).ready(function() {
-    $('#customers').DataTable({
+    // Initialize DataTable
+    $('#categoriesTable').DataTable({
       paging: true,
       searching: true,
       ordering: true,
