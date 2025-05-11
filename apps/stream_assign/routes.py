@@ -29,13 +29,15 @@ def allowed_file(filename):
 
 
 
+
+
 @blueprint.route('/stream_assign')
 def stream_assign():
     """Fetch and filter pupils by Reg No, Name, Class, Study Year, Term, and Stream."""
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
-    # Fetch data for dropdowns
+    # Load dropdown data
     cursor.execute('SELECT year_id, year_name AS study_year FROM study_year ORDER BY year_name')
     study_years = cursor.fetchall()
 
@@ -45,28 +47,26 @@ def stream_assign():
     cursor.execute('SELECT term_id, term_name FROM terms ORDER BY term_name')
     terms = cursor.fetchall()
 
-    
     cursor.execute('''
-    SELECT 
-        s.stream_id,
-        s.stream_name,
-        c.class_id,
-        c.class_name
-    FROM stream s
-    JOIN classes c ON s.class_id = c.class_id
-    ORDER BY s.stream_name
+        SELECT 
+            s.stream_id,
+            s.stream_name,
+            c.class_id,
+            c.class_name
+        FROM stream s
+        JOIN classes c ON s.class_id = c.class_id
+        ORDER BY s.stream_name
     ''')
-    streams = cursor.fetchall() 
+    streams = cursor.fetchall()
 
-    # Get filter values from request
+    # Get form filter values
     reg_no = request.args.get('reg_no', '').strip()
     name = request.args.get('name', '').strip()
-    class_id = request.args.get('class_name', '').strip()
+    class_id = request.args.get('class_id', '').strip()
     study_year_id = request.args.get('study_year', '').strip()
     term_id = request.args.get('term', '').strip()
     stream_id = request.args.get('stream', '').strip()
 
-    # Build filters
     filters = []
     params = {}
 
@@ -94,25 +94,25 @@ def stream_assign():
         filters.append("p.stream_id = %(stream_id)s")
         params['stream_id'] = stream_id
 
-    # Fetch filtered pupil data
     pupils = []
     if filters:
         query = f'''
             SELECT 
                 p.pupil_id,
                 p.reg_no,
-                CONCAT(p.first_name, ' ', p.last_name) AS full_name,
+                TRIM(CONCAT(p.first_name, ' ', COALESCE(p.other_name, ''), ' ', p.last_name)) AS full_name,
                 p.gender,
                 p.image,
                 p.date_of_birth,
                 sy.year_name AS study_year,
                 c.class_name,
-                t.term_name,
-                s.stream_name
+                p.class_id, 
+                COALESCE(t.term_name, 'None') AS term_name,
+                COALESCE(s.stream_name, 'None') AS stream_name
             FROM pupils p
             JOIN study_year sy ON p.year_id = sy.year_id
             JOIN classes c ON p.class_id = c.class_id
-            JOIN terms t ON p.term_id = t.term_id
+            LEFT JOIN terms t ON p.term_id = t.term_id
             LEFT JOIN stream s ON p.stream_id = s.stream_id
             WHERE {' AND '.join(filters)}
             ORDER BY p.last_name
@@ -134,7 +134,7 @@ def stream_assign():
         filters={
             'reg_no': reg_no,
             'name': name,
-            'class_name': class_id,
+            'class_id': class_id,
             'study_year': study_year_id,
             'term': term_id,
             'stream': stream_id
@@ -149,33 +149,36 @@ def stream_assign():
 
 
 
-@blueprint.route('/register_pupil', methods=['POST'])
-def register_pupil():
 
 
-    #student_ids = request.form.getlist('student_ids')  # List of selected student IDs
-    assigned_by = session['id']  # Current user's ID from session
-
-
+@blueprint.route('/stream_term_assign', methods=['POST'])
+def stream_term_assign():
+    assigned_by = session.get('id')  # Safely get current user ID
     selected_pupil_ids = request.form.getlist('pupil_ids')
-    term_id = request.form.get('term')  # Correct key from form
+    term_id = request.form.get('term_id')
+    stream_id = request.form.get('stream_id')
     flash_messages = []
 
+    # Validate inputs
     if not selected_pupil_ids:
         flash('No pupils were selected.', 'warning')
-        return redirect(url_for('register_blueprint.stream_assign'))
-    
+        return redirect(url_for('stream_assign_blueprint.stream_assign'))
+
     if not term_id:
         flash('No term was selected.', 'warning')
-        return redirect(url_for('register_blueprint.stream_assign'))
+        return redirect(url_for('stream_assign_blueprint.stream_assign'))
+
+    if not stream_id:
+        flash('No stream was selected.', 'warning')
+        return redirect(url_for('stream_assign_blueprint.stream_assign'))
 
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
     try:
         for pupil_id in selected_pupil_ids:
-            # Get current term_id for the pupil
-            cursor.execute("SELECT term_id FROM pupils WHERE pupil_id = %s", (pupil_id,))
+            # Fetch current values
+            cursor.execute("SELECT term_id, stream_id FROM pupils WHERE pupil_id = %s", (pupil_id,))
             result = cursor.fetchone()
 
             if not result:
@@ -183,35 +186,37 @@ def register_pupil():
                 continue
 
             current_term_id = result['term_id']
+            current_stream_id = result['stream_id']
 
-            if str(current_term_id) == str(term_id):
-                flash_messages.append(f'Pupil {pupil_id} is already assigned to the selected term.')
+            if str(current_term_id) == str(term_id) and str(current_stream_id) == str(stream_id):
+                flash_messages.append(f'Pupil {pupil_id} is already assigned to the selected stream and term.')
                 continue
 
-            # Perform the update if needed
+            # Perform update
             cursor.execute("""
-                UPDATE pupils SET term_id = %s WHERE pupil_id = %s
-            """, (term_id, pupil_id))
+                UPDATE pupils
+                SET term_id = %s, stream_id = %s
+                WHERE pupil_id = %s
+            """, (term_id, stream_id, pupil_id))
 
         connection.commit()
 
-        # Flash messages from processing
+        # Show flash messages
         for message in flash_messages:
-            flash(message, 'warning' if 'already' in message or 'skipping' in message else 'success')
+            flash(message, 'warning')
 
-        # Flash overall success if applicable
         if not flash_messages or all('already' not in msg and 'skipping' not in msg for msg in flash_messages):
-            flash(f'{len(selected_pupil_ids)} pupil(s) assigned to term successfully.', 'success')
+            flash(f'{len(selected_pupil_ids)} pupil(s) assigned to stream and term successfully.', 'success')
 
     except Exception as e:
         connection.rollback()
-        flash(f'Error while assigning pupils to term: {str(e)}', 'danger')
+        flash(f'Error while assigning pupils: {str(e)}', 'danger')
 
     finally:
         cursor.close()
         connection.close()
 
-    return redirect(url_for('register_blueprint.stream_assign'))
+    return redirect(url_for('stream_assign_blueprint.stream_assign'))
 
 
 
@@ -221,7 +226,25 @@ def register_pupil():
 
 
 
+@blueprint.route('/streams_data')
+def streams_data():
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
 
+    cursor.execute('''
+        SELECT 
+            s.stream_id,
+            s.stream_name,
+            c.class_id,
+            c.class_name
+        FROM stream s
+        JOIN classes c ON s.class_id = c.class_id
+        ORDER BY s.stream_name
+    ''')
+    streams = cursor.fetchall()
+
+    # No need to manually convert if using dictionary cursor
+    return jsonify(streams)
 
 
 
