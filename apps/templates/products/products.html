@@ -11,7 +11,7 @@
   <link href="/static/assets/plugins/fontawesome-free/css/all.min.css" rel="stylesheet">
   <link href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css" rel="stylesheet">
 
-  <!-- Theme Style & Custom Styles -->
+  <!-- Theme & Custom Styles -->
   <link href="/static/assets/css/adminlte.min.css" rel="stylesheet">
   <link href="/static/assets/css/mine.css" rel="stylesheet">
 
@@ -105,10 +105,8 @@
                   <tr>
                     <th>SKU</th>
                     <th>Name</th>
-                    <th>Re-Order</th>
                     <th>Quantity</th>
-                    <th>Unit Price</th>
-                    <th>Total Value</th>
+                    <th>Description</th>
                     <th>Image</th>
                     <th>Edit</th>
                     <th>Del</th>
@@ -125,15 +123,13 @@
                       </td>
                       <td>
                         {{ i.name }}<br>
-                        <small><b><i>Category:</i></b> {{ i.category_name }}</small>
+                        <small><strong><i>Category:</i></strong> {{ i.category_name }}</small>
                       </td>
-                      <td>{{ i.reorder_level }}</td>
                       <td>{{ i.quantity }}</td>
-                      <td>{{ i.formatted_price }}</td>
-                      <td>{{ i.formatted_total_price }}</td>
+                      <td><small>{{ i.description }}</small></td>
                       <td>
                         {% if i.image %}
-                          <img src="/static/uploads/{{ i.image }}" alt="Product Image" style="width: 100px; height: 100px; object-fit: cover; border-radius: 5px;">
+                          <img src="/static/uploads/{{ i.image }}" alt="Product Image" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;">
                         {% else %}
                           <span>No Image</span>
                         {% endif %}
@@ -158,13 +154,13 @@
               </div>
             </div>
 
-          </div> <!-- /.card -->
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-</div> <!-- /.content-wrapper -->
+</div>
 {% endblock %}
 
 {% block javascripts %}
@@ -181,7 +177,6 @@
 
   <script>
     $(document).ready(function () {
-      // Initialize DataTable
       $('#productTable').DataTable({
         paging: true,
         searching: true,
@@ -196,12 +191,10 @@
         }
       });
 
-      // Flash message handling
       if ($('#flashMessageContainer').length) {
         $('#flashMessageContainer').fadeIn(500).delay(3000).fadeOut(1000);
       }
 
-      // SKU Copy to Clipboard
       window.copyToClipboard = function (sku) {
         const tempInput = document.createElement('textarea');
         tempInput.value = sku;
@@ -212,7 +205,6 @@
         showNotification("SKU copied to clipboard: " + sku);
       }
 
-      // Show notification
       window.showNotification = function (message) {
         $('#notification-message').text(message);
         $('#notification').fadeIn();
