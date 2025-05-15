@@ -1,54 +1,81 @@
 {% extends "layouts/base.html" %}
 
-{% block title %}Assessment Report{% endblock %}
+{% block title %}Stream Assignment{% endblock %}
 {% block body_class %}sidebar-mini{% endblock %}
 
 {% block stylesheets %}
+<!-- Fonts & Icons -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-<link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
-<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css">
-<link rel="stylesheet" href="/static/assets/css/select2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+<!-- Stylesheets -->
+<link rel="stylesheet" href="https://cdn.datatables.net/2.2.2/css/dataTables.dataTables.css">
 <link rel="stylesheet" href="https://cdn.datatables.net/fixedcolumns/5.0.4/css/fixedColumns.dataTables.css">
+<link rel="stylesheet" href="/static/assets/css/select2.min.css">
 <link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
 <link rel="stylesheet" href="/static/assets/css/mine.css">
 
 <style>
+  .btn-inline-danger {
+    background: transparent;
+    color: #6f42c1;
+    border: 1px solid #6f42c1;
+  }
+
+  .btn-inline-danger:hover {
+    background: #6f42c1;
+    color: #fff;
+  }
+
   .alert-container {
     position: fixed;
     top: 20px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 9999;
-    max-width: 600px;
     width: 90%;
+    max-width: 600px;
     display: none;
   }
 
   .alert {
-    transition: opacity 0.5s ease-in-out;
+    display: flex;
+    align-items: center;
+    opacity: 1;
     margin-bottom: 10px;
     padding: 0.75rem 1.25rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    display: flex;
-    align-items: center;
+    transition: opacity 0.5s ease-in-out;
+  }
+
+  .alert i {
+    margin-right: 10px;
+    font-size: 1.2rem;
   }
 
   .alert .close {
     margin-left: auto;
+    font-size: 1.2rem;
   }
 
-  th, td {
-    white-space: nowrap;
+  .notification {
+    background: #ffc;
+    border: 1px solid #fa0;
+    padding: 10px;
+    border-radius: 5px;
   }
 
-  div.dataTables_wrapper {
-    width: 100%;
-    margin: 0 auto;
+  .notification-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
 
-  div.dataTables_scrollBody thead {
-    display: none;
+  .close-btn {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
   }
 </style>
 {% endblock %}
@@ -75,7 +102,9 @@
   <section class="content-header">
     <div class="container-fluid">
       <div class="row mb-2">
-        <div class="col-sm-6"><h1>Assessment Marks</h1></div>
+        <div class="col-sm-6">
+          <h1>Assessment Marks</h1>
+        </div>
         <div class="col-sm-6">
           <ol class="breadcrumb float-sm-right">
             <li class="breadcrumb-item"><a href="/results_index">Home</a></li>
@@ -88,7 +117,6 @@
 
   <section class="content">
     <div class="container-fluid">
-
       <form method="GET" action="{{ url_for('reports_blueprint.scores_positions_reports') }}" class="mb-4">
         <div class="row">
           <div class="col-md-3">
@@ -100,6 +128,7 @@
               {% endfor %}
             </select>
           </div>
+
           <div class="col-md-3">
             <label for="year_id">Study Year</label>
             <select name="year_id" class="form-control select2">
@@ -109,6 +138,7 @@
               {% endfor %}
             </select>
           </div>
+
           <div class="col-md-3">
             <label for="term_id">Term</label>
             <select name="term_id" class="form-control select2">
@@ -118,6 +148,7 @@
               {% endfor %}
             </select>
           </div>
+
           <div class="col-md-3">
             <label for="assessment_name">Assessment</label>
             <select name="assessment_name" class="form-control select2">
@@ -138,7 +169,9 @@
       </form>
 
       <div class="card">
-        <div class="card-header"><h3 class="card-title">Pupil Performance</h3></div>
+        <div class="card-header">
+          <h3 class="card-title">Pupil Performance</h3>
+        </div>
         <div class="card-body">
           <div class="table-responsive">
             <table id="reportTable" class="display nowrap stripe" style="width:100%">
@@ -153,9 +186,9 @@
                   <th>Average Score</th>
                   <th>Stream Position</th>
                   {% for subject in subject_names %}
-                  <th>{{ subject }} (Mark)</th>
-                  <th>{{ subject }} (Grade)</th>
-                  <th>{{ subject }} (Remark)</th>
+                    <th>{{ subject }} (Mark)</th>
+                    <th>{{ subject }} (Grade)</th>
+                    <th>{{ subject }} (Remark)</th>
                   {% endfor %}
                 </tr>
               </thead>
@@ -171,9 +204,9 @@
                   <td>{{ student.average_score }}</td>
                   <td>{{ student.position }}</td>
                   {% for subject in subject_names %}
-                  <td>{{ student.marks[subject] if student.marks[subject] is not none else 'N/A' }}</td>
-                  <td>{{ student.grades[subject] }}</td>
-                  <td>{{ student.remarks[subject] }}</td>
+                    <td>{{ student.marks[subject] if student.marks[subject] is not none else 'N/A' }}</td>
+                    <td>{{ student.grades[subject] }}</td>
+                    <td>{{ student.remarks[subject] }}</td>
                   {% endfor %}
                 </tr>
                 {% endfor %}
@@ -182,21 +215,18 @@
           </div>
         </div>
       </div>
-
     </div>
   </section>
 </div>
 {% endblock %}
 
 {% block javascripts %}
-<script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="/static/assets/js/adminlte.js"></script>
-<script src="/static/assets/js/select2.min.js"></script>
-<script src="https://cdn.datatables.net/2.3.0/js/dataTables.js"></script>
-<script src="https://cdn.datatables.net/responsive/2.3.0/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/2.2.2/js/dataTables.js"></script>
 <script src="https://cdn.datatables.net/fixedcolumns/5.0.4/js/dataTables.fixedColumns.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+<script src="/static/assets/js/adminlte.js"></script>
 <script src="/static/assets/js/mine.js"></script>
 
 <script>
