@@ -153,6 +153,8 @@ def stream_assign():
 
 
 
+
+
 @blueprint.route('/stream_term_assign', methods=['POST'])
 def stream_term_assign():
     assigned_by = session.get('id')
@@ -160,7 +162,7 @@ def stream_term_assign():
     stream_id = request.form.get('stream_id')
     term_id = request.form.get('term')
 
-    # Validate inputs
+    # Input validation
     if not selected_pupil_ids:
         flash('No pupils were selected.', 'warning')
         return redirect(url_for('stream_assign_blueprint.stream_assign'))
@@ -173,52 +175,39 @@ def stream_term_assign():
         flash('No stream was selected. Please click on a pupil row to select a stream.', 'warning')
         return redirect(url_for('stream_assign_blueprint.stream_assign'))
 
-    # Database operations
+    # Database logic
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
-
     successful = 0
 
     try:
         for pupil_id in selected_pupil_ids:
-            cursor.execute(
-                "SELECT term_id, stream_id FROM pupils WHERE pupil_id = %s",
-                (pupil_id,)
-            )
+            cursor.execute("SELECT term_id, stream_id FROM pupils WHERE pupil_id = %s", (pupil_id,))
             result = cursor.fetchone()
 
             if not result:
                 flash(f'Pupil {pupil_id} not found, skipping.', 'warning')
                 continue
 
-            current_term_id = str(result['term_id'])
-            current_stream_id = str(result['stream_id'])
-
-            if current_term_id == str(term_id) and current_stream_id == str(stream_id):
-                flash(f'Pupil {pupil_id} is already assigned to this stream and term.', 'warning')
+            if str(result['term_id']) == str(term_id) and str(result['stream_id']) == str(stream_id):
+                flash(f'Pupil {pupil_id} is already assigned to this stream and term.', 'info')
                 continue
 
-            cursor.execute(
-                """
+            cursor.execute("""
                 UPDATE pupils
                 SET term_id = %s, stream_id = %s
                 WHERE pupil_id = %s
-                """,
-                (term_id, stream_id, pupil_id)
-            )
+            """, (term_id, stream_id, pupil_id))
             successful += 1
 
         connection.commit()
 
         if successful > 0:
-            flash(f'{successful} pupil(s) successfully assigned.', 'success')
-            return redirect(url_for('stream_assign_blueprint.stream_assign'))
+            flash(f"{successful} pupil(s) successfully assigned.", "success")
 
     except Exception as e:
         connection.rollback()
         flash(f'Error during assignment: {e}', 'danger')
-        return redirect(url_for('stream_assign_blueprint.stream_assign'))
-
     finally:
         cursor.close()
         connection.close()

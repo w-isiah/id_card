@@ -74,8 +74,8 @@ def add_stream():
         # Validate inputs
         if not stream_name or not class_id or not room_id:
             flash("Please fill out all required fields!", "warning")
-        elif not re.match(r'^[A-Za-z0-9_ ]+$', stream_name):
-            flash("Stream name must contain only letters, numbers, and spaces!", "danger")
+        #elif not re.match(r'^[A-Za-z0-9_ ]+$', stream_name):
+        #    flash("Stream name must contain only letters, numbers, and spaces!", "danger")
         else:
             try:
                 # Check if the stream already exists for this class
@@ -162,9 +162,9 @@ def edit_stream(stream_id):
                 flash("Stream name is required!", "warning")
                 return redirect(url_for('streams_blueprint.edit_stream', stream_id=stream_id))
 
-            if not re.match(r'^[A-Za-z0-9_ ]+$', stream_name):
-                flash("Stream name must contain only letters, numbers, and spaces!", "danger")
-                return redirect(url_for('streams_blueprint.edit_stream', stream_id=stream_id))
+            #if not re.match(r'^[A-Za-z0-9_ ]+$', stream_name):
+            #    flash("Stream name must contain only letters, numbers, and spaces!", "danger")
+            #    return redirect(url_for('streams_blueprint.edit_stream', stream_id=stream_id))
 
             # Check for duplicate stream name in the same class
             cursor.execute(
@@ -183,9 +183,9 @@ def edit_stream(stream_id):
             """, (room_id, stream_id))
             existing_assignment = cursor.fetchone()
 
-            if existing_assignment:
-                flash("Room is already assigned!", "warning")
-                return redirect(url_for('streams_blueprint.edit_stream', stream_id=stream_id))
+            #if existing_assignment:
+            #    flash("Room is already assigned!", "warning")
+            #    return redirect(url_for('streams_blueprint.edit_stream', stream_id=stream_id))
 
             # Update stream record
             cursor.execute(

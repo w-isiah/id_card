@@ -1,0 +1,219 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Term Report Card{% endblock %}
+{% block body_class %}sidebar-mini{% endblock %}
+
+{% block stylesheets %}
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700&display=fallback">
+<link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
+<link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
+<link rel="stylesheet" href="/static/assets/css/select2.min.css">
+<link rel="stylesheet" href="/static/assets/css/mine.css">
+
+<style>
+  .report-card {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    padding: 30px;
+    margin: auto;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  .school-header {
+    text-align: center;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+  }
+  .school-header h4 {
+    color: #007bff;
+    font-weight: bold;
+    margin: 0;
+  }
+  .info-table td {
+    border: none !important;
+    padding: 6px 12px;
+    font-size: 14px;
+  }
+  .info-table img {
+    border: 2px solid #6c757d;
+    padding: 3px;
+  }
+  .scores-table th {
+    background-color: #343a40;
+    color: #fff;
+    text-align: center;
+  }
+  .scores-table td {
+    text-align: center;
+    font-size: 14px;
+  }
+  .section-title {
+    background-color: #17a2b8;
+    color: #fff;
+    font-weight: bold;
+    padding: 10px;
+    margin-top: 30px;
+  }
+  .signature {
+    margin-top: 40px;
+  }
+  .signature .box {
+    border-top: 1px solid #343a40;
+    margin-top: 40px;
+    padding-top: 5px;
+  }
+  .footer-note {
+    text-align: center;
+    font-size: 13px;
+    color: #6c757d;
+    margin-top: 40px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+  <section class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6"><h1>Term Report Card</h1></div>
+        <div class="col-sm-6">
+          <ol class="breadcrumb float-sm-right">
+            <li class="breadcrumb-item"><a href="/results_index">Home</a></li>
+            <li class="breadcrumb-item active">Term Report</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="content">
+    <div class="container-fluid">
+      <div class="card card-outline card-primary">
+        <div class="card-body">
+          <div class="report-card">
+
+            <!-- School Header -->
+            <div class="school-header">
+              <h4>SACRED HEART PRIMARY SCHOOL - KYAMUSANSALA</h4>
+              <p>P.O. Box 1759, Masaka | Tel: 0772-848153 / 0702-253560 | Email: shps-rscjp@gmail.com</p>
+              <h5 class="text-muted">TERM {{ pupil.term_name }} - {{ pupil.year_name }} ACADEMIC REPORT CARD</h5>
+            </div>
+
+            <!-- Pupil Info -->
+            <table class="table table-borderless info-table">
+              <tr>
+                <td><strong>Name:</strong> {{ pupil.full_name }}</td>
+                <td><strong>Class:</strong> {{ pupil.class_name }}</td>
+                <td rowspan="6" class="text-center align-middle">
+                  {% if pupil.image %}
+                    <img src="/static/uploads/{{ pupil.image }}" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;">
+                  {% else %}
+                    <span class="text-muted">No Image</span>
+                  {% endif %}
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Reg No:</strong> {{ pupil.reg_no }}</td>
+                <td><strong>Gender:</strong> {{ pupil.gender }}</td>
+              </tr>
+              <tr>
+                <td><strong>Dormitory:</strong> {{ pupil.dorm_id or 'N/A' }}</td>
+                <td><strong>Stream:</strong> {{ pupil.stream_name }}</td>
+              </tr>
+              <tr>
+                <td><strong>Stream Position:</strong> {{ stream_position }}</td>
+                <td><strong>Class Position:</strong> {{ class_position }}</td>
+              </tr>
+              <tr>
+                <td><strong>Overall Total:</strong> {{ overall_total }}</td>
+                <td><strong>Overall Average:</strong> {{ overall_average }}</td>
+              </tr>
+            </table>
+
+            <!-- Assessment Scores Table -->
+            <div class="section-title">Assessment Scores</div>
+            <table class="table table-bordered table-striped scores-table">
+              <thead>
+                <tr>
+                  <th>Subject</th>
+                  {% for assessment in assessments %}
+                    <th>{{ assessment.name }}</th>
+                  {% endfor %}
+                </tr>
+              </thead>
+              <tbody>
+                {% set subjects = [] %}
+                {% for assessment in assessments %}
+                  {% for subject in assessment.scores %}
+                    {% if subject not in subjects %}
+                      {% set _ = subjects.append(subject) %}
+                    {% endif %}
+                  {% endfor %}
+                {% endfor %}
+
+                {% for subject in subjects %}
+                  <tr>
+                    <td>{{ subject }}</td>
+                    {% for assessment in assessments %}
+                      <td>{{ assessment.scores[subject] if assessment.scores[subject] is not none else '-' }}</td>
+                    {% endfor %}
+                  </tr>
+                {% endfor %}
+              </tbody>
+              <tfoot>
+                <tr class="bg-light">
+                  <td><strong>Total</strong></td>
+                  {% for assessment in assessments %}
+                    <td><strong>{{ assessment.total }}</strong></td>
+                  {% endfor %}
+                </tr>
+                <tr class="bg-light">
+                  <td><strong>Average</strong></td>
+                  {% for assessment in assessments %}
+                    <td><strong>{{ assessment.average }}</strong></td>
+                  {% endfor %}
+                </tr>
+              </tfoot>
+            </table>
+
+            <!-- Signatures -->
+            <div class="row signature">
+              <div class="col-md-6">
+                <p><strong>Class Teacher:</strong></p>
+                <p>Comment: ______________________________________</p>
+                <div class="box">Signature</div>
+              </div>
+              <div class="col-md-6 text-right">
+                <p><strong>Head Teacher:</strong></p>
+                <p>Comment: ______________________________________</p>
+                <div class="box">Signature</div>
+              </div>
+            </div>
+
+            <!-- Footer Note -->
+            <div class="footer-note">
+              <p><strong>Next Term Begins:</strong> 17-May-2025</p>
+              <p><strong>Print Date:</strong> {{ print_date.strftime('%d-%b-%Y') }}</p>
+              <p class="text-primary font-italic">“Open to Learn, Love and Share”</p>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock content %}
+
+{% block javascripts %}
+<script src="/static/assets/plugins/jquery/jquery.min.js"></script>
+<script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/static/assets/js/adminlte.min.js"></script>
+<script src="/static/assets/js/select2.min.js"></script>
+<script>
+  $(function () {
+    $('.select2').select2();
+  });
+</script>
+{% endblock javascripts %}

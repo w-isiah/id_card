@@ -244,80 +244,91 @@ def add_pupil():
 
 
 
+
+
 @blueprint.route('/edit_pupil/<int:pupil_id>', methods=['GET', 'POST'])
 def edit_pupil(pupil_id):
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
-    # Fetch the pupil data
+    # Get pupil info
     cursor.execute('SELECT * FROM pupils WHERE pupil_id = %s', (pupil_id,))
     pupil = cursor.fetchone()
 
-    # Fetch options
+    if not pupil:
+        flash("Pupil not found!", "danger")
+        return redirect(url_for('pupils_blueprint.pupils'))
+
+    # Get dropdown options
     cursor.execute('SELECT * FROM study_year ORDER BY year_name')
     study_years = cursor.fetchall()
+
     cursor.execute('SELECT * FROM classes ORDER BY class_name')
     classes = cursor.fetchall()
 
-    if not pupil:
-        flash("Pupil not found!")
-        return redirect(url_for('pupils_blueprint.pupils'))
-
     if request.method == 'POST':
-        # Collect form data
-        first_name = request.form.get('first_name')
-        other_name = request.form.get('other_name')
-        last_name = request.form.get('last_name')
-        nin_number = request.form.get('nin_number')
-        emis_number = request.form.get('emis_number')
-        date_of_birth = request.form.get('date_of_birth')
-        gender = request.form.get('gender')
-        class_id = request.form.get('class_id')
-        study_year = request.form.get('study_year')
-        admission_date = request.form.get('admission_date')
-        home_district = request.form.get('district')
-        address = request.form.get('address')
-        emergency_contact = request.form.get('emergency_contact')
-        medical_info = request.form.get('medical_info')
-        special_needs = request.form.get('special_needs')
-        attendance_record = request.form.get('attendance_record')
-        academic_performance = request.form.get('academic_performance')
-        notes = request.form.get('notes')
-        residential_status = request.form.get('residential_status')
+        # Gather all form inputs
+        form_fields = [
+            'first_name', 'other_name', 'last_name', 'nin_number', 'emis_number',
+            'date_of_birth', 'gender', 'study_year', 'admission_date',
+            'district', 'address', 'emergency_contact', 'medical_info',
+            'special_needs', 'attendance_record', 'academic_performance',
+            'notes', 'residential_status'
+        ]
 
-        # Image handling
-        image_filename = pupil['image']
+        form_data = {field: request.form.get(field) for field in form_fields}
+
+        # Handle file upload
         image_file = request.files.get('image')
+        image_filename = pupil['image']  # Default to existing image
+
         if image_file and allowed_file(image_file.filename):
             filename = secure_filename(image_file.filename)
             image_filename = f"{pupil_id}_{filename}"
 
-            image_folder = os.path.join(current_app.config['UPLOAD_FOLDER'])
-            os.makedirs(image_folder, exist_ok=True)
-            image_path = os.path.join(image_folder, image_filename)
-            image_file.save(image_path)
+            upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads/')
+            os.makedirs(upload_folder, exist_ok=True)
 
-        # Update query
-        cursor.execute('''
-            UPDATE pupils
-            SET first_name = %s, other_name = %s, last_name = %s, nin_number = %s,
-                emis_number = %s, date_of_birth = %s, gender = %s, class_id = %s,
-                year_id = %s, admission_date = %s, home_district = %s, address = %s,
-                emergency_contact = %s, medical_info = %s, special_needs = %s,
-                attendance_record = %s, academic_performance = %s, notes = %s,
-                image = %s, residential_status = %s
-            WHERE pupil_id = %s
-        ''', (
-            first_name, other_name, last_name, nin_number, emis_number, date_of_birth,
-            gender, class_id, study_year, admission_date, home_district, address,
-            emergency_contact, medical_info, special_needs, attendance_record,
-            academic_performance, notes, image_filename, residential_status, pupil_id
-        ))
+            image_path = os.path.join(upload_folder, image_filename)
+            try:
+                image_file.save(image_path)
+            except Exception as e:
+                flash(f"Image upload failed: {e}", "danger")
+                return redirect(request.url)
 
-        connection.commit()
-        flash("Pupil updated successfully!", "success")
-        return redirect(url_for('pupils_blueprint.pupils'))
+        # Perform update
+        try:
+            update_query = '''
+                UPDATE pupils
+                SET first_name = %s, other_name = %s, last_name = %s,
+                    nin_number = %s, emis_number = %s, date_of_birth = %s,
+                    gender = %s, year_id = %s, admission_date = %s,
+                    home_district = %s, address = %s, emergency_contact = %s,
+                    medical_info = %s, special_needs = %s, attendance_record = %s,
+                    academic_performance = %s, notes = %s, image = %s,
+                    residential_status = %s
+                WHERE pupil_id = %s
+            '''
 
+            cursor.execute(update_query, (
+                form_data['first_name'], form_data['other_name'], form_data['last_name'],
+                form_data['nin_number'], form_data['emis_number'], form_data['date_of_birth'],
+                form_data['gender'], form_data['study_year'],
+                form_data['admission_date'], form_data['district'], form_data['address'],
+                form_data['emergency_contact'], form_data['medical_info'],
+                form_data['special_needs'], form_data['attendance_record'],
+                form_data['academic_performance'], form_data['notes'],
+                image_filename, form_data['residential_status'], pupil_id
+            ))
+
+            connection.commit()
+            flash("Pupil updated successfully!", "success")
+            return redirect(url_for('pupils_blueprint.pupils'))
+
+        except Exception as e:
+            flash(f"An error occurred while updating: {e}", "danger")
+
+    # Close DB connection
     cursor.close()
     connection.close()
 

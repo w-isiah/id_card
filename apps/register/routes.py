@@ -158,6 +158,7 @@ def register_pupil():
 
 
     selected_pupil_ids = request.form.getlist('pupil_ids')
+    #print(selected_pupil_ids)
     term_id = request.form.get('term')  # Correct key from form
     flash_messages = []
 

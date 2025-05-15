@@ -35,6 +35,25 @@ def allowed_file(filename):
 
 
 
+@blueprint.route('/streams_data')
+def streams_data():
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    cursor.execute('''
+        SELECT 
+            s.stream_id,
+            s.stream_name,
+            c.class_id,
+            c.class_name
+        FROM stream s
+        JOIN classes c ON s.class_id = c.class_id
+        ORDER BY s.stream_name
+    ''')
+    streams = cursor.fetchall()
+
+    # No need to manually convert if using dictionary cursor
+    return jsonify(streams)
 
 
 
@@ -49,16 +68,16 @@ def allowed_file(filename):
 
 @blueprint.route('/pdownload_template', methods=['GET'])
 def pdownload_template():
-    # Extract filters from query parameters
+    # Extract parameters
     class_id = request.args.get('class_id')
     year_id = request.args.get('year_id')
     term_id = request.args.get('term_id')
     subject_id = request.args.get('subject_id')
     assessment_id = request.args.get('assessment_id')
+    stream_id = request.args.get('stream_id')
 
-    # Validate required inputs
-    if not all([class_id, year_id, term_id, subject_id, assessment_id]):
-        flash("Please select all required fields: class, study year, term, subject, and assessment.", "error")
+    if not all([class_id, year_id, term_id, subject_id, assessment_id, stream_id]):
+        flash("Please select all required fields including stream.", "error")
         return redirect(url_for('results_blueprint.pupload_excel'))
 
     conn = get_db_connection()
@@ -69,49 +88,56 @@ def pdownload_template():
     cursor = conn.cursor(dictionary=True)
 
     try:
-        # Helper function to fetch list from a column
         def fetch_column(query, column):
             cursor.execute(query)
             return [row[column] for row in cursor.fetchall()]
 
-        # Dropdown values for Excel validation
-        classes = fetch_column("SELECT class_name FROM classes ORDER BY class_name", "class_name")
-        study_years = fetch_column("SELECT year_name FROM study_year ORDER BY year_name", "year_name")
-        assessments = fetch_column("SELECT assessment_name FROM assessment ORDER BY assessment_name", "assessment_name")
-        terms = fetch_column("SELECT term_name FROM terms ORDER BY term_name", "term_name")
-        subjects = fetch_column("SELECT subject_name FROM subjects ORDER BY subject_name", "subject_name")
+        # Reference data
+        classes = fetch_column("SELECT class_name FROM classes", "class_name")
+        study_years = fetch_column("SELECT year_name FROM study_year", "year_name")
+        assessments = fetch_column("SELECT assessment_name FROM assessment", "assessment_name")
+        terms = fetch_column("SELECT term_name FROM terms", "term_name")
+        subjects = fetch_column("SELECT subject_name FROM subjects", "subject_name")
+        streams = fetch_column("SELECT stream_name FROM stream", "stream_name")
 
-        # Lookup names for selected IDs
+        # Lookups
         cursor.execute("SELECT class_name FROM classes WHERE class_id = %s", (class_id,))
-        class_name = cursor.fetchone()
-        cursor.execute("SELECT term_name FROM terms WHERE term_id = %s", (term_id,))
-        term_name = cursor.fetchone()
-        cursor.execute("SELECT assessment_name FROM assessment WHERE assessment_id = %s", (assessment_id,))
-        assessment_name = cursor.fetchone()
-        cursor.execute("SELECT year_name FROM study_year WHERE year_id = %s", (year_id,))
-        year_name = cursor.fetchone()
-        cursor.execute("SELECT subject_name FROM subjects WHERE subject_id = %s", (subject_id,))
-        subject_name = cursor.fetchone()
+        class_row = cursor.fetchone()
 
-        # Validate each result
-        if not all([class_name, term_name, assessment_name, year_name, subject_name]):
+        cursor.execute("SELECT stream_name FROM stream WHERE stream_id = %s", (stream_id,))
+        stream_row = cursor.fetchone()
+
+        cursor.execute("SELECT term_name FROM terms WHERE term_id = %s", (term_id,))
+        term_row = cursor.fetchone()
+
+        cursor.execute("SELECT assessment_name FROM assessment WHERE assessment_id = %s", (assessment_id,))
+        assessment_row = cursor.fetchone()
+
+        cursor.execute("SELECT year_name FROM study_year WHERE year_id = %s", (year_id,))
+        year_row = cursor.fetchone()
+
+        cursor.execute("SELECT subject_name FROM subjects WHERE subject_id = %s", (subject_id,))
+        subject_row = cursor.fetchone()
+
+        if not all([class_row, stream_row, term_row, assessment_row, year_row, subject_row]):
             flash("Invalid selection detected. Please try again.", "error")
             return redirect(url_for('results_blueprint.pupload_excel'))
 
-        # Unwrap dict results
-        class_name = class_name['class_name']
-        term_name = term_name['term_name']
-        assessment_name = assessment_name['assessment_name']
-        year_name = year_name['year_name']
-        subject_name = subject_name['subject_name']
+        # Unpack
+        class_name = class_row['class_name']
+        stream_name = stream_row['stream_name']
+        term_name = term_row['term_name']
+        assessment_name = assessment_row['assessment_name']
+        year_name = year_row['year_name']
+        subject_name = subject_row['subject_name']
 
-        # Fetch pupils for the selected filters
+        # Pupils
         cursor.execute("""
             SELECT reg_no, first_name, other_name, last_name
             FROM pupils
-            WHERE class_id = %s AND year_id = %s AND term_id = %s
+            WHERE class_id = %s AND stream_id = %s AND year_id = %s AND term_id = %s
             ORDER BY last_name
-        """, (class_id, year_id, term_id))
+        """, (class_id, stream_id, year_id, term_id))
         pupils = cursor.fetchall()
 
     finally:
@@ -119,79 +145,59 @@ def pdownload_template():
         conn.close()
 
     if not pupils:
-        flash("No students found for the selected filters.", "error")
+        flash("No pupils found for the selected filters.", "error")
         return redirect(url_for('results_blueprint.pupload_excel'))
 
-    # Create Excel workbook
+    # Create Excel
     wb = Workbook()
     ws = wb.active
     ws.title = "Results Template"
 
-    # Headers
-    headers = [
-        "reg_no", "first_name", "other_name", "last_name",
-        "class", "term", "assessment", "study_year", "notes", "subject", "mark"
-    ]
+    headers = ["reg_no", "first_name", "other_name", "last_name", "class", "stream", "term", "assessment", "study_year", "notes", "subject", "mark"]
     ws.append(headers)
 
-    # Populate rows with default data
     for pupil in pupils:
         ws.append([
-            pupil['reg_no'],
-            pupil['first_name'],
-            pupil['other_name'],
-            pupil['last_name'],
-            class_name,
-            term_name,
-            assessment_name,
-            year_name,
-            "",  # Notes
-            subject_name,
-            ""   # Mark
+            pupil['reg_no'], pupil['first_name'], pupil['other_name'], pupil['last_name'],
+            class_name, stream_name, term_name, assessment_name, year_name, "", subject_name, ""
         ])
 
-    # Sheet for reference values
-    dropdown_ws = wb.create_sheet("drop_down_data")
-    dropdown_ws.append(["reg_nos", "classes", "study_years", "assessments", "terms", "subjects"])
-    dropdown_ws.append([
-        ", ".join([p['reg_no'] for p in pupils]),
+    # Reference sheet
+    ref = wb.create_sheet("drop_down_data")
+    ref.append(["classes", "streams", "study_years", "assessments", "terms", "subjects"])
+    ref.append([
         ", ".join(classes),
+        ", ".join(streams),
         ", ".join(study_years),
         ", ".join(assessments),
         ", ".join(terms),
         ", ".join(subjects)
     ])
 
-    # Helper to safely format dropdown values
     def safe_join(values):
-        # Ensure values are not empty and limit the result to 255 characters
         return ",".join([str(v).replace('"', "'") for v in values])[:255]
 
-    # Add dropdown validations
     validations = [
-        (DataValidation(type="list", formula1=f'"{safe_join(classes)}"', allow_blank=True), 'E'),
-        (DataValidation(type="list", formula1=f'"{safe_join(terms)}"', allow_blank=True), 'F'),
-        (DataValidation(type="list", formula1=f'"{safe_join(assessments)}"', allow_blank=True), 'G'),
-        (DataValidation(type="list", formula1=f'"{safe_join(study_years)}"', allow_blank=True), 'H'),
-        (DataValidation(type="list", formula1=f'"{safe_join(subjects)}"', allow_blank=True), 'J'),
+        (DataValidation(type="list", formula1=f'"{safe_join(classes)}"'), 'E'),
+        (DataValidation(type="list", formula1=f'"{safe_join(streams)}"'), 'F'),
+        (DataValidation(type="list", formula1=f'"{safe_join(terms)}"'), 'G'),
+        (DataValidation(type="list", formula1=f'"{safe_join(assessments)}"'), 'H'),
+        (DataValidation(type="list", formula1=f'"{safe_join(study_years)}"'), 'I'),
+        (DataValidation(type="list", formula1=f'"{safe_join(subjects)}"'), 'K'),
     ]
 
     for dv, col in validations:
         ws.add_data_validation(dv)
-        dv.add(f"{col}2:{col}{len(pupils) + 1}")
+        dv.add(f"{col}2:{col}{len(pupils)+1}")
 
-    # Return Excel file as a download
     output = BytesIO()
     wb.save(output)
     output.seek(0)
 
-    return send_file(
-        output,
-        as_attachment=True,
-        download_name="filtered_results_template.xlsx",
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-
+    return send_file(output,
+                     as_attachment=True,
+                     download_name="filtered_results_template.xlsx",
+                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 
 
@@ -219,6 +225,9 @@ def pupload_excel():
     cursor.execute('SELECT assessment_id, assessment_name FROM assessment ORDER BY assessment_name')
     assessments = cursor.fetchall()
 
+    cursor.execute('SELECT stream_id, stream_name FROM stream ORDER BY stream_name')
+    streams = cursor.fetchall()
+
     if request.method == 'POST':
         file = request.files.get('file')
 
@@ -228,7 +237,7 @@ def pupload_excel():
             return redirect(request.url)
 
         if not allowed_file(file.filename):
-            flash('Invalid file format. Please upload an Excel file.', 'danger')
+            flash('Invalid file format. Please upload an Excel (.xlsx) file.', 'danger')
             return redirect(request.url)
 
         # Save the uploaded file
@@ -237,28 +246,25 @@ def pupload_excel():
         file.save(file_path)
 
         try:
-            # Read and validate Excel data
+            import pandas as pd
             df = pd.read_excel(file_path)
+
+            # Custom function to validate and extract the data
             processed_data, errors, existing_reg_nos, duplicate_reg_nos = validate_excel_data(df)
 
-            # Handle validation errors
             if errors:
                 flash('Errors encountered:\n' + '\n'.join(errors), 'danger')
                 return redirect(request.url)
 
-            # Handle duplicate reg_no
             if duplicate_reg_nos:
                 flash(f"Duplicate reg_no(s) found: {', '.join(duplicate_reg_nos)}", 'danger')
                 return redirect(request.url)
 
-            # Handle existing records and skip insertion if found
             if existing_reg_nos:
                 flash(f"Existing reg_no(s): {', '.join(existing_reg_nos)} (skipped).", 'warning')
-                return redirect(url_for('results_blueprint.pupload_excel'))
 
-            # If there are no errors or existing records, insert data into the database
             if processed_data:
-                insert_scores_into_database(processed_data)  # Ensure the insert function is correct
+                insert_scores_into_database(processed_data)
                 flash(f"{len(processed_data)} score record(s) uploaded successfully!", 'success')
             else:
                 flash('No new records to insert.', 'info')
@@ -272,14 +278,15 @@ def pupload_excel():
 
         return redirect(url_for('results_blueprint.pupload_excel'))
 
-    # GET request: render upload page with dropdowns
+    # GET request: render form with all dropdowns
     return render_template(
         'results/upload_excel.html',
         study_years=study_years,
         class_list=class_list,
         terms=terms,
         assessments=assessments,
-        subjects=subjects
+        subjects=subjects,
+        streams=streams  # Make sure the template uses this
     )
 
 
@@ -305,12 +312,12 @@ def validate_excel_data(df):
     df.columns = df.columns.str.lower()
 
     # Required columns
-    required_columns = {'reg_no', 'class', 'study_year', 'term', 'assessment', 'subject', 'mark'}
+    required_columns = {'reg_no', 'class', 'stream', 'study_year', 'term', 'assessment', 'subject', 'mark'}
     missing_columns = required_columns - set(df.columns)
     if missing_columns:
         raise ValueError(f"Missing required columns: {', '.join(missing_columns)}")
 
-    # Get current user ID from session
+    # Get user ID from session
     user_id = session.get('id')
     if not user_id:
         raise ValueError("Missing or invalid user session ID.")
@@ -319,13 +326,14 @@ def validate_excel_data(df):
         with get_db_connection() as connection:
             cursor = connection.cursor()
 
-            # Get mapping dictionaries from DB
+            # Mapping queries
             mapping_queries = {
                 'classes': "SELECT class_name, class_id FROM classes",
                 'study_year': "SELECT year_name, year_id FROM study_year",
                 'terms': "SELECT term_name, term_id FROM terms",
                 'assessment': "SELECT assessment_name, assessment_id FROM assessment",
                 'subjects': "SELECT subject_name, subject_id FROM subjects",
+                'streams': "SELECT stream_name, stream_id FROM stream"
             }
 
             mappings = {}
@@ -333,24 +341,27 @@ def validate_excel_data(df):
                 cursor.execute(query)
                 mappings[key] = {row[0].strip(): row[1] for row in cursor.fetchall()}
 
-            # Load existing score keys
+            # Load existing score combinations to avoid duplicates
             cursor.execute("""
-                SELECT reg_no, class_id, year_id, term_id, assessment_id, subject_id FROM scores
+                SELECT reg_no, class_id, stream_id, year_id, term_id, assessment_id, subject_id 
+                FROM scores
             """)
             existing_score_keys = {
-                (row[0], row[1], row[2], row[3], row[4], row[5]) for row in cursor.fetchall()
+                (row[0], row[1], row[2], row[3], row[4], row[5], row[6]) for row in cursor.fetchall()
             }
 
     except Exception as e:
         errors.append(f"Database error: {str(e)}")
         return processed_data, errors, existing_reg_nos, []
 
+    # Iterate over Excel rows
     for index, row in df.iterrows():
         if row.isnull().all():
             continue
 
         reg_no = str(row.get('reg_no')).strip()
         class_name = str(row.get('class')).strip()
+        stream_name = str(row.get('stream')).strip()
         year_name = str(row.get('study_year')).strip()
         term_name = str(row.get('term')).strip()
         assessment_name = str(row.get('assessment')).strip()
@@ -358,27 +369,31 @@ def validate_excel_data(df):
         mark = row.get('mark')
         notes = row.get('notes') if 'notes' in row else None
 
-        # Check for missing values (including mark)
+        # Check for missing critical fields
+        if not all([reg_no, class_name, stream_name, year_name, term_name, assessment_name, subject_name]):
+            errors.append(f"Row {index + 2}: Missing one or more required fields.")
+            continue
+
         if pd.isna(mark):
-            errors.append(f"Row {index + 2}: 'Mark' value is missing.")
+            errors.append(f"Row {index + 2}: 'Mark' is missing.")
             continue
 
-        if not all([reg_no, class_name, year_name, term_name, assessment_name, subject_name]):
-            errors.append(f"Row {index + 2}: Missing required fields.")
-            continue
-
-        # Convert to IDs
+        # Map names to IDs
         class_id = mappings['classes'].get(class_name)
+        stream_id = mappings['streams'].get(stream_name)
         year_id = mappings['study_year'].get(year_name)
         term_id = mappings['terms'].get(term_name)
         assessment_id = mappings['assessment'].get(assessment_name)
         subject_id = mappings['subjects'].get(subject_name)
 
+        # Collect errors for missing mappings
         row_errors = []
         if not class_id:
             row_errors.append(f"Class '{class_name}' not found.")
+        if not stream_id:
+            row_errors.append(f"Stream '{stream_name}' not found.")
         if not year_id:
-            row_errors.append(f"Year '{year_name}' not found.")
+            row_errors.append(f"Study year '{year_name}' not found.")
         if not term_id:
             row_errors.append(f"Term '{term_name}' not found.")
         if not assessment_id:
@@ -390,33 +405,29 @@ def validate_excel_data(df):
             errors.append(f"Row {index + 2}: " + "; ".join(row_errors))
             continue
 
-        key = (reg_no, class_id, year_id, term_id, assessment_id, subject_id)
+        # Check for duplicates
+        key = (reg_no, class_id, stream_id, year_id, term_id, assessment_id, subject_id)
         if key in existing_score_keys:
             existing_reg_nos.append(reg_no)
             continue
 
+        # Append validated row
         data = {
             'user_id': user_id,
             'reg_no': reg_no,
             'class_id': class_id,
+            'stream_id': stream_id,
             'year_id': year_id,
             'term_id': term_id,
             'assessment_id': assessment_id,
             'subject_id': subject_id,
-            'Mark': mark,
+            'mark': mark,
             'notes': None if pd.isna(notes) else notes
         }
 
         processed_data.append(data)
 
-    if processed_data:
-        try:
-            insert_scores_into_database(processed_data)
-        except Exception as e:
-            errors.append(f"Failed to insert data: {str(e)}")
-
     return processed_data, errors, existing_reg_nos, []
-
 
 
 
@@ -433,17 +444,17 @@ def insert_scores_into_database(processed_data):
         raise ValueError("❌ processed_data must be a list of dictionaries.")
 
     for idx, data in enumerate(processed_data):
-        if 'Mark' not in data or pd.isna(data['Mark']):
-            raise ValueError(f"❌ 'Mark' is missing or null in record at index {idx}: {data}")
+        if 'mark' not in data or pd.isna(data['mark']):
+            raise ValueError(f"❌ 'mark' is missing or null in record at index {idx}: {data}")
         data['notes'] = None if pd.isna(data.get('notes')) else data.get('notes')
 
     insert_query = """
         INSERT INTO scores (
-            user_id, reg_no, class_id, term_id, year_id,
-            assessment_id, subject_id, Mark, notes
+            user_id, reg_no, class_id, stream_id, term_id, year_id,
+            assessment_id, subject_id, mark, notes
         ) VALUES (
-            %(user_id)s, %(reg_no)s, %(class_id)s, %(term_id)s, %(year_id)s,
-            %(assessment_id)s, %(subject_id)s, %(Mark)s, %(notes)s
+            %(user_id)s, %(reg_no)s, %(class_id)s, %(stream_id)s, %(term_id)s, %(year_id)s,
+            %(assessment_id)s, %(subject_id)s, %(mark)s, %(notes)s
         )
     """
 
@@ -451,6 +462,7 @@ def insert_scores_into_database(processed_data):
         SELECT COUNT(*) FROM scores
         WHERE reg_no = %(reg_no)s
         AND class_id = %(class_id)s
+        AND stream_id = %(stream_id)s
         AND year_id = %(year_id)s
         AND term_id = %(term_id)s
         AND assessment_id = %(assessment_id)s
@@ -466,6 +478,7 @@ def insert_scores_into_database(processed_data):
                     cursor.execute(check_existing_query, {
                         'reg_no': data['reg_no'],
                         'class_id': data['class_id'],
+                        'stream_id': data['stream_id'],
                         'year_id': data['year_id'],
                         'term_id': data['term_id'],
                         'assessment_id': data['assessment_id'],
@@ -482,6 +495,7 @@ def insert_scores_into_database(processed_data):
     except Exception as e:
         print(f"❌ Error inserting data: {e}")
         raise
+
 
 
 

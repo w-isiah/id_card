@@ -4,12 +4,12 @@
 {% block body_class %}sidebar-mini{% endblock %}
 
 {% block stylesheets %}
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700&display=swap">
-  <link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
-  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
-  <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css">
-  <link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
-  <link rel="stylesheet" href="/static/assets/css/select2.min.css">
+  <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700&display=swap" rel="stylesheet">
+  <link href="/static/assets/plugins/fontawesome-free/css/all.min.css" rel="stylesheet">
+  <link href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css" rel="stylesheet">
+  <link href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css" rel="stylesheet">
+  <link href="/static/assets/css/adminlte.min.css" rel="stylesheet">
+  <link href="/static/assets/css/select2.min.css" rel="stylesheet">
 
   <style>
     .alert-container {
@@ -24,6 +24,10 @@
     }
     .alert i {
       margin-right: 10px;
+    }
+    #streamSection {
+      margin-top: 10px;
+      display: none;
     }
   </style>
 {% endblock %}
@@ -62,9 +66,10 @@
           <!-- Filter Form -->
           <form method="GET" action="{{ url_for('results_blueprint.pdownload_template') }}" class="mb-4">
             <div class="row">
+              <!-- Class -->
               <div class="col-md-4">
-                <label for="class_id">Class</label>
-                <select name="class_id" class="form-control select2" required>
+                <label for="classSelect">Class</label>
+                <select name="class_id" id="classSelect" class="form-control select2" required>
                   <option value="">-- Select Class --</option>
                   {% for c in class_list %}
                     <option value="{{ c.class_id }}" {% if c.class_id == selected_class_id %}selected{% endif %}>
@@ -74,6 +79,13 @@
                 </select>
               </div>
 
+              <!-- Stream (conditionally displayed) -->
+              <div class="col-md-4" id="streamSection">
+                <label>Stream</label>
+                <div id="streamCheckboxContainer"></div>
+              </div>
+
+              <!-- Study Year -->
               <div class="col-md-4">
                 <label for="year_id">Study Year</label>
                 <select name="year_id" class="form-control select2" required>
@@ -85,8 +97,11 @@
                   {% endfor %}
                 </select>
               </div>
+            </div>
 
-              <div class="col-md-4">
+            <!-- Term & Subject -->
+            <div class="row mt-3">
+              <div class="col-md-6">
                 <label for="term_id">Term</label>
                 <select name="term_id" class="form-control select2" required>
                   <option value="">-- Select Term --</option>
@@ -97,9 +112,7 @@
                   {% endfor %}
                 </select>
               </div>
-            </div>
 
-            <div class="row mt-3">
               <div class="col-md-6">
                 <label for="subject_id">Subject</label>
                 <select name="subject_id" class="form-control select2" required>
@@ -111,7 +124,10 @@
                   {% endfor %}
                 </select>
               </div>
+            </div>
 
+            <!-- Assessment -->
+            <div class="row mt-3">
               <div class="col-md-6">
                 <label for="assessment_id">Assessment</label>
                 <select name="assessment_id" class="form-control select2" required>
@@ -125,6 +141,7 @@
               </div>
             </div>
 
+            <!-- Download Button -->
             <div class="row mt-4">
               <div class="col-md-12 text-right">
                 <button type="submit" class="btn btn-primary">
@@ -164,9 +181,57 @@
 <script>
   $(function () {
     $('.select2').select2();
+
     const $flash = $('#flashMessageContainer');
     if ($flash.length) {
       $flash.fadeIn().delay(3500).fadeOut();
+    }
+
+    let allStreams = [];
+
+    // Fetch stream data once
+    fetch('/streams_data')
+      .then(res => res.json())
+      .then(data => {
+        allStreams = data;
+      })
+      .catch(err => console.error('Stream fetch error:', err));
+
+    // On class selection, populate the streams
+    $('#classSelect').on('change', function () {
+      const classId = $(this).val();
+      const $container = $('#streamCheckboxContainer');
+      const $section = $('#streamSection');
+
+      $container.empty();
+      $section.hide();
+
+      if (!classId) return;
+
+      const matchedStreams = allStreams.filter(s => s.class_id == classId);
+
+      if (!matchedStreams.length) {
+        $container.html('<small class="text-muted">No streams found for this class.</small>');
+      } else {
+        matchedStreams.forEach(stream => {
+          const radioId = `stream_${stream.stream_id}`;
+          $container.append(`
+            <div class="form-check">
+              <input type="radio" class="form-check-input" name="stream_id" value="${stream.stream_id}" id="${radioId}">
+              <label class="form-check-label" for="${radioId}">
+                ${stream.stream_name} || ${stream.class_name}
+              </label>
+            </div>
+          `);
+        });
+      }
+
+      $section.show();
+    });
+
+    // Trigger change on page load if a class is already selected
+    if ($('#classSelect').val()) {
+      $('#classSelect').trigger('change');
     }
   });
 </script>

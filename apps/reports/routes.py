@@ -649,3 +649,300 @@ def scores_positions_reports():
         selected_assessment_name=assessment_name,
         segment='reports'
     )
+
+
+
+
+
+
+
+
+
+
+
+
+
+@blueprint.route('/assessment_report', methods=['GET'])
+def assessment_report():
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    # Load dropdown data
+    cursor.execute("SELECT * FROM classes")
+    class_list = cursor.fetchall()
+
+    cursor.execute("SELECT * FROM study_year")
+    study_years = cursor.fetchall()
+
+    cursor.execute("SELECT * FROM terms")
+    terms = cursor.fetchall()
+
+    cursor.execute("SELECT * FROM assessment")
+    assessments = cursor.fetchall()
+
+    # Get filters from request
+    class_id = request.args.get('class_id', type=int)
+    year_id = request.args.get('year_id', type=int)
+    term_id = request.args.get('term_id', type=int)
+    assessment_name = request.args.get('assessment_name')  # NEW
+
+    filters = {
+        'class_id': class_id,
+        'year_id': year_id,
+        'term_id': term_id,
+        'assessment_name': assessment_name
+    }
+
+    # If no filters selected, render empty page
+    if not any(filters.values()):
+        return render_template('reports/assessment_report.html',
+            reports=[], pivoted_columns=[],
+            class_list=class_list,
+            study_years=study_years,
+            terms=terms,
+            assessments=assessments,
+            selected_class_id=None,
+            selected_study_year_id=None,
+            selected_term_id=None,
+            selected_assessment_name=None,
+            segment='reports'
+        )
+
+    # Query with filters
+    query = """
+    SELECT 
+        p.reg_no,
+        CONCAT_WS(' ', p.first_name, p.other_name, p.last_name) AS full_name,
+        y.year_name,
+        t.term_name,
+        a.assessment_name,
+        sub.subject_name,
+        s.Mark
+    FROM scores s
+    JOIN pupils p ON s.reg_no = p.reg_no
+    JOIN assessment a ON s.assessment_id = a.assessment_id
+    JOIN terms t ON s.term_id = t.term_id
+    JOIN subjects sub ON s.subject_id = sub.subject_id
+    JOIN study_year y ON s.year_id = y.year_id
+    WHERE 1=1
+    """
+
+    params = []
+    if class_id:
+        query += " AND p.class_id = %s"
+        params.append(class_id)
+    if year_id:
+        query += " AND s.year_id = %s"
+        params.append(year_id)
+    if term_id:
+        query += " AND s.term_id = %s"
+        params.append(term_id)
+    if assessment_name:
+        query += " AND a.assessment_name = %s"
+        params.append(assessment_name)
+
+    cursor.execute(query, params)
+    raw_data = cursor.fetchall()
+    cursor.close()
+    connection.close()
+
+    # Pivot and structure data
+    subject_names = sorted({row['subject_name'] for row in raw_data})
+    assessment_names = sorted({row['assessment_name'] for row in raw_data})
+    pivoted_columns = sorted({f"{subject} ({assessment})" for subject in subject_names for assessment in assessment_names})
+
+    student_map = {}
+    for row in raw_data:
+        reg = row['reg_no']
+        if reg not in student_map:
+            student_map[reg] = {
+                'reg_no': reg,
+                'full_name': row['full_name'],
+                'year_name': row['year_name'],
+                'term_name': row['term_name'],
+                'marks': {}
+            }
+
+        key = f"{row['subject_name']} ({row['assessment_name']})"
+        student_map[reg]['marks'][key] = row['Mark']
+
+    # Final formatting
+    reports = []
+    for student in student_map.values():
+        total = 0
+        count = 0
+        for col in pivoted_columns:
+            mark = student['marks'].get(col)
+            if mark is not None:
+                total += mark
+                count += 1
+        student['total_score'] = total
+        student['average_score'] = round(total / count, 2) if count else 0
+        reports.append(student)
+
+    # Sort and rank
+    reports.sort(key=lambda x: x['average_score'], reverse=True)
+    current_rank = 1
+    last_avg = None
+    for index, student in enumerate(reports):
+        if student['average_score'] == last_avg:
+            student['position'] = current_rank
+        else:
+            current_rank = index + 1
+            student['position'] = current_rank
+            last_avg = student['average_score']
+
+    return render_template('reports/assessment_report.html',
+        reports=reports,
+        pivoted_columns=pivoted_columns,
+        class_list=class_list,
+        study_years=study_years,
+        terms=terms,
+        assessments=assessments,
+        selected_class_id=class_id,
+        selected_study_year_id=year_id,
+        selected_term_id=term_id,
+        selected_assessment_name=assessment_name,
+        segment='reports'
+    )
+
+
+
+
+
+
+
+
+
+
+@blueprint.route('/term_report_card/<string:reg_no>', methods=['GET'])
+def term_report_card(reg_no):
+    """Generates a detailed report card for a pupil with stream and class positions."""
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    # Get pupil details including class_id
+    cursor.execute("""
+        SELECT 
+            p.reg_no,
+            CONCAT(p.first_name, ' ', p.other_name, ' ', p.last_name) AS full_name,
+            p.image,
+            p.gender,
+            p.dorm_id,
+            p.stream_id,
+            p.year_id,
+            p.term_id,
+            y.year_name,
+            t.term_name,
+            s.stream_name,
+            c.class_name,
+            c.class_id  -- Ensure class_id is included here
+        FROM pupils p
+        JOIN stream s ON p.stream_id = s.stream_id
+        JOIN classes c ON s.class_id = c.class_id
+        JOIN study_year y ON p.year_id = y.year_id
+        JOIN terms t ON p.term_id = t.term_id
+        WHERE p.reg_no = %s
+    """, (reg_no,))
+    pupil = cursor.fetchone()
+
+    if not pupil:
+        return "No pupil found with this registration number.", 404
+
+    # Get all scores for this pupil
+    cursor.execute("""
+        SELECT 
+            a.assessment_name,
+            sub.subject_name,
+            s.Mark
+        FROM scores s
+        JOIN assessment a ON s.assessment_id = a.assessment_id
+        JOIN subjects sub ON s.subject_id = sub.subject_id
+        WHERE s.reg_no = %s
+        ORDER BY a.assessment_id, sub.subject_name
+    """, (reg_no,))
+    results = cursor.fetchall()
+
+    # Organize scores per assessment
+    assessment_map = {}
+    overall_total = 0
+    overall_count = 0
+
+    for row in results:
+        assessment_name = row['assessment_name']
+        subject_name = row['subject_name']
+        mark = row['Mark']
+
+        if assessment_name not in assessment_map:
+            assessment_map[assessment_name] = {'scores': {}, 'total': 0, 'count': 0}
+
+        if mark is not None:
+            assessment_map[assessment_name]['scores'][subject_name] = float(mark)
+            assessment_map[assessment_name]['total'] += float(mark)
+            assessment_map[assessment_name]['count'] += 1
+            overall_total += float(mark)
+            overall_count += 1
+        else:
+            assessment_map[assessment_name]['scores'][subject_name] = None
+
+    overall_average = round(overall_total / overall_count, 2) if overall_count else 0
+
+    assessments = []
+    for assessment, data in assessment_map.items():
+        avg = round(data['total'] / data['count'], 2) if data['count'] > 0 else 0
+        assessments.append({
+            'name': assessment,
+            'scores': data['scores'],
+            'total': data['total'],
+            'average': avg
+        })
+
+    # Get stream position based on average
+    cursor.execute("""
+        SELECT 
+            p.reg_no,
+            CONCAT(p.first_name, ' ', p.other_name, ' ', p.last_name) AS full_name,
+            SUM(s.Mark) / COUNT(s.Mark) AS average
+        FROM scores s
+        JOIN pupils p ON s.reg_no = p.reg_no
+        WHERE p.stream_id = %s
+          AND p.year_id = %s
+          AND p.term_id = %s
+        GROUP BY p.reg_no
+        ORDER BY average DESC
+    """, (pupil['stream_id'], pupil['year_id'], pupil['term_id']))
+    stream_scores = cursor.fetchall()
+
+    stream_position = next((i + 1 for i, s in enumerate(stream_scores) if s['reg_no'] == reg_no), None)
+
+    # Get class position (same class, year, term)
+    cursor.execute("""
+        SELECT 
+            p.reg_no,
+            SUM(s.Mark) / COUNT(s.Mark) AS average
+        FROM scores s
+        JOIN pupils p ON s.reg_no = p.reg_no
+        JOIN stream strm ON p.stream_id = strm.stream_id
+        WHERE strm.class_id = %s
+          AND p.year_id = %s
+          AND p.term_id = %s
+        GROUP BY p.reg_no
+        ORDER BY average DESC
+    """, (pupil['class_id'], pupil['year_id'], pupil['term_id']))  # Now using pupil['class_id']
+    class_scores = cursor.fetchall()
+
+    class_position = next((i + 1 for i, s in enumerate(class_scores) if s['reg_no'] == reg_no), None)
+
+    cursor.close()
+    connection.close()
+
+    return render_template(
+        'reports/term_report_card.html',
+        pupil=pupil,
+        assessments=assessments,
+        overall_total=overall_total,
+        overall_average=overall_average,
+        stream_position=stream_position,
+        class_position=class_position,
+        print_date=datetime.now()
+    )

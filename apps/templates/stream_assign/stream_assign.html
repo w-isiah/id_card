@@ -74,19 +74,31 @@
 
 {% block content %}
 <div class="content-wrapper">
+
+
+
+<div class="alert-container" id="flashMessageContainer">
   {% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-  <div id="flashMessageContainer" class="alert-container">
-    {% for category, message in messages %}
-    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-      <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'warning' %}exclamation-circle{% elif category == 'danger' %}times-circle{% else %}info-circle{% endif %}"></i>
-      <span>{{ message }}</span>
-      <button type="button" class="close" data-dismiss="alert">&times;</button>
-    </div>
-    {% endfor %}
-  </div>
-  {% endif %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          <i class="fas fa-{{ 
+            'check-circle' if category == 'success' 
+            else 'exclamation-circle' if category == 'warning' 
+            else 'times-circle' if category == 'danger' 
+            else 'info-circle' }}"></i>
+          <span>{{ message }}</span>
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+      {% endfor %}
+    {% endif %}
   {% endwith %}
+</div>
+
+
+
 
   <section class="content-header">
     <div class="container-fluid">
@@ -218,10 +230,16 @@
 <script src="/static/assets/js/mine.js"></script>
 <script>
   $(function () {
-    // Initialize Select2
+    // === Show flash messages ===
+    if ($('#flashMessageContainer').children().length > 0) {
+      $('#flashMessageContainer').fadeIn();
+      setTimeout(() => $('#flashMessageContainer').fadeOut(), 9000);
+    }
+
+    // === Initialize Select2 ===
     $('.select2').select2({ width: '100%' });
 
-    // Initialize DataTable
+    // === Initialize DataTable ===
     const table = $('#pupilTable').DataTable({
       fixedColumns: { left: 1 },
       paging: false,
@@ -230,7 +248,7 @@
       scrollCollapse: true
     });
 
-    // "Select All" checkbox functionality
+    // === Select All Checkbox ===
     $('#select_all').on('change', function () {
       $('.pupil_checkbox').prop('checked', this.checked);
     });
@@ -242,7 +260,7 @@
       );
     });
 
-    // Load all streams
+    // === Load all streams ===
     let allStreams = [];
 
     fetch('/streams_data')
@@ -250,8 +268,11 @@
       .then(data => { allStreams = data; })
       .catch(err => console.error('Stream fetch error:', err));
 
-    // Show streams for the clicked row's class
+    // === Stream selection on row click ===
     $('#pupilTable tbody').on('click', 'tr', function () {
+      $('#pupilTable tbody tr').removeClass('selected');
+      $(this).addClass('selected');
+
       const classId = $(this).find('td[data-class-id]').data('class-id');
       const container = $('#streamCheckboxContainer');
       container.empty();
@@ -278,7 +299,7 @@
       });
     });
 
-    // Notification popup
+    // === Notification Popup (Reusable) ===
     function showNotification(message) {
       $('#notification-message').text(message);
       $('#notification').fadeIn();
@@ -291,10 +312,12 @@
       $('#notification').fadeOut();
     });
 
-    // Form validation before submission
+    // === Form Validation Before Submission ===
     $('form').on('submit', function (e) {
       const classVal = $('#classSelect').val();
       const yearVal = $('select[name="study_year"]').val();
+      const termVal = $('#termSelect').val();
+      const streamVal = $('input[name="stream_id"]:checked').val();
 
       if (!classVal) {
         showNotification("Please select a class.");
@@ -307,7 +330,19 @@
         e.preventDefault();
         return;
       }
+
+     
+
+      
     });
+
+    // === Style selected row (optional CSS needed) ===
+    $('<style>').prop('type', 'text/css').html(`
+      #pupilTable tbody tr.selected {
+        background-color: #e0f7fa !important;
+      }
+    `).appendTo('head');
   });
 </script>
+
 {% endblock %}
