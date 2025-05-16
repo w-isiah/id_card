@@ -1,0 +1,153 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Sub-Categories{% endblock %}
+{% block body_class %}sidebar-mini{% endblock %}
+
+{% block stylesheets %}
+<!-- Google Font: Source Sans Pro -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+<!-- Font Awesome -->
+<link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
+<!-- Ionicons -->
+<link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+<!-- AdminLTE Theme -->
+<link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css">
+{% endblock %}
+
+
+{% block content %}
+<div class="content-wrapper">
+
+  <!-- Flash Messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="container mt-3" id="flashMessageContainer">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          <strong>{{ message }}</strong>
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- Page Header -->
+  <section class="content-header">
+    <div class="container-fluid">
+      <div class="d-flex justify-content-between align-items-center">
+        <h1>Sub-Categories</h1>
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="/index">Home</a></li>
+          <li class="breadcrumb-item active">Sub-Categories</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content -->
+  <section class="content">
+    <div class="container-fluid">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between">
+          <h3 class="card-title mb-0">Sub-Category List</h3>
+          <div>
+            <a href="/add_sub_category" class="btn btn-primary btn-sm">
+              <i class="fas fa-plus-circle"></i> Add Sub-Category
+            </a>
+            <a href="/categories" class="btn btn-info btn-sm">
+              <i class="fas fa-list"></i> Manage Sub Categories
+            </a>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="subCategoriesTable" class="table table-striped display nowrap" style="width:100%">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Category</th>
+                  <th>Description</th>
+                  <th>Edit</th>
+                  <th>Delete</th>
+                </tr>
+              </thead>
+              <tbody>
+                
+                  {% for sub in sub_categories %}
+                  <tr>
+                    <td>{{ sub.sub_category_name }}</td>
+                    <td>{{ sub.category_name }}</td>
+                    <td>{{ sub.sub_category_description or '—' }}</td>
+                    <td>
+                      <a href="/edit_sub_category/{{ sub.sub_category_id }}" class="btn btn-sm btn-warning" aria-label="Edit {{ sub.sub_category_name }}">
+                        <i class="fas fa-edit"></i> Edit
+                      </a>
+                    </td>
+                    <td>
+                      {% if session.get('role') == 'admin' %}
+                        <a href="/delete_sub_category/{{ sub.sub_category_id }}" 
+                           class="btn btn-sm btn-danger" 
+                           onclick="return confirm('Delete {{ sub.sub_category_name }}?')" 
+                           aria-label="Delete {{ sub.sub_category_name }}">
+                          <i class="fas fa-trash-alt"></i> Delete
+                        </a>
+                      {% else %}
+                        <span class="text-muted">Admin Only</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                
+                  
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<!-- jQuery -->
+<script src="/static/assets/plugins/jquery/jquery.min.js"></script>
+<!-- Bootstrap Bundle -->
+<script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<!-- AdminLTE -->
+<script src="/static/assets/js/adminlte.min.js"></script>
+<!-- DataTables -->
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.3.0/js/dataTables.responsive.min.js"></script>
+
+<script>
+  $(document).ready(function() {
+    $('#subCategoriesTable').DataTable({
+      paging: true,
+      searching: true,
+      ordering: true,
+      responsive: true,
+      stripeClasses: ['odd', 'even'],
+      language: {
+        paginate: {
+          next: 'Next',
+          previous: 'Previous'
+        }
+      }
+    });
+
+    // Flash message animation
+    if ($('#flashMessageContainer').length) {
+      $('#flashMessageContainer').fadeIn(500).delay(3000).fadeOut(1000);
+    }
+  });
+</script>
+{% endblock %}

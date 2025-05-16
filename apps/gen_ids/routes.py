@@ -26,7 +26,7 @@ from apps.gen_ids import blueprint
 
 # Start of gen_id handling
 @blueprint.route('/gen_ids')
-def gen_ids():
+def gen_ids_():
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
