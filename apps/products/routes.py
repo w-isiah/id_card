@@ -1,7 +1,7 @@
 import os
 import random
 import logging
-from flask import render_template, request, redirect, url_for, flash, current_app
+from flask import render_template, request, redirect, url_for, flash,jsonify,current_app
 from werkzeug.utils import secure_filename
 from mysql.connector import Error
 from apps import get_db_connection
@@ -30,39 +30,70 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_EXTENSIONS']
 
 
-# Route for the 'products' page
+
+
+
+
 @blueprint.route('/products')
 def products():
-    """Renders the 'products' page."""
-    connection = get_db_connection()
-    cursor = connection.cursor(dictionary=True)
-
+    """Renders the 'products' page with category and subcategory info."""
     try:
-        cursor.execute(''' 
-            SELECT p.*, c.name AS category_name, (p.quantity * p.price) AS total_price
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        query = '''
+            SELECT 
+                p.*, 
+                c.name AS category_name,
+                COALESCE(sc.name, 'None') AS sub_category_name
             FROM product_list p
-            JOIN category_list c ON p.category_id = c.CategoryID
+            INNER JOIN category_list c ON p.category_id = c.CategoryID
+            LEFT JOIN sub_category sc ON p.sub_category_id = sc.sub_category_id
             ORDER BY p.name
-        ''')
+        '''
+        cursor.execute(query)
         products = cursor.fetchall()
 
-        # Calculate totals and format them
-        formatted_total_sum, formatted_total_price = calculate_formatted_totals(products)
-
     except Error as e:
-        logging.error(f"Database error: {e}")
+        logging.error(f"Database error while fetching products: {e}")
         flash("An error occurred while fetching products.", "error")
         return render_template('products/page-500.html'), 500
 
     finally:
-        cursor.close()
-        connection.close()
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
 
-    return render_template('products/products.html',
-                           formatted_total_price=formatted_total_price,
-                           products=products,
-                           formatted_total_sum=formatted_total_sum,
-                           segment='products')
+    return render_template('products/products.html', products=products, segment='products')
+
+
+
+from flask import jsonify
+
+@blueprint.route('/sub_category_data')
+def sub_category_data():
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)  # Ensure dictionary cursor
+        cursor.execute('''
+            SELECT 
+                sc.sub_category_id,
+                sc.name AS sub_category_name,
+                sc.description AS sub_category_description,
+                c.CategoryID AS category_id,
+                c.name AS category_name,
+                c.Description AS category_description
+            FROM sub_category sc
+            JOIN category_list c ON sc.category_id = c.CategoryID
+            ORDER BY sc.name
+        ''')
+        sub_categories_data = cursor.fetchall()
+        return jsonify(sub_categories_data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 
 
 
@@ -72,10 +103,12 @@ def add_product():
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
-    # Fetch categories from the database
+    # Fetch categories and sub-categories
     cursor.execute('SELECT * FROM category_list ORDER BY name')
     categories = cursor.fetchall()
 
+    cursor.execute('SELECT * FROM sub_category ORDER BY name')
+    sub_categories = cursor.fetchall()
 
     # Generate a random SKU
     random_num = random.randint(1005540, 9978799)
@@ -84,20 +117,21 @@ def add_product():
     while True:
         cursor.execute('SELECT * FROM product_list WHERE sku = %s', (random_num,))
         if not cursor.fetchone():
-            break  # Unique SKU found
+            break
         random_num = random.randint(1005540, 9978799)
 
     if request.method == 'POST':
         # Retrieve form data
         category_id = request.form.get('category_id')
+        sub_category_id = request.form.get('sub_category_id') or None
         sku = request.form.get('serial_no') or random_num
         price = request.form.get('price')
         name = request.form.get('name')
         description = request.form.get('description')
-        quantity = 0
+        quantity = 0  # default for new product
         reorder_level = request.form.get('reorder_level')
 
-        # Check for existing product with the same name in the selected category
+        # Check for duplicate product
         cursor.execute('SELECT * FROM product_list WHERE category_id = %s AND name = %s', (category_id, name))
         existing_product = cursor.fetchone()
 
@@ -106,25 +140,24 @@ def add_product():
         else:
             # Handle image upload
             image_file = request.files.get('image')
-            image_filename = None  # Default if no image is uploaded
+            image_filename = None
 
             if image_file and allowed_file(image_file.filename):
                 filename = secure_filename(image_file.filename)
-                image_filename = f"{random_num}_{filename}"  # Rename with SKU to avoid conflicts
+                image_filename = f"{random_num}_{filename}"
                 
-                # Ensure the directory exists before saving the file
                 image_folder = os.path.join(current_app.config['UPLOAD_FOLDER'])
-                if not os.path.exists(image_folder):
-                    os.makedirs(image_folder)  # Create the folder if it doesn't exist
+                os.makedirs(image_folder, exist_ok=True)
 
                 image_path = os.path.join(image_folder, image_filename)
-                image_file.save(image_path)  # Save image
+                image_file.save(image_path)
 
-            # Insert new product into the database
-            cursor.execute('''INSERT INTO product_list 
-                (category_id, sku, price, name, description, quantity, reorder_level, image) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)''',
-                (category_id, sku, price, name, description, quantity, reorder_level, image_filename))
+            # Insert product with sub_category_id
+            cursor.execute('''
+                INSERT INTO product_list 
+                (category_id, sub_category_id, sku, price, name, description, quantity, reorder_level, image) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ''', (category_id, sub_category_id, sku, price, name, description, quantity, reorder_level, image_filename))
             
             connection.commit()
             flash("Product successfully added!", "success")
@@ -132,87 +165,127 @@ def add_product():
     cursor.close()
     connection.close()
 
-    return render_template('products/add_product.html', random_num=random_num, categories=categories, segment='add_product')
+    return render_template(
+        'products/add_product.html',
+        categories=categories,
+        sub_categories=sub_categories,
+        random_num=random_num,
+        segment='add_product'
+    )
+
+
+
+
+
+
+
+@blueprint.route('/subc_data', methods=['GET'])
+def subc_data():
+    category_id = request.args.get('category_id')  # Get category_id from query params
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+    
+    # Fetch sub-categories matching the category_id
+    cursor.execute('SELECT * FROM sub_category WHERE category_id = %s ORDER BY name', (category_id,))
+    sub_categories = cursor.fetchall()
+    
+    connection.close()
+    return jsonify(sub_categories)
+
+
+
 
 
 # Route to edit an existing product
 @blueprint.route('/edit_product/<int:product_id>', methods=['GET', 'POST'])
 def edit_product(product_id):
-    # Connect to the database
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
-    # Fetch the product data from the database
+    # Fetch product data
     cursor.execute('SELECT * FROM product_list WHERE ProductID = %s', (product_id,))
     product = cursor.fetchone()
 
     if not product:
-        flash("Product not found!")
-        return redirect(url_for('products_blueprint.products'))  # Redirect to a products list page or home
+        flash("Product not found!", "danger")
+        return redirect(url_for('products_blueprint.products'))
 
-    # Fetch categories from the database for the dropdown
-    cursor.execute('SELECT * FROM category_list')
+    # Fetch categories and sub-categories
+    cursor.execute('SELECT * FROM category_list ORDER BY name')
     categories = cursor.fetchall()
 
+    cursor.execute('SELECT * FROM sub_category ORDER BY name')
+    sub_categories = cursor.fetchall()
+
     if request.method == 'POST':
-        # Get the form data
+        # Form data
         category_id = request.form.get('category_id')
+        sub_category_id = request.form.get('sub_category_id') or None
         sku = request.form.get('serial_no')
         price = request.form.get('price')
         name = request.form.get('name')
         description = request.form.get('description')
         reorder_level = request.form.get('reorder_level')
 
-        # Handle image upload
-        image_filename = product['image']  # Default to existing image if no new one is uploaded
+        # Image handling
+        image_filename = product['image']  # keep current if no new upload
         image_file = request.files.get('image')
 
         if image_file and allowed_file(image_file.filename):
             filename = secure_filename(image_file.filename)
-            image_filename = f"{product_id}_{filename}"  # Rename with product ID to avoid conflicts
-            
-            # Ensure the directory exists before saving the file
+            image_filename = f"{product_id}_{filename}"
             image_folder = os.path.join(current_app.config['UPLOAD_FOLDER'])
-            if not os.path.exists(image_folder):
-                os.makedirs(image_folder)  # Create the folder if it doesn't exist
-
+            os.makedirs(image_folder, exist_ok=True)
             image_path = os.path.join(image_folder, image_filename)
-            image_file.save(image_path)  # Save new image
+            image_file.save(image_path)
 
-        # Calculate the price change if the price has been updated
-        old_price = product['price']
-        price_change = None
+        # Price change tracking
+        old_price = float(product['price'])
+        new_price = float(price)
+        price_change = new_price - old_price if new_price != old_price else None
 
-        if price != old_price:
-            price_change = float(price) - float(old_price)  # Calculate the price change
-
-        # Update the product data in the database
-        cursor.execute(''' 
+        # Update product data
+        cursor.execute('''
             UPDATE product_list
-            SET category_id = %s, sku = %s, price = %s, name = %s, description = %s,
-                 reorder_level = %s, image = %s, updated_at = CURRENT_TIMESTAMP
+            SET category_id = %s,
+                sub_category_id = %s,
+                sku = %s,
+                price = %s,
+                name = %s,
+                description = %s,
+                reorder_level = %s,
+                image = %s,
+                updated_at = CURRENT_TIMESTAMP
             WHERE ProductID = %s
-        ''', (category_id, sku, price, name, description, reorder_level, image_filename, product_id))
+        ''', (category_id, sub_category_id, sku, new_price, name, description, reorder_level, image_filename, product_id))
 
-        # If there's a price change, insert it into the inventory_logs table
-        if price_change is not None:
+        # Log price change if applicable
+        if price_change:
             cursor.execute('''
                 INSERT INTO inventory_logs (product_id, quantity_change, log_date, reason, price_change, old_price)
                 VALUES (%s, 0, CURRENT_TIMESTAMP, %s, %s, %s)
             ''', (product_id, 'Price Update', price_change, old_price))
 
-        # Commit the transaction
         connection.commit()
-
-        flash("Product updated successfully!")
+        flash("Product updated successfully!", "success")
         return redirect(url_for('products_blueprint.products'))
 
- 
-
+    # Close connections
     cursor.close()
     connection.close()
 
-    return render_template('products/edit_product.html', product=product, categories=categories)
+    return render_template(
+        'products/edit_product.html',
+        product=product,
+        categories=categories,
+        sub_categories=sub_categories,
+        segment='products/edit_product.html'
+    )
+
+
+
+
+
 
 
 

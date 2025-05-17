@@ -1,6 +1,6 @@
 {% extends "layouts/base.html" %}
 
-{% block title %}Dashboard{% endblock %}
+{% block title %}Edit Product{% endblock %}
 
 {% block body_class %}sidebar-mini{% endblock %}
 
@@ -16,6 +16,7 @@
 <!-- DataTables CSS -->
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
 <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css">
+<link href="/static/assets/css/select2.min.css" rel="stylesheet" />
 {% endblock %}
 
 {% block content %}
@@ -37,12 +38,13 @@
     </div>
     {% endif %}
   {% endwith %}
+
   <!-- Content Header -->
   <section class="content-header">
     <div class="container-fluid">
       <div class="row mb-2">
         <div class="col-sm-6">
-          <h1>Edit Item</h1>
+          <h1>Edit Product</h1>
         </div>
         <div class="col-sm-6">
           <ol class="breadcrumb float-sm-right">
@@ -55,7 +57,7 @@
     </div>
   </section>
 
-    <!-- Category Edit Form Section -->
+  <!-- Category Edit Form Section -->
   <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
       <h3 class="card-title">Edit Product</h3>
@@ -66,33 +68,23 @@
         <a href="/add_product">
           <button type="button" class="btn btn-sm btn-outline-primary">Add Product</button>
         </a>
-
         <a href="/p_restock">
           <button type="button" class="btn btn-sm btn-outline-primary">Add Stock</button>
         </a>
-
-        
         <a href="/inventory_index">
           <button type="button" class="btn btn-sm btn-outline-primary">Inventory Dashboard</button>
         </a>
-        
       </div>
-    </div> <!-- /.card-header -->
+    </div>
 
-
-
-  <!-- Main content -->
-  <section class="content">
-    <div class="container-fluid">
-      <div class="row">
-        <div class="col-12">
-          <!-- Default box -->
-          <div class="card">
-           
-
-           
-            <div class="card-body">
-              <div class="widget-content nopadding">
+    <!-- Main content -->
+    <section class="content">
+      <div class="container-fluid">
+        <div class="row">
+          <div class="col-12">
+            <!-- Default box -->
+            <div class="card">
+              <div class="card-body">
                 <form action="{{ url_for('products_blueprint.edit_product', product_id=product.ProductID) }}" method="POST" enctype="multipart/form-data" class="form-horizontal">
                   <!-- CSRF Token for security -->
                   <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
@@ -101,12 +93,23 @@
                   <div class="form-group row mb-3">
                     <label for="category_id" class="col-sm-2 col-form-label">Category:</label>
                     <div class="col-sm-10">
-                      <select name="category_id" class="form-control">
+                      <select name="category_id" id="category_id" class="form-control select2"  onchange="loadSubCategories()">
+                        <option value="" disabled selected>Select Category</option>
                         {% for category in categories %}
                           <option value="{{ category.CategoryID }}" {% if category.CategoryID == product.category_id %} selected {% endif %}>
-                            {{ category.CategoryID }} | {{ category.name }}
+                            {{ category.name }}
                           </option>
                         {% endfor %}
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Sub Category Selection -->
+                  <div class="form-group row mb-3">
+                    <label for="sub_category_id" class="col-sm-2 col-form-label">Sub Category:</label>
+                    <div class="col-sm-10">
+                      <select name="sub_category_id" id="sub_category_id" class="form-control select2">
+                        <option value="" disabled selected>Select Sub Category</option>
                       </select>
                     </div>
                   </div>
@@ -178,26 +181,58 @@
                 </form>
               </div>
             </div>
-
-            <div class="card-footer">
-              Footer
-            </div>
           </div>
         </div>
       </div>
-    </div>
-  </section>
-</div>
-{% endblock content %}
+    </section>
+  </div>
 
-{% block javascripts %}
-<!-- jQuery -->
-<script src="/static/assets/plugins/jquery/jquery.min.js"></script>
-<!-- Bootstrap 4 -->
-<script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-<!-- AdminLTE App -->
-<script src="/static/assets/js/adminlte.min.js"></script>
-<!-- AdminLTE for demo purposes -->
-<script src="/static/assets/js/demo.js"></script>
-<script src="/static/assets/js/mine.js"></script>
-{% endblock javascripts %}
+  {% block javascripts %}
+  <!-- jQuery -->
+  <script src="/static/assets/plugins/jquery/jquery.min.js"></script>
+  <!-- Bootstrap 4 -->
+  <script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <!-- AdminLTE App -->
+  <script src="/static/assets/js/adminlte.min.js"></script>
+  <!-- AdminLTE for demo purposes -->
+  <script src="/static/assets/js/demo.js"></script>
+<script src="/static/assets/js/select2.min.js"></script>
+  <script>
+    // Function to load sub-categories based on selected category
+    function loadSubCategories() {
+      const categoryId = document.getElementById('category_id').value;
+      const subCategorySelect = document.getElementById('sub_category_id');
+
+      if (!categoryId) return;
+
+       $('.select2').select2();
+
+      // Make AJAX request to fetch sub-categories for the selected category
+      fetch('/subc_data?category_id=' + categoryId)
+        .then(response => response.json())
+        .then(subCategories => {
+          // Clear existing options
+          subCategorySelect.innerHTML = '<option value="" disabled selected>Select Sub Category</option>';
+
+          // Populate sub-category dropdown based on selected category
+          subCategories.forEach(subCategory => {
+            const option = document.createElement('option');
+            option.value = subCategory.sub_category_id;
+            option.textContent = subCategory.name;
+            subCategorySelect.appendChild(option);
+          });
+        })
+        .catch(error => console.error('Error fetching sub-categories:', error));
+    }
+
+    // Automatically load sub-categories if category is already selected
+    window.onload = function() {
+      const categoryId = document.getElementById('category_id').value;
+      if (categoryId) {
+        loadSubCategories();
+      }
+    }
+  </script>
+  {% endblock %}
+</div>
+{% endblock %}

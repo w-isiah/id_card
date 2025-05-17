@@ -863,8 +863,9 @@ def term_report_card(reg_no):
     """, (reg_no,))
     results = cursor.fetchall()
 
-    # Organize scores per assessment
+    # Organize scores per assessment and calculate final marks and subject positions
     assessment_map = {}
+    subject_scores = {}
     overall_total = 0
     overall_count = 0
 
@@ -874,18 +875,30 @@ def term_report_card(reg_no):
         mark = row['Mark']
 
         if assessment_name not in assessment_map:
-            assessment_map[assessment_name] = {'scores': {}, 'total': 0, 'count': 0}
+            assessment_map[assessment_name] = {'scores': {}, 'total': 0, 'count': 0, 'final_mark': {}}
 
         if mark is not None:
             assessment_map[assessment_name]['scores'][subject_name] = float(mark)
             assessment_map[assessment_name]['total'] += float(mark)
             assessment_map[assessment_name]['count'] += 1
+            assessment_map[assessment_name]['final_mark'][subject_name] = assessment_map[assessment_name]['final_mark'].get(subject_name, 0) + float(mark)
+            subject_scores.setdefault(subject_name, []).append((reg_no, float(mark)))
             overall_total += float(mark)
             overall_count += 1
         else:
             assessment_map[assessment_name]['scores'][subject_name] = None
 
     overall_average = round(overall_total / overall_count, 2) if overall_count else 0
+
+    # Rank the pupils based on subject scores to calculate the subject position 
+    for subject, scores in subject_scores.items():
+        sorted_scores = sorted(scores, key=lambda x: x[1], reverse=True)
+        for i, (reg_no, score) in enumerate(sorted_scores):
+            if reg_no == reg_no:
+                subject_position = i + 1
+                break
+        else:
+            subject_position = None  # If not found
 
     assessments = []
     for assessment, data in assessment_map.items():
@@ -894,7 +907,9 @@ def term_report_card(reg_no):
             'name': assessment,
             'scores': data['scores'],
             'total': data['total'],
-            'average': avg
+            'average': avg,
+            'final_mark': data['final_mark'],
+            'subject_position': subject_position  # Add subject position
         })
 
     # Get stream position based on average

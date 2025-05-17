@@ -140,6 +140,7 @@
                   {% for assessment in assessments %}
                     <th>{{ assessment.name }}</th>
                   {% endfor %}
+                  <th><strong>Final Mark</strong></th>
                 </tr>
               </thead>
               <tbody>
@@ -151,13 +152,13 @@
                     {% endif %}
                   {% endfor %}
                 {% endfor %}
-
                 {% for subject in subjects %}
                   <tr>
                     <td>{{ subject }}</td>
                     {% for assessment in assessments %}
                       <td>{{ assessment.scores[subject] if assessment.scores[subject] is not none else '-' }}</td>
                     {% endfor %}
+                    <td>{{ assessments[0].final_mark[subject] }}</td>
                   </tr>
                 {% endfor %}
               </tbody>
@@ -167,53 +168,41 @@
                   {% for assessment in assessments %}
                     <td><strong>{{ assessment.total }}</strong></td>
                   {% endfor %}
+                  <td></td>
                 </tr>
                 <tr class="bg-light">
                   <td><strong>Average</strong></td>
                   {% for assessment in assessments %}
                     <td><strong>{{ assessment.average }}</strong></td>
                   {% endfor %}
+                  <td></td>
                 </tr>
               </tfoot>
             </table>
 
-            <!-- Signatures -->
-            <div class="row signature">
-              <div class="col-md-6">
-                <p><strong>Class Teacher:</strong></p>
-                <p>Comment: ______________________________________</p>
-                <div class="box">Signature</div>
-              </div>
-              <div class="col-md-6 text-right">
-                <p><strong>Head Teacher:</strong></p>
-                <p>Comment: ______________________________________</p>
-                <div class="box">Signature</div>
+            <!-- Signature Section -->
+            <div class="signature">
+              <div class="row">
+                <div class="col-sm-6">
+                  <p class="box">Teacher's Signature: ____________________________</p>
+                </div>
+                <div class="col-sm-6">
+                  <p class="box">Head Teacher's Signature: ____________________________</p>
+                </div>
               </div>
             </div>
 
             <!-- Footer Note -->
             <div class="footer-note">
-              <p><strong>Next Term Begins:</strong> 17-May-2025</p>
-              <p><strong>Print Date:</strong> {{ print_date.strftime('%d-%b-%Y') }}</p>
-              <p class="text-primary font-italic">“Open to Learn, Love and Share”</p>
+              <p><strong>Next Term Begins:</strong> {{ next_term_date or 'Date not available' }}</p>
+              <p><strong>Printed On:</strong> {{ print_date.strftime('%Y-%m-%d') }}</p>
+              <p><em>“Striving for Excellence!”</em></p>
             </div>
-
           </div>
         </div>
       </div>
     </div>
   </section>
 </div>
-{% endblock content %}
-
-{% block javascripts %}
-<script src="/static/assets/plugins/jquery/jquery.min.js"></script>
-<script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="/static/assets/js/adminlte.min.js"></script>
-<script src="/static/assets/js/select2.min.js"></script>
-<script>
-  $(function () {
-    $('.select2').select2();
-  });
-</script>
-{% endblock javascripts %}
+{% endblock %}
+s
