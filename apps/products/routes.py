@@ -129,7 +129,7 @@ def add_product():
         name = request.form.get('name')
         description = request.form.get('description')
         quantity = 0  # default for new product
-        reorder_level = request.form.get('reorder_level')
+        
 
         # Check for duplicate product
         cursor.execute('SELECT * FROM product_list WHERE category_id = %s AND name = %s', (category_id, name))
@@ -155,9 +155,9 @@ def add_product():
             # Insert product with sub_category_id
             cursor.execute('''
                 INSERT INTO product_list 
-                (category_id, sub_category_id, sku, price, name, description, quantity, reorder_level, image) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ''', (category_id, sub_category_id, sku, price, name, description, quantity, reorder_level, image_filename))
+                (category_id, sub_category_id, sku, price, name, description, quantity,image) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ''', (category_id, sub_category_id, sku, price, name, description, quantity, image_filename))
             
             connection.commit()
             flash("Product successfully added!", "success")
@@ -225,7 +225,7 @@ def edit_product(product_id):
         price = request.form.get('price')
         name = request.form.get('name')
         description = request.form.get('description')
-        reorder_level = request.form.get('reorder_level')
+     
 
         # Image handling
         image_filename = product['image']  # keep current if no new upload
@@ -253,11 +253,11 @@ def edit_product(product_id):
                 price = %s,
                 name = %s,
                 description = %s,
-                reorder_level = %s,
+                
                 image = %s,
                 updated_at = CURRENT_TIMESTAMP
             WHERE ProductID = %s
-        ''', (category_id, sub_category_id, sku, new_price, name, description, reorder_level, image_filename, product_id))
+        ''', (category_id, sub_category_id, sku, new_price, name, description, image_filename, product_id))
 
         # Log price change if applicable
         if price_change:
