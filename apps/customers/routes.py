@@ -23,39 +23,54 @@ def customers():
     return render_template('customers/customers.html', customer=customer,segment='customers')
 
 
+
+
+
 @blueprint.route('/add_customer', methods=['GET', 'POST'])
 def add_customer():
     if request.method == 'POST':
+        # Get the form data
         name = request.form.get('customer_name')
         contact = request.form.get('contact')
         address = request.form.get('address')
         
         # Ensure the form data is filled
-        if not name or not contact or not address:
-            flash("Please fill out the form!")
-            return render_template('customer/add_customer.html',segment='add_customer')
+        if not name:
+            flash("Please fill out the form!", 'danger')
+            return render_template('customers/add_customer.html', segment='add_customer')
 
         # Check if customer already exists
-        connection = get_db_connection()
-        cursor = connection.cursor(dictionary=True)
-        cursor.execute('SELECT * FROM customer_list WHERE name = %s', (name,))
-        customer = cursor.fetchone()
+        try:
+            connection = get_db_connection()
+            cursor = connection.cursor(dictionary=True)
+            cursor.execute('SELECT * FROM customer_list WHERE name = %s', (name,))
+            customer = cursor.fetchone()
 
-        if customer:
-            flash("Customer already exists!")
-        else:
-            # Insert the new customer
-            cursor.execute('INSERT INTO customer_list (name, contact, address) VALUES (%s, %s, %s)', 
-                           (name, contact, address))
-            connection.commit()
-            flash("You have successfully registered a customer!")
-        
-        cursor.close()
-        connection.close()
-        return render_template('customers/add_customer.html',segment='add_customer')
+            if customer:
+                flash("Receiver already exists!", 'warning')
+            else:
+                # Insert the new customer
+                cursor.execute('INSERT INTO customer_list (name, contact, address) VALUES (%s, %s, %s)', 
+                               (name, contact, address))
+                connection.commit()
+                flash("You have successfully registered a Receiver!", 'success')
+        except Exception as e:
+            flash(f"An error occurred while processing your request: {e}", 'danger')
+        finally:
+            cursor.close()
+            connection.close()
+
+        return render_template('customers/add_customer.html', segment='add_customer')
     
-    # Handle GET request (no action needed for this part)
-    return render_template('customers/add_customer.html',segment='add_customer')
+    # Handle GET request (render form page)
+    return render_template('customers/add_customer.html', segment='add_customer')
+
+
+
+
+
+
+
 
 
 @blueprint.route('/edit_customer/<int:customer_id>', methods=['POST', 'GET'])
@@ -79,7 +94,7 @@ def edit_customer(customer_id):
             connection.commit()
             
             # Flash success message
-            flash("Customer Data Updated Successfully", "success")
+            flash("Reciever Data Updated Successfully", "success")
         except Exception as e:
             # Flash error message if any exception occurs
             flash(f"Error: {str(e)}", "danger")
@@ -102,8 +117,12 @@ def edit_customer(customer_id):
         if customer:
             return render_template('customers/edit_customer.html', customer=customer)
         else:
-            flash("Customer not found.", "danger")
+            flash("Reciever not found.", "danger")
             return redirect(url_for('customers_blueprint.customers'))
+
+
+
+
 
 
 
@@ -113,16 +132,25 @@ def edit_customer(customer_id):
 def delete_customer(get_id):
     connection = get_db_connection()
     cursor = connection.cursor()
-    
-    # Using a parameterized query to prevent SQL injection
-    cursor.execute('DELETE FROM customer_list WHERE CustomerID = %s', (get_id,))
-    
-    # Commit the transaction to apply the changes
-    connection.commit()
-    
-    # Close the cursor and connection
-    cursor.close()
-    connection.close()
+
+    try:
+        # Using a parameterized query to prevent SQL injection
+        cursor.execute('DELETE FROM customer_list WHERE CustomerID = %s', (get_id,))
+
+        # Commit the transaction to apply the changes
+        connection.commit()
+
+        # Check if any row was affected (i.e., the customer existed and was deleted)
+        if cursor.rowcount > 0:
+            flash("Receiver has been successfully deleted.", 'success')
+        else:
+            flash("Receiver not found or already deleted.", 'warning')
+    except Exception as e:
+        flash(f"An error occurred while trying to delete the receiver: {e}", 'danger')
+    finally:
+        # Close the cursor and connection
+        cursor.close()
+        connection.close()
 
     # Redirect to the 'manage_customer' route
     return redirect(url_for('customers_blueprint.customers'))
@@ -131,11 +159,17 @@ def delete_customer(get_id):
 
     
 
+
+
+
+
+
+
 # Dynamic route for rendering other templates
 @blueprint.route('/<template>')
 def route_template(template):
     try:
-        # Ensure the template ends with '.html' for correct render
+        # Ensure the template ends with '.html'
         if not template.endswith('.html'):
             template += '.html'
 
@@ -144,9 +178,11 @@ def route_template(template):
         return render_template("home/" + template, segment=segment)
 
     except TemplateNotFound:
+        flash("The requested page was not found.", "danger")
         return render_template('home/page-404.html'), 404
 
     except Exception as e:
+        flash("An unexpected error occurred. Please try again later.", "danger")
         return render_template('home/page-500.html'), 500
 
 

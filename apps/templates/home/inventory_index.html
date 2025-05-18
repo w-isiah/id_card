@@ -7,8 +7,6 @@
 <!-- Fonts and Icons -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
 <link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
-<link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
-<!-- Theme and Custom Styles -->
 <link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
 <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css">
@@ -38,11 +36,11 @@
     <div class="container-fluid">
       <div class="row mb-2">
         <div class="col-sm-6">
-          <h1 class="m-0 text-dark"><i class="fas fa-tachometer-alt"></i>  Inventory Dashboard</h1>
+          <h1 class="m-0 text-dark"><i class="fas fa-warehouse text-primary"></i> Inventory Dashboard</h1>
         </div>
         <div class="col-sm-6">
           <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="/index">Home</a></li>
+            <li class="breadcrumb-item"><a href="/inventory_index"><i class="fas fa-home"></i> Home</a></li>
             <li class="breadcrumb-item active">Dashboard</li>
           </ol>
         </div>
@@ -76,60 +74,45 @@
     <div class="container-fluid">
       <div class="row">
 
-        <!-- Inventory -->
-        <div class="col-lg-3 col-6">
-          <div class="small-box bg-teal">
-            <div class="inner">
-              <h5>Inventory</h5>
-              <p>Stock Overview</p>
-            </div>
-            <div class="icon">
-              <i class="fas fa-boxes"></i>
-            </div>
-            <a href="/inventory_index" class="small-box-footer">More Info <i class="fas fa-arrow-circle-right"></i></a>
-          </div>
-        </div>
-
         <!-- Categories -->
         <div class="col-lg-3 col-6">
-          <div class="small-box bg-primary">
+          <div class="small-box bg-info">
             <div class="inner">
               <h5>Categories</h5>
-              <p>Items Grouping</p>
+              <p>Organize Products</p>
             </div>
             <div class="icon">
-              <i class="fas fa-tags"></i>
+              <i class="fas fa-th-large"></i>
             </div>
-            <a href="/categories" class="small-box-footer">More Info <i class="fas fa-arrow-circle-right"></i></a>
+            <a href="/categories" class="small-box-footer">More Info <i class="fas fa-chevron-circle-right"></i></a>
           </div>
         </div>
 
-
-          <!-- Categories -->
+        <!-- Sub Categories -->
         <div class="col-lg-3 col-6">
-          <div class="small-box bg-primary">
+          <div class="small-box bg-gradient-indigo">
             <div class="inner">
               <h5>Sub Categories</h5>
-              <p>Items Sub Grouping</p>
+              <p>Detailed Grouping</p>
             </div>
             <div class="icon">
-              <i class="fas fa-tags"></i>
+              <i class="fas fa-stream"></i>
             </div>
-            <a href="/sub_categories" class="small-box-footer">More Info <i class="fas fa-arrow-circle-right"></i></a>
+            <a href="/sub_categories" class="small-box-footer">More Info <i class="fas fa-chevron-circle-right"></i></a>
           </div>
         </div>
 
         <!-- Items -->
         <div class="col-lg-3 col-6">
-          <div class="small-box bg-info">
+          <div class="small-box bg-gradient-success">
             <div class="inner">
               <h5>Items</h5>
-              <p>All Products</p>
+              <p>Product Catalog</p>
             </div>
             <div class="icon">
-              <i class="fas fa-cubes"></i>
+              <i class="fas fa-boxes"></i>
             </div>
-            <a href="/products" class="small-box-footer">More Info <i class="fas fa-arrow-circle-right"></i></a>
+            <a href="/products" class="small-box-footer">More Info <i class="fas fa-chevron-circle-right"></i></a>
           </div>
         </div>
 
@@ -137,21 +120,63 @@
         <div class="col-lg-3 col-6">
           <div class="small-box bg-success">
             <div class="inner">
-              <h5>Stocking</h5>
-              <p>Add Product Quantity</p>
+              <h5>Restock</h5>
+              <p>Receive Products</p>
             </div>
             <div class="icon">
-              <i class="fas fa-plus-square"></i>
+              <i class="fas fa-plus-circle"></i>
             </div>
-            <a href="/p_restock" class="small-box-footer">More Info <i class="fas fa-arrow-circle-right"></i></a>
+            <a href="/p_restock" class="small-box-footer">More Info <i class="fas fa-chevron-circle-right"></i></a>
+          </div>
+        </div>
+
+        <!-- Stock Out -->
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-warning">
+            <div class="inner">
+              <h5>Stock Out</h5>
+              <p>Deduct Products</p>
+            </div>
+            <div class="icon">
+              <i class="fas fa-arrow-circle-down"></i>
+            </div>
+            <a href="/sales" class="small-box-footer">More Info <i class="fas fa-chevron-circle-right"></i></a>
+          </div>
+        </div>
+
+        <!-- Stocked Out Items -->
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-gradient-warning">
+            <div class="inner">
+              <h5>Out of Stock</h5>
+              <p>Quantity</p>
+            </div>
+            <div class="icon">
+              <i class="fas fa-ban"></i>
+            </div>
+            <a href="/sales_view" class="small-box-footer">More Info <i class="fas fa-chevron-circle-right"></i></a>
+          </div>
+        </div>
+
+        <!-- Stock Receiver -->
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-danger">
+            <div class="inner">
+              <h5>Stock Receiver</h5>
+              <p>Incoming Records</p>
+            </div>
+            <div class="icon">
+              <i class="fas fa-dolly"></i>
+            </div>
+            <a href="/customers" class="small-box-footer">More Info <i class="fas fa-chevron-circle-right"></i></a>
           </div>
         </div>
       </div>
 
-      <!-- Placeholder for a list/table -->
+      <!-- Placeholder List -->
       <div class="card mt-4">
         <div class="card-header border-transparent">
-          <h3 class="card-title"><i class="fas fa-list-ul"></i> Some List</h3>
+          <h3 class="card-title"><i class="fas fa-clipboard-list"></i> Summary List</h3>
           <div class="card-tools">
             <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i></button>
             <button type="button" class="btn btn-tool" data-card-widget="remove"><i class="fas fa-times"></i></button>
@@ -159,12 +184,10 @@
         </div>
         <div class="card-body p-0">
           <div class="row p-3">
-            <!-- Add list or table contents here -->
-            <p class="text-muted">List content goes here...</p>
+            <p class="text-muted">Placeholder content for upcoming reports or listings.</p>
           </div>
         </div>
       </div>
-
     </div>
   </section>
 </div>
@@ -182,17 +205,6 @@
     const $flash = $('#flashMessageContainer');
     if ($flash.length) {
       $flash.fadeIn(400).delay(3500).fadeOut(600);
-    }
-
-    // Optional: Copy to clipboard function if needed
-    function copyToClipboard(sku) {
-      const tempInput = document.createElement('textarea');
-      tempInput.value = sku;
-      document.body.appendChild(tempInput);
-      tempInput.select();
-      document.execCommand('copy');
-      document.body.removeChild(tempInput);
-      alert("SKU copied: " + sku);
     }
   });
 </script>

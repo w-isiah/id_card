@@ -125,11 +125,10 @@ def add_product():
         category_id = request.form.get('category_id')
         sub_category_id = request.form.get('sub_category_id') or None
         sku = request.form.get('serial_no') or random_num
-        price = request.form.get('price')
         name = request.form.get('name')
+        unique_number = request.form.get('unique_number')
         description = request.form.get('description')
         quantity = 0  # default for new product
-        
 
         # Check for duplicate product
         cursor.execute('SELECT * FROM product_list WHERE category_id = %s AND name = %s', (category_id, name))
@@ -152,12 +151,12 @@ def add_product():
                 image_path = os.path.join(image_folder, image_filename)
                 image_file.save(image_path)
 
-            # Insert product with sub_category_id
+            # Insert product without price
             cursor.execute('''
                 INSERT INTO product_list 
-                (category_id, sub_category_id, sku, price, name, description, quantity,image) 
+                (category_id, sub_category_id, sku, name, unique_number, description, quantity, image) 
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            ''', (category_id, sub_category_id, sku, price, name, description, quantity, image_filename))
+            ''', (category_id, sub_category_id, sku, name, unique_number, description, quantity, image_filename))
             
             connection.commit()
             flash("Product successfully added!", "success")
@@ -172,7 +171,6 @@ def add_product():
         random_num=random_num,
         segment='add_product'
     )
-
 
 
 
@@ -222,10 +220,9 @@ def edit_product(product_id):
         category_id = request.form.get('category_id')
         sub_category_id = request.form.get('sub_category_id') or None
         sku = request.form.get('serial_no')
-        price = request.form.get('price')
         name = request.form.get('name')
+        unique_number = request.form.get('unique_number')
         description = request.form.get('description')
-     
 
         # Image handling
         image_filename = product['image']  # keep current if no new upload
@@ -239,32 +236,19 @@ def edit_product(product_id):
             image_path = os.path.join(image_folder, image_filename)
             image_file.save(image_path)
 
-        # Price change tracking
-        old_price = float(product['price'])
-        new_price = float(price)
-        price_change = new_price - old_price if new_price != old_price else None
-
         # Update product data
         cursor.execute('''
             UPDATE product_list
             SET category_id = %s,
                 sub_category_id = %s,
                 sku = %s,
-                price = %s,
                 name = %s,
+                unique_number = %s,
                 description = %s,
-                
                 image = %s,
                 updated_at = CURRENT_TIMESTAMP
             WHERE ProductID = %s
-        ''', (category_id, sub_category_id, sku, new_price, name, description, image_filename, product_id))
-
-        # Log price change if applicable
-        if price_change:
-            cursor.execute('''
-                INSERT INTO inventory_logs (product_id, quantity_change, log_date, reason, price_change, old_price)
-                VALUES (%s, 0, CURRENT_TIMESTAMP, %s, %s, %s)
-            ''', (product_id, 'Price Update', price_change, old_price))
+        ''', (category_id, sub_category_id, sku, name, unique_number, description, image_filename, product_id))
 
         connection.commit()
         flash("Product updated successfully!", "success")
@@ -281,7 +265,6 @@ def edit_product(product_id):
         sub_categories=sub_categories,
         segment='products/edit_product.html'
     )
-
 
 
 
