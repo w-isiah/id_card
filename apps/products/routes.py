@@ -194,13 +194,14 @@ def subc_data():
 
 
 
-# Route to edit an existing product
+
+
 @blueprint.route('/edit_product/<int:product_id>', methods=['GET', 'POST'])
 def edit_product(product_id):
-    connection = get_db_connection()
-    cursor = connection.cursor(dictionary=True)
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
 
-    # Fetch product data
+    # Fetch the product
     cursor.execute('SELECT * FROM product_list WHERE ProductID = %s', (product_id,))
     product = cursor.fetchone()
 
@@ -208,15 +209,12 @@ def edit_product(product_id):
         flash("Product not found!", "danger")
         return redirect(url_for('products_blueprint.products'))
 
-    # Fetch categories and sub-categories
+    # Fetch categories
     cursor.execute('SELECT * FROM category_list ORDER BY name')
     categories = cursor.fetchall()
 
-    cursor.execute('SELECT * FROM sub_category ORDER BY name')
-    sub_categories = cursor.fetchall()
-
     if request.method == 'POST':
-        # Form data
+        # Get form values
         category_id = request.form.get('category_id')
         sub_category_id = request.form.get('sub_category_id') or None
         sku = request.form.get('serial_no')
@@ -224,19 +222,17 @@ def edit_product(product_id):
         unique_number = request.form.get('unique_number')
         description = request.form.get('description')
 
-        # Image handling
-        image_filename = product['image']  # keep current if no new upload
+        # Image upload logic
         image_file = request.files.get('image')
+        image_filename = product['image']  # default to existing
 
         if image_file and allowed_file(image_file.filename):
             filename = secure_filename(image_file.filename)
             image_filename = f"{product_id}_{filename}"
-            image_folder = os.path.join(current_app.config['UPLOAD_FOLDER'])
-            os.makedirs(image_folder, exist_ok=True)
-            image_path = os.path.join(image_folder, image_filename)
-            image_file.save(image_path)
+            upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], image_filename)
+            image_file.save(upload_path)
 
-        # Update product data
+        # Update product
         cursor.execute('''
             UPDATE product_list
             SET category_id = %s,
@@ -249,23 +245,17 @@ def edit_product(product_id):
                 updated_at = CURRENT_TIMESTAMP
             WHERE ProductID = %s
         ''', (category_id, sub_category_id, sku, name, unique_number, description, image_filename, product_id))
+        conn.commit()
 
-        connection.commit()
         flash("Product updated successfully!", "success")
         return redirect(url_for('products_blueprint.products'))
 
-    # Close connections
     cursor.close()
-    connection.close()
+    conn.close()
 
-    return render_template(
-        'products/edit_product.html',
-        product=product,
-        categories=categories,
-        sub_categories=sub_categories,
-        segment='products/edit_product.html'
-    )
-
+    return render_template('products/edit_product.html',
+                           product=product,
+                           categories=categories)
 
 
 
