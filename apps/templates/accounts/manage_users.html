@@ -2,7 +2,7 @@
 
 {% block title %}Users{% endblock %}
 
-{% block body_class %}sidebar-mini{% endblock %}
+{% block body_class %}sidebar-mini layout-fixed{% endblock %}
 
 {% block stylesheets %}
 <!-- Google Font: Source Sans Pro -->
@@ -30,7 +30,7 @@
 
 {% block content %}
 <div class="content-wrapper">
-  
+
   <!-- Page Header -->
   <section class="content-header">
     <div class="container-fluid">
@@ -42,12 +42,9 @@
           <a href="/add_user" class="btn btn-success">
             <i class="fas fa-user-plus mr-1"></i> Add Admin User
           </a>
-
-           <a href="/add_other_user" class="btn btn-success">
-            <i class="fas fa-user-plus mr-1"></i> Add other User
+          <a href="/add_other_user" class="btn btn-primary">
+            <i class="fas fa-user-plus mr-1"></i> Add Other User
           </a>
-
-
         </div>
         <div class="col-12 mt-2">
           <ol class="breadcrumb float-sm-right">
@@ -84,13 +81,13 @@
           <h3 class="card-title">User List</h3>
         </div>
         <div class="card-body">
-          <table id="accounts" class="table table-bordered table-striped nowrap" style="width: 100%">
+          <table id="accounts" class="table table-bordered table-striped table-responsive nowrap" style="width: 100%">
             <thead>
               <tr>
                 <th>Username</th>
                 <th>Role</th>
                 <th>Status</th>
-                 <th>Other Roles</th>
+                <th>User Profile & Roles</th>
                 <th>Activity Logs</th>
                 <th>Actions</th>
               </tr>
@@ -108,17 +105,15 @@
                   {% endif %}
                 </td>
                 <td>
-                  <a href="/activity_logs/{{ user.id }}" class="btn btn-warning btn-sm" title="View Activity Logs">
+                  <a href="/view_user/{{ user.id }}" class="btn btn-warning btn-sm" title="View Profile & Roles">
                     <i class="fas fa-clipboard-list"></i> View
                   </a>
                 </td>
-
                 <td>
                   <a href="/activity_logs/{{ user.id }}" class="btn btn-warning btn-sm" title="View Activity Logs">
                     <i class="fas fa-clipboard-list"></i> View
                   </a>
                 </td>
-
                 <td>
                   <div class="btn-group" role="group">
                     <a href="/edit_user/{{ user.id }}" class="btn btn-info btn-sm" title="Edit User">
@@ -182,4 +177,3 @@
   });
 </script>
 {% endblock %}
- 

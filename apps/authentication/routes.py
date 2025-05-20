@@ -287,6 +287,18 @@ def add_user():
 
 
 # Handle the form submission
+
+
+
+
+
+
+
+
+
+
+
+
 @blueprint.route('/edit_user/<int:id>', methods=['GET', 'POST'])
 def edit_user(id):
     with get_db_connection() as connection:
@@ -330,6 +342,96 @@ def edit_user(id):
             user = cursor.fetchone()
 
     return render_template("accounts/edit_user.html", user=user)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@blueprint.route('/view_user/<int:id>', methods=['GET'])
+def view_user(id):
+    with get_db_connection() as connection:
+        with connection.cursor(dictionary=True) as cursor:
+            cursor.execute('SELECT * FROM users WHERE id = %s', (id,))
+            user = cursor.fetchone()
+
+            cursor.execute('SELECT * FROM sub_category')
+            all_sub_categories = cursor.fetchall()
+
+            cursor.execute('SELECT sub_category_id FROM other_roles WHERE user_id = %s', (id,))
+            user_sub_category_ids = {row['sub_category_id'] for row in cursor.fetchall()}
+
+    return render_template(
+        "accounts/view_user.html",
+        user=user,
+        all_sub_categories=all_sub_categories,
+        user_sub_category_ids=user_sub_category_ids
+    )
+
+
+
+
+@blueprint.route('/edit_user_roles/<int:id>', methods=['GET', 'POST'])
+def edit_user_roles(id):
+    with get_db_connection() as connection:
+        with connection.cursor(dictionary=True) as cursor:
+            if request.method == 'POST':
+                # Retrieve the list of selected sub_category_ids from the form
+                selected_sub_categories = request.form.getlist('sub_categories')
+
+                # Clear the previous roles for the user in the other_roles table
+                cursor.execute('DELETE FROM other_roles WHERE user_id = %s', (id,))
+                connection.commit()
+
+                # Add the newly selected roles to the other_roles table
+                for sub_category_id in selected_sub_categories:
+                    cursor.execute('''
+                        INSERT INTO other_roles (user_id, sub_category_id) 
+                        VALUES (%s, %s)
+                    ''', (id, sub_category_id))
+                connection.commit()
+
+                flash('User roles updated successfully!', 'success')
+                return redirect(url_for('authentication_blueprint.manage_users'))
+
+            # Retrieve the user information to pre-fill the form
+            cursor.execute('SELECT * FROM users WHERE id = %s', (id,))
+            user = cursor.fetchone()
+
+            # Get all sub-categories to display
+            cursor.execute('SELECT * FROM sub_category')
+            all_sub_categories = cursor.fetchall()
+
+            # Get the current sub-categories assigned to the user
+            cursor.execute('SELECT sub_category_id FROM other_roles WHERE user_id = %s', (id,))
+            user_sub_category_ids = {row['sub_category_id'] for row in cursor.fetchall()}
+
+    return render_template(
+        "accounts/edit_user_roles.html", 
+        user=user, 
+        all_sub_categories=all_sub_categories, 
+        user_sub_category_ids=user_sub_category_ids
+    )
+
+
+
+
+
+
+
+
+
+
 
 
 def get_user_password(cursor, user_id):
