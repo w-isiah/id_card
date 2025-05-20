@@ -16,42 +16,40 @@
 <!-- DataTables CSS -->
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
 <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css">
-<!-- Custom CSS for Flash Messages -->
 <style>
   .alert-container {
     position: fixed;
     top: 20px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 9999;
+    z-index: 1050;
     width: 80%;
-    display: none;  /* Initially hidden */
-  }
-
-  .alert {
-    opacity: 1;
-    transition: opacity 1s ease-out;
-    margin-bottom: 10px;
-  }
-
-  .alert.alert-dismissible {
-    padding-right: 30px;
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<!-- Content Wrapper -->
 <div class="content-wrapper">
-
-  <!-- Content Header -->
+  
+  <!-- Page Header -->
   <section class="content-header">
     <div class="container-fluid">
-      <div class="row mb-2">
+      <div class="row mb-2 align-items-center">
         <div class="col-sm-6">
           <h1>Users</h1>
         </div>
-        <div class="col-sm-6">
+        <div class="col-sm-6 text-right">
+          <a href="/add_user" class="btn btn-success">
+            <i class="fas fa-user-plus mr-1"></i> Add Admin User
+          </a>
+
+           <a href="/add_other_user" class="btn btn-success">
+            <i class="fas fa-user-plus mr-1"></i> Add other User
+          </a>
+
+
+        </div>
+        <div class="col-12 mt-2">
           <ol class="breadcrumb float-sm-right">
             <li class="breadcrumb-item"><a href="/index">Home</a></li>
             <li class="breadcrumb-item"><a href="/manage_users">Users</a></li>
@@ -65,7 +63,7 @@
   <!-- Flash Messages -->
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-      <div class="alert-container" id="flashMessageContainer">
+      <div class="alert-container">
         {% for category, message in messages %}
           <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
             <strong>{{ message }}</strong>
@@ -79,147 +77,109 @@
   {% endwith %}
 
   <!-- Main Content -->
-
-
-  <section class="content-header">
-    <div class="container-fluid">
-      <div class="row mb-2 align-items-center">
-        <div class="col-sm-6">
-          
-        </div>
-        <div class="col-sm-6 text-sm-right">
-          <a href="/add_user" class="btn btn-success">
-            <i class="fas fa-plus-circle mr-1"></i> Add a User
-          </a>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  
   <section class="content">
     <div class="container-fluid">
-      <div class="row">
-        <div class="col-12">
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">User List</h3>
-            </div>
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">User List</h3>
+        </div>
+        <div class="card-body">
+          <table id="accounts" class="table table-bordered table-striped nowrap" style="width: 100%">
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Status</th>
+                 <th>Other Roles</th>
+                <th>Activity Logs</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for user in users %}
+              <tr>
+                <td>{{ user.username }}</td>
+                <td>{{ user.role }}</td>
+                <td id="user-status-{{ user.id }}">
+                  {% if user.is_online %}
+                    <span class="badge badge-success">Online</span>
+                  {% else %}
+                    <span class="badge badge-danger">Offline</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <a href="/activity_logs/{{ user.id }}" class="btn btn-warning btn-sm" title="View Activity Logs">
+                    <i class="fas fa-clipboard-list"></i> View
+                  </a>
+                </td>
 
-            <!-- Card Body -->
-            <div class="card-body">
-              <div class="table-responsive">
-                <table id="accounts" class="display stripe nowrap" style="width:100%">
-                  <thead>
-                    <tr>
-                      <th>Username</th>
-                      <th>Role</th>
-                      <th>Status</th>
-                      <th>Activity Logs</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for user in users %}
-                      <tr>
-                        <td>{{ user.username }}</td>
-                        <td>{{ user.role }}</td>
-                        
-                        <!-- User Status -->
-                        <td id="user-status-{{ user.id }}">
-                          {% if user.is_online %}
-                            <span class="badge badge-success">Online</span>
-                          {% else %}
-                            <span class="badge badge-danger">Offline</span>
-                          {% endif %}
-                        </td>
-                        
-                        <td>
-                          <a href="/activity_logs/{{ user.id }}" class="btn btn-warning btn-sm" data-toggle="tooltip" data-placement="top" title="View Activity Logs">
-                            <i class="fas fa-edit"></i> View
-                          </a>
-                        </td>
-                        <td>
-                          <div class="btn-group" role="group">
-                            <a href="/edit_user/{{ user.id }}" class="btn btn-warning btn-sm" data-toggle="tooltip" data-placement="top" title="Edit User">
-                              <i class="fas fa-edit"></i> Edit
-                            </a>
-                            <a href="{{ url_for('authentication_blueprint.delete_user', id=user.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this user: {{ user.username }}?');" data-toggle="tooltip" data-placement="top" title="Delete User">
-                              <i class="fas fa-trash"></i> Delete
-                            </a>
-                          </div>
-                        </td>
-                      </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            <!-- /.card-body -->
-          </div>
-          <!-- /.card -->
+                <td>
+                  <a href="/activity_logs/{{ user.id }}" class="btn btn-warning btn-sm" title="View Activity Logs">
+                    <i class="fas fa-clipboard-list"></i> View
+                  </a>
+                </td>
+
+                <td>
+                  <div class="btn-group" role="group">
+                    <a href="/edit_user/{{ user.id }}" class="btn btn-info btn-sm" title="Edit User">
+                      <i class="fas fa-edit"></i>
+                    </a>
+                    <a href="{{ url_for('authentication_blueprint.delete_user', id=user.id) }}" class="btn btn-danger btn-sm"
+                      onclick="return confirm('Are you sure you want to delete user: {{ user.username }}?');" title="Delete User">
+                      <i class="fas fa-trash-alt"></i>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
   </section>
-  <!-- /.content -->
 </div>
-<!-- /.content-wrapper -->
-
 {% endblock %}
 
 {% block javascripts %}
-<!-- jQuery -->
+<!-- Required Scripts -->
 <script src="/static/assets/plugins/jquery/jquery.min.js"></script>
-<!-- Bootstrap Bundle -->
 <script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-<!-- AdminLTE -->
-<script src="/static/assets/js/adminlte.js"></script>
+<script src="/static/assets/js/adminlte.min.js"></script>
+
 <!-- DataTables -->
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/responsive/2.3.0/js/dataTables.responsive.min.js"></script>
 
 <script>
-  $(document).ready(function() {
+  $(function () {
     // Initialize DataTables
     $('#accounts').DataTable({
-      paging: true,
-      searching: true,
-      ordering: true,
       responsive: true,
-      stripeClasses: ['odd', 'even'],
+      autoWidth: false,
+      ordering: true,
+      paging: true,
       language: {
-        paginate: {
-          next: 'Next',
-          previous: 'Previous'
-        }
+        paginate: { next: 'Next', previous: 'Previous' }
       }
     });
 
-    // Function to update user status dynamically
+    // Poll user statuses every 10 seconds
     function updateUserStatus(userId) {
-      $.ajax({
-        url: '/get_user_status/' + userId,  // Call the route to fetch status
-        method: 'GET',
-        success: function(response) {
-          var statusBadge = $('#user-status-' + userId);  // Target the specific user status by ID
-          
-          // Update status based on the response
-          if (response.status === 'online') {
-            statusBadge.html('<span class="badge badge-success">Online</span>');
-          } else {
-            statusBadge.html('<span class="badge badge-danger">Offline</span>');
-          }
-        }
+      $.get('/get_user_status/' + userId, function(response) {
+        const badge = response.status === 'online'
+          ? '<span class="badge badge-success">Online</span>'
+          : '<span class="badge badge-danger">Offline</span>';
+        $('#user-status-' + userId).html(badge);
       });
     }
 
-    // Polling every 10 seconds to update the status of each user
-    setInterval(function() {
+    setInterval(function () {
       {% for user in users %}
-        updateUserStatus({{ user.id }});
+      updateUserStatus({{ user.id }});
       {% endfor %}
-    }, 10000);  // Every 10 seconds
+    }, 10000);
   });
 </script>
 {% endblock %}
+ 

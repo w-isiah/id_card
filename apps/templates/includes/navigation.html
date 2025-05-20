@@ -16,6 +16,18 @@
       </a>
     </li>
 
+
+
+ <!-- User Profile Link -->
+<li class="nav-item d-none d-sm-inline-block">
+  <a href="{{ url_for('authentication_blueprint.edit_user_profile', id=session['id']) }}" class="nav-link text-primary">
+    <i class="fas fa-user me-1"></i> User Profile
+  </a>
+</li>
+
+
+
+
     <!-- Role Display -->
     <li class="nav-item d-none d-sm-inline-block">
       <a href="#" class="nav-link text-primary">

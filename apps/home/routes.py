@@ -38,6 +38,8 @@ def index():
                     return render_template('home/index.html', segment='index')
                 elif user['role'] == 'class_teacher':
                     return render_template('home/class_teacher_index.html', segment='index')
+                elif user['role'] == 'other':
+                    return render_template('home/other_user_index.html', segment='index')
 
                 # If no matching role found, prompt to log in again
                 flash('User not found. Please log in again.', 'error')
