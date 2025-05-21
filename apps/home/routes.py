@@ -38,6 +38,9 @@ def index():
                     return render_template('home/index.html', segment='index')
                 elif user['role'] == 'class_teacher':
                     return render_template('home/class_teacher_index.html', segment='index')
+                elif user['role'] == 'inventory_manager':
+                    return render_template('home/inventory_manager_index.html', segment='index')
+
                 elif user['role'] == 'other':
                     return render_template('home/other_user_index.html', segment='index')
 

@@ -35,7 +35,6 @@ def allowed_file(filename):
 
 
 
-from flask import request, jsonify
 
 @blueprint.route('/products')
 def products():
@@ -143,7 +142,10 @@ def products():
 
 
 
-from flask import jsonify
+
+
+
+
 
 @blueprint.route('/sub_category_data')
 def sub_category_data():

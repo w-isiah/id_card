@@ -11,16 +11,27 @@ import logging
 from apps import get_db_connection
 
 
-# Start of customer handling
+# Customer handling route
 @blueprint.route('/customers')
 def customers():
+    # Establish database connection and retrieve customer data
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
     cursor.execute('SELECT * FROM customer_list')
-    customer = cursor.fetchall()
+    customer_data = cursor.fetchall()
+
+    # Close cursor and connection after the query
     cursor.close()
     connection.close()
-    return render_template('customers/customers.html', customer=customer,segment='customers')
+
+    # Check user role from session and render appropriate template
+    role = session.get('role')
+    template = 'customers/customers.html' if role != 'other' else 'o_customers/customers.html'
+
+    # Return the rendered template with customer data
+    return render_template(template, customer=customer_data, segment='customers')
+
+
 
 
 
@@ -59,11 +70,17 @@ def add_customer():
         finally:
             cursor.close()
             connection.close()
+        # Check user role from session and render appropriate template
+        role = session.get('role')
+        template = 'customers/add_customer.html' if role != 'other' else 'o_customers/add_customer.html'
 
-        return render_template('customers/add_customer.html', segment='add_customer')
+        return render_template(template, segment='add_customer')
     
     # Handle GET request (render form page)
-    return render_template('customers/add_customer.html', segment='add_customer')
+    # Check user role from session and render appropriate template
+    role = session.get('role')
+    template = 'customers/add_customer.html' if role != 'other' else 'o_customers/add_customer.html'
+    return render_template(template, segment='add_customer')
 
 
 
@@ -115,7 +132,10 @@ def edit_customer(customer_id):
         
         # If customer exists, render an edit form
         if customer:
-            return render_template('customers/edit_customer.html', customer=customer)
+            # Check user role from session and render appropriate template
+            role = session.get('role')
+            template = 'customers/edit_customer.html' if role != 'other' else 'o_customers/edit_customer.html'
+            return render_template(template, customer=customer)
         else:
             flash("Reciever not found.", "danger")
             return redirect(url_for('customers_blueprint.customers'))
