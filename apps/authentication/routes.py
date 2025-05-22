@@ -192,6 +192,9 @@ def manage_users():
                 # Check if the user has admin privileges
                 if session.get('role') == 'admin':
                     cursor.execute("SELECT * FROM users WHERE role != 'admin'")
+                elif session.get('role') == 'inventory_manager':
+                    cursor.execute("SELECT * FROM users WHERE role != 'admin' AND role != 'inventory_manager' AND role != 'class_teacher' ")
+
                 else:
                     flash('You do not have permission to access this page.', 'warning')
                     return redirect(url_for('authentication_blueprint.index'))
@@ -362,12 +365,20 @@ def edit_user(id):
 def view_user(id):
     with get_db_connection() as connection:
         with connection.cursor(dictionary=True) as cursor:
+            # Retrieve the user information based on the user ID
             cursor.execute('SELECT * FROM users WHERE id = %s', (id,))
             user = cursor.fetchone()
 
-            cursor.execute('SELECT * FROM sub_category')
+            # Join sub_category and category_list to fetch the category name along with sub-category details
+            cursor.execute('''
+                SELECT sub.sub_category_id, sub.name AS sub_category_name, sub.description AS sub_category_description, 
+                       cat.name AS category_name
+                FROM sub_category sub
+                JOIN category_list cat ON sub.category_id = cat.CategoryID
+            ''')
             all_sub_categories = cursor.fetchall()
 
+            # Fetch the sub_category_ids associated with the user from the other_roles table
             cursor.execute('SELECT sub_category_id FROM other_roles WHERE user_id = %s', (id,))
             user_sub_category_ids = {row['sub_category_id'] for row in cursor.fetchall()}
 
@@ -377,6 +388,7 @@ def view_user(id):
         all_sub_categories=all_sub_categories,
         user_sub_category_ids=user_sub_category_ids
     )
+
 
 
 

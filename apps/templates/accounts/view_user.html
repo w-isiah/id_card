@@ -11,6 +11,8 @@
 <link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
 <!-- Theme style -->
 <link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
 {% endblock %}
 
 {% block content %}
@@ -50,7 +52,7 @@
   <!-- Profile content -->
   <section class="content">
     <div class="container-fluid">
-      
+
       <!-- User Info -->
       <div class="card card-primary card-outline">
         <div class="card-body box-profile">
@@ -87,29 +89,49 @@
           <form action="{{ url_for('authentication_blueprint.edit_user_roles', id=user.id) }}" method="POST">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
             {% if all_sub_categories %}
-              <div class="form-group">
-                {% for sub in all_sub_categories %}
-                  <div class="custom-control custom-checkbox mb-2">
-                    <input type="checkbox"
-                           class="custom-control-input"
-                           id="sub{{ sub.sub_category_id }}"
-                           name="sub_categories"
-                           value="{{ sub.sub_category_id }}"
-                           {% if sub.sub_category_id in user_sub_category_ids %}checked{% endif %}>
-                    <label class="custom-control-label" for="sub{{ sub.sub_category_id }}">
-                      {{ sub.name }}
-                      {% if sub.description %}
-                        <small class="text-muted d-block">{{ sub.description }}</small>
-                      {% endif %}
-                    </label>
-                  </div>
-                {% endfor %}
+              <div class="table-responsive">
+                <table id="rolesTable" class="table table-bordered table-hover">
+                  <thead class="thead-light">
+                    <tr>
+                      <th>Select</th>
+                      <th>Role Name</th>
+                      <th>Category Name</th>
+                      <th>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for sub in all_sub_categories %}
+                      <tr>
+                        <td class="align-middle text-center">
+                          <div class="custom-control custom-checkbox">
+                            <input type="checkbox"
+                                   class="custom-control-input"
+                                   id="sub{{ sub.sub_category_id }}"
+                                   name="sub_categories"
+                                   value="{{ sub.sub_category_id }}"
+                                   {% if sub.sub_category_id in user_sub_category_ids %}checked{% endif %}>
+                            <label class="custom-control-label" for="sub{{ sub.sub_category_id }}"></label>
+                          </div>
+                        </td>
+                        <td class="align-middle">{{ sub.sub_category_name }}</td>
+                        <td class="align-middle">{{ sub.category_name }}</td>
+                        <td class="align-middle">
+                          {% if sub.sub_category_description %}
+                            <small class="text-muted">{{ sub.sub_category_description }}</small>
+                          {% else %}
+                            <small class="text-muted">No description provided.</small>
+                          {% endif %}
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
               </div>
             {% else %}
               <p>No sub-categories available.</p>
             {% endif %}
-            
-            <div class="form-group">
+
+            <div class="form-group mt-3">
               <button type="submit" class="btn btn-primary">Update Roles</button>
             </div>
           </form>
@@ -130,4 +152,21 @@
 <script src="/static/assets/plugins/jquery/jquery.min.js"></script>
 <script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="/static/assets/js/adminlte.min.js"></script>
+
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    $('#rolesTable').DataTable({
+      paging: true,      // Enable pagination
+      info: true,        // Enable table information display
+      searching: true,   // Enable searching
+      ordering: true,    // Enable ordering by column
+      responsive: true,  // Make the table responsive
+      autoWidth: false   // Disable auto column width
+    });
+  });
+</script>
 {% endblock %}

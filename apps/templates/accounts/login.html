@@ -17,14 +17,17 @@
 
 {% block content %}
 <div class="login-box">
+
+  <!-- Logo -->
   <div class="login-logo">
-    <a href="#"><b>School</b>MGT</a>
+    <img src="/static/uploads/id_image/logo.png" alt="School Management Logo" style="max-height: 60px; display: block; margin: 0 auto;">
   </div>
 
   <div class="card">
     <div class="card-body login-card-body">
       <p class="login-box-msg">Sign in to start your session</p>
 
+      <!-- Flash Messages -->
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
           {% for category, message in messages %}
@@ -38,24 +41,21 @@
         {% endif %}
       {% endwith %}
 
+      <!-- Login Form -->
       <form method="POST" action="{{ url_for('authentication_blueprint.login') }}">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
 
         <div class="input-group mb-3">
-          <input type="text" class="form-control" placeholder="Username" name="username" required>
+          <input type="text" name="username" class="form-control" placeholder="Username" required>
           <div class="input-group-append">
-            <div class="input-group-text">
-              <span class="fas fa-user"></span>
-            </div>
+            <div class="input-group-text"><span class="fas fa-user"></span></div>
           </div>
         </div>
 
         <div class="input-group mb-3">
-          <input type="password" class="form-control" placeholder="Password" name="password" required>
+          <input type="password" name="password" class="form-control" placeholder="Password" required>
           <div class="input-group-append">
-            <div class="input-group-text">
-              <span class="fas fa-lock"></span>
-            </div>
+            <div class="input-group-text"><span class="fas fa-lock"></span></div>
           </div>
         </div>
 
@@ -72,12 +72,14 @@
         </div>
       </form>
 
+      <!-- Footer -->
       <div class="mt-4 text-center">
         &copy; <strong>School-MGT</strong> by 
-        <a href="#" target="_blank" rel="noopener noreferrer"><b>JJ</b>web</a>
+        <a href="#" target="_blank" rel="noopener noreferrer"><strong>JJ</strong>web</a>
       </div>
     </div>
   </div>
+
 </div>
 {% endblock %}
 
