@@ -1,16 +1,23 @@
 {% extends "layouts/base.html" %}
 
-{% block title %}Dashboard{% endblock %}
+{% block title %}Stocked Out Items{% endblock %}
 
 {% block body_class %}sidebar-mini{% endblock %}
 
 {% block stylesheets %}
-<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-<link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
-<link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
-<link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
-<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback" rel="stylesheet">
+  <!-- Font Awesome & Ionicons -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+  <link href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css" rel="stylesheet">
+  <!-- AdminLTE & Custom Styles -->
+  <link href="/static/assets/css/adminlte.min.css" rel="stylesheet">
+  <link href="/static/assets/css/mine.css" rel="stylesheet">
+  <link href="/static/assets/css/select2.min.css" rel="stylesheet">
+  <!-- DataTables CSS -->
+  <link href="https://cdn.datatables.net/2.2.2/css/dataTables.dataTables.css" rel="stylesheet">
+  <link href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css" rel="stylesheet">
+  <link href="https://cdn.datatables.net/fixedcolumns/5.0.4/css/fixedColumns.dataTables.css" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
@@ -19,7 +26,7 @@
   <!-- Page Header -->
   <section class="content-header">
     <div class="container-fluid">
-      <div class="row mb-2">
+      <div class="row mb-2 align-items-center">
         <div class="col-sm-6">
           <h1>Stocked Out Items</h1>
         </div>
@@ -42,68 +49,62 @@
     <div class="card-body">
       <form method="POST" action="{{ url_for('sales_blueprint.o_sales_view') }}">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-        <div class="row">
-          <div class="col-md-6 mb-3">
-            <label for="start_date">Start Date:</label>
+        <div class="form-row">
+          <div class="col-md-5 mb-3">
+            <label for="start_date">Start Date</label>
             <input type="date" id="start_date" name="start_date" class="form-control" value="{{ start_date }}">
           </div>
-          <div class="col-md-6 mb-3">
-            <label for="end_date">End Date:</label>
+          <div class="col-md-5 mb-3">
+            <label for="end_date">End Date</label>
             <input type="date" id="end_date" name="end_date" class="form-control" value="{{ end_date }}">
           </div>
-        </div>
-        <div class="form-group text-right">
-          <button type="submit" class="btn btn-sm btn-primary">Search</button>
+          <div class="col-md-2 mb-3 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary btn-block">
+              <i class="fas fa-search mr-1"></i> Search
+            </button>
+          </div>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- Sales Table -->
+  <!-- Stocked Out Items Table -->
   <section class="content">
     <div class="container-fluid">
-      <div class="row">
-        <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h3 class="card-title">Stocked Out Item List</h3>
+        </div>
+        <div class="card-body p-0">
+          <table id="salesTable" class="table table-striped table-bordered nowrap" style="width:100%">
+            <thead class="thead-light">
+              <tr>
+                <th>Item Name</th>
+                <th>Receiver Name</th>
+                <th>User Name</th>
+                <th>Quantity</th>
+                <th>Date Updated</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for sale in sales %}
+              <tr>
+                <td>{{ sale.product_name }}</td>
+                <td>{{ sale.customer_name }}</td>
+                <td>{{ sale.sold_by }}</td>
+                <td>{{ sale.qty }}</td>
+                <td>{{ sale.date_updated.strftime("%m-%d %H:%M") }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
 
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">Stocked Out Product List</h3>
-            </div>
-            <div class="card-body">
-
-              <div class="table-responsive">
-                <table id="salesTable" class="display stripe nowrap" style="width:100%">
-                  <thead>
-                    <tr>
-                      <th>Product Name</th>
-                      <th>Customer Name</th>
-                      <th>Quantity</th>
-                      <th>Date Updated</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for sale in sales %}
-                    <tr class="{% if sale.qty < 5 %}bg-danger text-dark{% endif %}">
-                      <td>{{ sale.product_name }}</td>
-                      <td>{{ sale.customer_name }}</td>
-                      <td>{{ sale.qty }}</td>
-                      <td>{{ sale.date_updated.strftime("%m-%d %H:%M") }}</td>
-                    </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
-              </div>
-
-              <!-- Export Button -->
-              <div class="mt-4 text-right">
-                <button id="exportButton" class="btn btn-outline-info btn-sm">
-                  Export to Excel
-                </button>
-              </div>
-
-            </div>
-          </div>
-
+        <!-- Export Button -->
+        <div class="card-footer text-right">
+          <button id="exportButton" class="btn btn-outline-info btn-sm" aria-label="Export to Excel">
+            <i class="fas fa-file-excel"></i> Export to Excel
+          </button>
         </div>
       </div>
     </div>
@@ -113,28 +114,42 @@
 {% endblock %}
 
 {% block javascripts %}
-<script src="/static/assets/plugins/jquery/jquery.min.js"></script>
-<script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="/static/assets/js/adminlte.js"></script>
-<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/responsive/2.3.0/js/dataTables.responsive.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.1/xlsx.full.min.js"></script>
+  <!-- Core scripts -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="/static/assets/js/adminlte.js"></script>
 
-<script>
-  $(document).ready(function () {
-    $('#salesTable').DataTable({
-      paging: true,
-      searching: true,
-      ordering: true,
-      responsive: true
-    });
+  <!-- DataTables and plugins -->
+  <script src="https://cdn.datatables.net/2.2.2/js/dataTables.js"></script>
+  <script src="https://cdn.datatables.net/responsive/2.3.0/js/dataTables.responsive.min.js"></script>
+  <script src="https://cdn.datatables.net/fixedcolumns/5.0.4/js/dataTables.fixedColumns.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="/static/assets/js/mine.js"></script>
 
-    $('#exportButton').click(function () {
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.table_to_sheet(document.getElementById('salesTable'));
-      XLSX.utils.book_append_sheet(wb, ws, 'Stocked_Out_Items');
-      XLSX.writeFile(wb, 'stocked_out_items.xlsx');
+  <script>
+    $(document).ready(function () {
+      const table = $('#salesTable').DataTable({
+         fixedColumns: {
+          left: 1
+        },
+        paging: false,
+        scrollX: true,
+        scrollY: '300px',
+        scrollCollapse: true,
+        stateSave: true
+      });
+
+      $('#exportButton').on('click', function () {
+        try {
+          const wb = XLSX.utils.book_new();
+          const ws = XLSX.utils.table_to_sheet(document.getElementById('salesTable'));
+          XLSX.utils.book_append_sheet(wb, ws, 'Stocked_Out_Items');
+          XLSX.writeFile(wb, 'stocked_out_items.xlsx');
+        } catch (error) {
+          alert('Error exporting to Excel: ' + error.message);
+        }
+      });
     });
-  });
-</script>
+  </script>
 {% endblock %}

@@ -78,7 +78,7 @@ def add_sub_category():
         if not name or not category_id or not description:
             flash("All fields are required!", "warning")
         elif not re.match(r'^[A-Za-z0-9 _-]+$', name):
-            flash("Sub-category name must contain only letters, numbers, spaces, dashes, or underscores.", "danger")
+            flash("Section name must contain only letters, numbers, spaces, dashes, or underscores.", "danger")
         else:
             try:
                 # Check for duplicate sub-category under the same category
@@ -87,13 +87,13 @@ def add_sub_category():
                 existing = cursor.fetchone()
 
                 if existing:
-                    flash("Sub-category already exists for this category.", "warning")
+                    flash("Section already exists for this category.", "warning")
                 else:
                     # Insert the new sub-category with description
                     insert_query = "INSERT INTO sub_category (name, category_id, description) VALUES (%s, %s, %s)"
                     cursor.execute(insert_query, (name, category_id, description))
                     connection.commit()
-                    flash("Sub-category successfully added!", "success")
+                    flash("Section successfully added!", "success")
                     return redirect(url_for('sub_categories_blueprint.add_sub_category'))
 
             except mysql.connector.Error as err:
@@ -129,7 +129,7 @@ def edit_sub_category(sub_category_id):
     if not sub_category:
         cursor.close()
         connection.close()
-        flash("Sub-category not found.", "danger")
+        flash("Section not found.", "danger")
         return redirect(url_for('sub_categories_blueprint.sub_categories'))
 
     if request.method == 'POST':
@@ -140,7 +140,7 @@ def edit_sub_category(sub_category_id):
         print(name,category_id)
 
         if not name or not category_id:
-            flash("Name and category are required!", "warning")
+            flash("Name and Department are required!", "warning")
         else:
             try:
                 cursor.execute("""
@@ -149,7 +149,7 @@ def edit_sub_category(sub_category_id):
                     WHERE sub_category_id = %s
                 """, (name, description, category_id, sub_category_id))
                 connection.commit()
-                flash("Sub-category updated successfully!", "success")
+                flash("Section updated successfully!", "success")
                 return redirect(url_for('sub_categories_blueprint.sub_categories'))
             except mysql.connector.Error as e:
                 flash(f"Database error: {str(e)}", "danger")
@@ -178,12 +178,12 @@ def delete_sub_category(sub_category_id):
         cursor.execute('SELECT * FROM sub_category WHERE sub_category_id = %s', (sub_category_id,))
         result = cursor.fetchone()
         if not result:
-            flash("Sub-category not found.", "warning")
+            flash("Section not found.", "warning")
         else:
             # Delete the sub-category
             cursor.execute('DELETE FROM sub_category WHERE sub_category_id = %s', (sub_category_id,))
             connection.commit()
-            flash("Sub-category deleted successfully.", "success")
+            flash("Section deleted successfully.", "success")
     except Exception as e:
         flash(f"Error deleting sub-category: {str(e)}", "danger")
     finally:

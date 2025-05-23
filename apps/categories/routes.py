@@ -41,7 +41,7 @@ def add_category():
             flash("Please fill out the form!", "warning")
         elif not re.match(r'^[A-Za-z0-9_ ]+$', name):
 
-            flash('Category name must contain only letters and numbers!', "danger")
+            flash('Deaprtment name must contain only letters and numbers!', "danger")
         else:
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
@@ -52,12 +52,12 @@ def add_category():
                 existing_category = cursor.fetchone()
 
                 if existing_category:
-                    flash("Category already exists!", "warning")
+                    flash("Department already exists!", "warning")
                 else:
                     # Insert the new category into the database
                     cursor.execute('INSERT INTO category_list (name) VALUES (%s)', (name,))
                     connection.commit()
-                    flash("Category successfully added!", "success")
+                    flash("Department successfully added!", "success")
 
             except mysql.connector.Error as err:
                 flash(f"Error: {err}", "danger")
@@ -86,7 +86,7 @@ def edit_category(category_id):
             """, (name, category_id))
             connection.commit()
 
-            flash("Category updated successfully!", "success")
+            flash("Department updated successfully!", "success")
         except Exception as e:
             flash(f"Error: {str(e)}", "danger")
         finally:
@@ -107,7 +107,7 @@ def edit_category(category_id):
         if category:
             return render_template('categories/edit_category.html', category=category,segment='categories')
         else:
-            flash("Category not found.", "danger")
+            flash("Department not found.", "danger")
             return redirect(url_for('categories_blueprint.categories'))
 
 
@@ -121,7 +121,7 @@ def delete_category(category_id):
         # Delete the category with the specified ID
         cursor.execute('DELETE FROM category_list WHERE CategoryID = %s', (category_id,))
         connection.commit()
-        flash("Category deleted successfully.", "success")
+        flash("Department deleted successfully.", "success")
     except Exception as e:
         flash(f"Error: {str(e)}", "danger")
     finally:

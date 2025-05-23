@@ -1,6 +1,6 @@
 {% extends "layouts/base.html" %}
 
-{% block title %}Add Sub Category{% endblock %}
+{% block title %}Add Section{% endblock %}
 
 {% block body_class %}sidebar-mini layout-fixed layout-footer-fixed{% endblock %}
 
@@ -45,12 +45,12 @@
   <section class="content-header">
     <div class="container-fluid">
       <div class="row mb-2">
-        <div class="col-sm-6"><h1>Add Sub Category</h1></div>
+        <div class="col-sm-6"><h1>Add Section</h1></div>
         <div class="col-sm-6">
           <ol class="breadcrumb float-sm-right">
             <li class="breadcrumb-item"><a href="/inventory_index">Home</a></li>
-            <li class="breadcrumb-item"><a href="/categories">Categories</a></li>
-            <li class="breadcrumb-item active">Add Sub Category</li>
+            <li class="breadcrumb-item"><a href="/categories">Section</a></li>
+            <li class="breadcrumb-item active">Add Section</li>
           </ol>
         </div>
       </div>
@@ -61,7 +61,7 @@
   <section class="content">
     <div class="container-fluid">
       <div class="card card-primary">
-        <div class="card-header"><h3 class="card-title">Create New Sub Category</h3></div>
+        <div class="card-header"><h3 class="card-title">Create a New Section</h3></div>
 
         <form action="{{ url_for('sub_categories_blueprint.add_sub_category') }}" method="POST">
           <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
@@ -69,9 +69,9 @@
           <div class="card-body">
             <!-- Category Selection -->
             <div class="form-group">
-              <label for="category_id">Select Category</label>
+              <label for="category_id">Select a Section</label>
               <select name="category_id" id="category_id" class="form-control select2" required>
-                <option value="" disabled selected>Select a category</option>
+                <option value="" disabled selected>Select a Section</option>
                 {% for i in categories %}
                   <option value="{{ i.CategoryID  }}">{{ i.name }}</option>
                 {% endfor %}
@@ -80,8 +80,8 @@
 
             <!-- Sub Category Name -->
             <div class="form-group">
-              <label for="name">Sub Category Name</label>
-              <input type="text" name="name" id="name" class="form-control" placeholder="Enter sub-category name" required>
+              <label for="name">Section Name</label>
+              <input type="text" name="name" id="name" class="form-control" placeholder="Enter Section name" required>
             </div>
 
             <!-- Description -->

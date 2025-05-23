@@ -1,6 +1,6 @@
 {% extends "layouts/base.html" %}
 
-{% block title %}Dashboard{% endblock %}
+{% block title %}Items List {% endblock %}
 {% block body_class %}sidebar-mini{% endblock %}
 
 {% block stylesheets %}
@@ -123,9 +123,9 @@
 
               <!-- Category -->
               <div class="col-md-3 mb-2">
-                <label for="category_id">Category</label>
+                <label for="category_id">Department</label>
                 <select name="category" id="category_id" class="form-control select2">
-                  <option value="">All Categories</option>
+                  <option value="">All Departments</option>
                   {% for category in categories %}
                   <option value="{{ category }}" {% if request.args.get('category') == category %}selected{% endif %}>{{ category }}</option>
                   {% endfor %}
@@ -134,9 +134,9 @@
 
               <!-- Sub Category -->
               <div class="col-md-3 mb-2" id="sub_category_container" style="display: none;">
-                <label for="sub_category_id">Sub Category</label>
+                <label for="sub_category_id">Sections</label>
                 <select name="sub_category_id" id="sub_category_id" class="form-control select2">
-                  <option value="">Select Sub Category</option>
+                  <option value="">Select a Section</option>
                 </select>
               </div>
 
@@ -183,9 +183,9 @@
                 <td>{{ i.unique_number }}</td>
                 <td>
                   {{ i.name }}<br>
-                  <small><strong><i>Category:</i></strong> {{ i.category_name }}</small>
+                  <small><strong><i>Department:</i></strong> {{ i.category_name }}</small>
                   {% if i.sub_category_name and i.sub_category_name != 'None' %}
-                  <br><small><strong><i>Sub Category:</i></strong> {{ i.sub_category_name }}</small>
+                  <br><small><strong><i>Section:</i></strong> {{ i.sub_category_name }}</small>
                   {% endif %}
                 </td>
                 <td>{{ i.quantity }}</td>
@@ -197,8 +197,9 @@
                   <span>No Image</span>
                   {% endif %}
                 </td>
-                <td><a href="/edit_product/{{ i.ProductID }}" class="btn btn-warning btn-sm">Edit</a></td>
+                
                 <td><a href="/delete_product/{{ i.ProductID }}" class="btn btn-danger btn-sm">Del</a></td>
+                <td><a href="/edit_product/{{ i.ProductID }}" class="btn btn-warning btn-sm">Edit</a></td>
               </tr>
               {% endfor %}
             </tbody>
@@ -246,7 +247,7 @@
 <script>
   $(document).ready(function () {
     $('#productTable').DataTable({
-      fixedColumns: { left: 2, right: 2 },
+      fixedColumns: { left: 1, right: 1 },
       paging: false,
       scrollX: true,
       scrollY: '300px',
@@ -328,7 +329,7 @@
         const subCategoryContainer = $('#sub_category_container');
         const subCategorySelect = $('#sub_category_id');
 
-        subCategorySelect.empty().append('<option value="">Select Sub Category</option>');
+        subCategorySelect.empty().append('<option value="">Select a Section</option>');
         subCategoryContainer.hide();
 
         if (!selectedCategory) return;
@@ -341,7 +342,7 @@
           });
           subCategoryContainer.show();
         } else {
-          subCategorySelect.append('<option value="">No sub-categories available</option>');
+          subCategorySelect.append('<option value="">No Section available</option>');
           subCategoryContainer.show();
         }
       }

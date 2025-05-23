@@ -196,6 +196,9 @@ def save_sale():
 
 @blueprint.route('/sales_view', methods=['GET', 'POST'])
 def sales_view():
+    from datetime import datetime
+    from flask import request, render_template
+
     start_date = datetime.now().strftime('%Y-%m-%d')
     end_date = datetime.now().strftime('%Y-%m-%d')
 
@@ -206,20 +209,23 @@ def sales_view():
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
-    # Get sales details (excluding price/discount)
+    # Get sales details including user (staff) name
     query_sales_details = """
         SELECT 
             s.salesID, 
             p.name AS product_name, 
             c.name AS customer_name,  
             s.qty, 
-            s.date_updated
+            s.date_updated,
+            CONCAT(u.first_name, ' ', u.last_name) AS sold_by
         FROM 
             sales s
         INNER JOIN 
             product_list p ON s.ProductID = p.ProductID
         INNER JOIN 
-            customer_list c ON s.customer_id = c.CustomerID 
+            customer_list c ON s.customer_id = c.CustomerID
+        LEFT JOIN 
+            users u ON s.user_id = u.id
         WHERE 
             DATE(s.date_updated) BETWEEN %s AND %s
     """
@@ -261,6 +267,10 @@ def sales_view():
 
 
 
+
+
+
+
 @blueprint.route('/o_sales_view', methods=['GET', 'POST'])
 def o_sales_view():
     user_id = session.get('id')
@@ -279,31 +289,43 @@ def o_sales_view():
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
 
-        # Filtered sales details
+        # Filtered sales details including user name
         query_sales_details = """
             SELECT 
                 s.salesID, 
                 p.name AS product_name, 
                 c.name AS customer_name,  
                 s.qty, 
-                s.date_updated
-            FROM sales s
-            INNER JOIN product_list p ON s.ProductID = p.ProductID
-            INNER JOIN customer_list c ON s.customer_id = c.CustomerID 
-            INNER JOIN other_roles orl ON orl.sub_category_id = p.sub_category_id
-            WHERE DATE(s.date_updated) BETWEEN %s AND %s
-              AND orl.user_id = %s
+                s.date_updated,
+                CONCAT(u.first_name, ' ', u.last_name) AS sold_by
+            FROM 
+                sales s
+            INNER JOIN 
+                product_list p ON s.ProductID = p.ProductID
+            INNER JOIN 
+                customer_list c ON s.customer_id = c.CustomerID 
+            INNER JOIN 
+                other_roles orl ON orl.sub_category_id = p.sub_category_id
+            LEFT JOIN 
+                users u ON s.user_id = u.id
+            WHERE 
+                DATE(s.date_updated) BETWEEN %s AND %s
+                AND orl.user_id = %s
         """
 
         # Filtered quantity summary
         query_sales_quantity = """
             SELECT 
                 SUM(s.qty) AS total_quantity
-            FROM sales s
-            INNER JOIN product_list p ON s.ProductID = p.ProductID
-            INNER JOIN other_roles orl ON orl.sub_category_id = p.sub_category_id
-            WHERE DATE(s.date_updated) BETWEEN %s AND %s
-              AND orl.user_id = %s
+            FROM 
+                sales s
+            INNER JOIN 
+                product_list p ON s.ProductID = p.ProductID
+            INNER JOIN 
+                other_roles orl ON orl.sub_category_id = p.sub_category_id
+            WHERE 
+                DATE(s.date_updated) BETWEEN %s AND %s
+                AND orl.user_id = %s
         """
 
         cursor.execute(query_sales_details, (start_date, end_date, user_id))
@@ -315,7 +337,7 @@ def o_sales_view():
         formatted_total_quantity = "{:,}".format(total_quantity) if total_quantity else '0'
 
     except mysql.connector.Error as e:
-        current_app.logger.error(f"Database error in sales_view: {e}")
+        current_app.logger.error(f"Database error in o_sales_view: {e}")
         flash("A database error occurred while loading sales data.", "danger")
         sales = []
         formatted_total_quantity = '0'
@@ -334,6 +356,8 @@ def o_sales_view():
         end_date=end_date,
         segment='o_sales_view'
     )
+
+
 
 
 
