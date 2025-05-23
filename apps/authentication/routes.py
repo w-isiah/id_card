@@ -462,6 +462,21 @@ def handle_profile_image(cursor, profile_image, user_id):
         return cursor.fetchone()['profile_image']
 
 
+
+
+
+@blueprint.route('/api/user/profile-image')
+def profile_image():
+    if 'profile_image' in session:
+        return jsonify({
+            'profile_image': session['profile_image']
+        })
+    else:
+        return jsonify({'error': 'Not logged in'}), 401
+
+
+
+
 # Route for deleting a user
 @blueprint.route('/delete_user/<int:id>', methods=['GET'])
 def delete_user(id):

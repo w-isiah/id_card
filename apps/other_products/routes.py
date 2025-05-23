@@ -152,6 +152,22 @@ def o_products():
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 @blueprint.route('/sub_category_data')
 def sub_category_data():
     try:
