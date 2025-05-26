@@ -59,6 +59,60 @@ def sub_categories():
 
 
 
+@blueprint.route('/cat_head_sub_categories')
+def cat_head_sub_categories():
+    """
+    Fetch sub-categories and their categories assigned to the logged-in user
+    through the category_roles table.
+    """
+    if 'id' not in session:
+        flash("You must be logged in to view this page.", "warning")
+        return redirect(url_for('authentication_blueprint.login'))
+
+    user_id = session['id']
+    sub_categories = []
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        
+        query = """
+            SELECT 
+                sc.sub_category_id,
+                sc.name AS sub_category_name,
+                sc.description AS sub_category_description,
+                cl.CategoryID,
+                cl.name AS category_name,
+                crl.category_role_id,
+                crl.user_id
+            FROM sub_category sc
+            JOIN category_list cl ON sc.category_id = cl.CategoryID
+            JOIN category_roles crl ON cl.CategoryID = crl.category_id
+            WHERE crl.user_id = %s
+        """
+        cursor.execute(query, (user_id,))
+        sub_categories = cursor.fetchall()
+        
+    except Exception as e:
+        flash(f"Error fetching sub-categories: {str(e)}", "danger")
+    finally:
+        if cursor: cursor.close()
+        if connection: connection.close()
+
+    return render_template(
+        'sub_categories/cat_head_sub_categories.html',
+        sub_categories=sub_categories,
+        segment='sub_categories'
+    )
+
+
+
+
+
+
+
+
+
 @blueprint.route('/add_sub_category', methods=['GET', 'POST'])
 def add_sub_category():
     connection = get_db_connection()
@@ -110,16 +164,105 @@ def add_sub_category():
 
 
 
+
+
+
+
+
+@blueprint.route('/add_cat_head_sub_category', methods=['GET', 'POST'])
+def add_cat_head_sub_category():
+    if 'id' not in session:
+        flash("You must be logged in to access this page.", "warning")
+        return redirect(url_for('auth.login'))  # Update based on your actual login route
+
+    user_id = session['id']
+    categories = []
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        # Fetch only categories the user is allowed to manage via category_roles
+        query = """
+            SELECT DISTINCT cl.CategoryID, cl.name
+            FROM category_list cl
+            JOIN category_roles crl ON cl.CategoryID = crl.category_id
+            WHERE crl.user_id = %s
+        """
+        cursor.execute(query, (user_id,))
+        categories = cursor.fetchall()
+
+        if request.method == 'POST':
+            name = request.form.get('name', '').strip()
+            category_id = request.form.get('category_id', '').strip()
+            description = request.form.get('description', '').strip()
+
+            # Input validation
+            if not name or not category_id or not description:
+                flash("All fields are required!", "warning")
+            elif not re.match(r'^[A-Za-z0-9 _-]+$', name):
+                flash("Section name must contain only letters, numbers, spaces, dashes, or underscores.", "danger")
+            else:
+                # Check if the sub-category already exists under the selected category
+                check_query = """
+                    SELECT * FROM sub_category WHERE name = %s AND category_id = %s
+                """
+                cursor.execute(check_query, (name, category_id))
+                existing = cursor.fetchone()
+
+                if existing:
+                    flash("Section already exists for this category.", "warning")
+                else:
+                    # Insert the new sub-category
+                    insert_query = """
+                        INSERT INTO sub_category (name, category_id, description)
+                        VALUES (%s, %s, %s)
+                    """
+                    cursor.execute(insert_query, (name, category_id, description))
+                    connection.commit()
+                    flash("Section successfully added!", "success")
+                    return redirect(url_for('sub_categories_blueprint.add_sub_category'))  # Update this if needed
+
+    except mysql.connector.Error as err:
+        flash(f"Database error: {err}", "danger")
+    finally:
+        if cursor: cursor.close()
+        if connection: connection.close()
+
+    return render_template("sub_categories/add_sub_category.html", categories=categories)
+
+
+
+
+
+
+
+
+
+
+
     
 
 @blueprint.route('/edit_sub_category/<int:sub_category_id>', methods=['GET', 'POST'])
 def edit_sub_category(sub_category_id):
     """Handles editing an existing sub-category, including changing its category_id."""
+
+    if 'id' not in session:
+        flash("You must be logged in to access this page.", "warning")
+        return redirect(url_for('auth.login'))  # Adjust route name if needed
+
+    user_id = session['id']
+
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
-    # Fetch all categories for dropdown
-    cursor.execute("SELECT * FROM category_list")
+    # Fetch only categories assigned to the logged-in user
+    cursor.execute("""
+        SELECT cl.CategoryID, cl.name
+        FROM category_list cl
+        JOIN category_roles cr ON cl.CategoryID = cr.category_id
+        WHERE cr.user_id = %s
+    """, (user_id,))
     categories = cursor.fetchall()
 
     # Retrieve current sub-category
@@ -136,8 +279,6 @@ def edit_sub_category(sub_category_id):
         name = request.form.get('name', '').strip()
         description = request.form.get('description', '').strip()
         category_id = request.form.get('category_id')
-
-        print(name,category_id)
 
         if not name or not category_id:
             flash("Name and Department are required!", "warning")
@@ -163,6 +304,23 @@ def edit_sub_category(sub_category_id):
         sub_category=sub_category,
         segment='sub_categories'
     )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

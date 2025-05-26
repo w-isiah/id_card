@@ -216,12 +216,12 @@ def add_product():
                 return redirect(url_for('authentication_blueprint.login'))  # Redirect to login if user_id is not found
 
             # Check for duplicate product in same category
-            cursor.execute('SELECT * FROM product_list WHERE category_id = %s AND name = %s', (category_id, name))
-            existing_product = cursor.fetchone()
+            #cursor.execute('SELECT * FROM product_list WHERE category_id = %s AND name = %s', (category_id, name))
+            #existing_product = cursor.fetchone()
 
-            if existing_product:
-                flash("This product already exists in the selected category!", "danger")
-                return redirect(url_for('products_blueprint.add_product'))
+            #if existing_product:
+            #    flash("This product already exists in the selected category!", "danger")
+            #    return redirect(url_for('products_blueprint.add_product'))
 
             # Handle image upload if present
             image_file = request.files.get('image')

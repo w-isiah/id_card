@@ -30,6 +30,11 @@ def categories():
     return render_template('categories/categories.html', categories=categories,segment='categories')
 
 
+
+
+
+
+
 @blueprint.route('/add_category', methods=['GET', 'POST'])
 def add_category():
     """Handles the adding of a new category."""
@@ -66,6 +71,15 @@ def add_category():
                 connection.close()
 
     return render_template('categories/add_category.html',segment='add_category')
+
+
+
+
+
+
+
+
+
 
 
 @blueprint.route('/edit_category/<int:category_id>', methods=['GET', 'POST'])

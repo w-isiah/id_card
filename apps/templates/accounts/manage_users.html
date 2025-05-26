@@ -85,7 +85,8 @@
                 <th>Username</th>
                 <th>Role</th>
                 <th>Status</th>
-                <th>User Profile & Roles</th>
+                <th>Section Roles</th>
+                <th>Deaprtment Roles</th>
                 <th>Activity Logs</th>
                 <th>Actions</th>
               </tr>
@@ -107,6 +108,14 @@
                     <i class="fas fa-clipboard-list"></i> View
                   </a>
                 </td>
+
+                 <td>
+                  <a href="/view_user_cat_roles/{{ user.id }}" class="btn btn-warning btn-sm" title="View Profile & Roles">
+                    <i class="fas fa-clipboard-list"></i> View
+                  </a>
+                </td>
+
+
                 <td>
                   <a href="/activity_logs/{{ user.id }}" class="btn btn-warning btn-sm" title="View Activity Logs">
                     <i class="fas fa-clipboard-list"></i> View

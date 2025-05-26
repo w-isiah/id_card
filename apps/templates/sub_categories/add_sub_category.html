@@ -69,9 +69,9 @@
           <div class="card-body">
             <!-- Category Selection -->
             <div class="form-group">
-              <label for="category_id">Select a Section</label>
+              <label for="category_id">Select a Department</label>
               <select name="category_id" id="category_id" class="form-control select2" required>
-                <option value="" disabled selected>Select a Section</option>
+                <option value="" disabled selected>Select a Department</option>
                 {% for i in categories %}
                   <option value="{{ i.CategoryID  }}">{{ i.name }}</option>
                 {% endfor %}

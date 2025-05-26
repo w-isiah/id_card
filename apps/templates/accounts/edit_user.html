@@ -120,6 +120,7 @@
                   <select class="form-control select2bs4" name="role" id="role" required>
 
                     <option value="section_head" {% if user.role == 'section_head' %}selected{% endif %}>Inventory Manager</option>
+                    <option value="department_head" {% if user.role == 'department_head' %}selected{% endif %}>Head of Inventory Department</option>
 
                     <option value="other" {% if user.role == 'other' %}selected{% endif %}>other</option>
 
