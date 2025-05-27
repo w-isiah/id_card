@@ -92,31 +92,39 @@
       
 
 
+<!-- Inventory Section -->
+<div class="col-lg-3 col-6">
+  <div class="small-box bg-warning">
+    <div class="inner">
+      <h5>Inventory</h5>
+      <p>Manage Assets</p>
+    </div>
+    <div class="icon">
+      <i class="fas fa-boxes"></i>
+    </div>
+    <a href="/inventory_index" class="small-box-footer">
+      More Info <i class="fas fa-arrow-circle-right"></i>
+    </a>
+  </div>
+</div>
 
-        <!-- Inventory -->
-      <div class="col-lg-3 col-6">
-        <div class="small-box bg-warning">
-          <div class="inner">
-            <h5>Inventory</h5>
-            <p>Manage Assets</p>
-          </div>
-          <div class="icon"><i class="fas fa-boxes"></i></div>
-          <a href="/inventory_index" class="small-box-footer">More Info <i class="fas fa-arrow-circle-right"></i></a>
-        </div>
+{% if session['role'] == 'admin' %}
+  <!-- User Accounts Section (Visible to Admin Only) -->
+  <div class="col-lg-3 col-6">
+    <div class="small-box bg-primary">
+      <div class="inner">
+        <h5>User Accounts</h5>
+        <p>Manage Users</p>
       </div>
-
-
-        <!-- User Accounts -->
-      <div class="col-lg-3 col-6">
-        <div class="small-box bg-primary">
-          <div class="inner">
-            <h5>User Accounts</h5>
-            <p>Manage Users</p>
-          </div>
-          <div class="icon"><i class="fas fa-user-cog"></i></div>
-          <a href="/manage_users" class="small-box-footer">More Info <i class="fas fa-arrow-circle-right"></i></a>
-        </div>
+      <div class="icon">
+        <i class="fas fa-user-cog"></i>
       </div>
+      <a href="/manage_users" class="small-box-footer">
+        More Info <i class="fas fa-arrow-circle-right"></i>
+      </a>
+    </div>
+  </div>
+{% endif %}
 
       
 
