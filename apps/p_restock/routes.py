@@ -11,20 +11,10 @@ import re
 from jinja2 import TemplateNotFound
 
 
-
-
-
-
-
+# Route for the 'products' restock page
 @blueprint.route('/p_restock')
 def p_restock():
-    """Renders the 'products' restock page with category access control."""
-    
-    if 'id' not in session:
-        flash("Please log in to view this page.", "warning")
-        return redirect(url_for('authentication_blueprint.login'))
-
-    user_id = session['id']
+    """Renders the 'products' restock page."""
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
@@ -37,11 +27,8 @@ def p_restock():
                 (p.quantity * p.price) AS total_price
             FROM product_list p
             JOIN category_list c ON p.category_id = c.CategoryID
-            JOIN category_roles cr ON cr.category_id = p.category_id
-            WHERE cr.user_id = %s
             ORDER BY p.name
-        ''', (user_id,))
-        
+        ''')
         products = cursor.fetchall()
 
     except Error as e:
@@ -61,24 +48,9 @@ def p_restock():
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # Route to restock product
-@blueprint.route('/p_restock_item', methods=['GET', 'POST'])
-def p_restock_item():
+@blueprint.route('/restock_item', methods=['GET', 'POST'])
+def restock_item():
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
@@ -123,11 +95,6 @@ def p_restock_item():
     connection.close()
 
     return render_template('p_restock/p_restock.html', segment='p_restock', products=products)
-
-
-
-
-
 
 
 # Route to handle template rendering

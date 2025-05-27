@@ -72,10 +72,10 @@
 
             <!-- Category -->
             <div class="form-group row">
-              <label for="category_id" class="col-sm-2 col-form-label">Category</label>
+              <label for="category_id" class="col-sm-2 col-form-label">Department</label>
               <div class="col-sm-10">
                 <select name="category_id" id="category_id" class="form-control select2" required>
-                  <option value="">Select Category</option>
+                  <option value="">Select Department</option>
                   {% for cat in categories %}
                     <option value="{{ cat.CategoryID }}">{{ cat.name }}</option>
                   {% endfor %}
@@ -85,10 +85,10 @@
 
             <!-- Sub Category -->
             <div class="form-group row" id="sub_category_container" style="display: none;">
-              <label for="sub_category_id" class="col-sm-2 col-form-label">Sub Category</label>
+              <label for="sub_category_id" class="col-sm-2 col-form-label">Sub Section</label>
               <div class="col-sm-10">
                 <select name="sub_category_id" id="sub_category_id" class="form-control select2">
-                  <option value="">Select Sub Category</option>
+                  <option value="">Select Sub Section</option>
                 </select>
               </div>
             </div>

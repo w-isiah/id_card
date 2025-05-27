@@ -91,10 +91,10 @@
 
                   <!-- Category Selection -->
                   <div class="form-group row mb-3">
-                    <label for="category_id" class="col-sm-2 col-form-label">Category:</label>
+                    <label for="category_id" class="col-sm-2 col-form-label">Department:</label>
                     <div class="col-sm-10">
                       <select name="category_id" id="category_id" class="form-control select2"  onchange="loadSubCategories()">
-                        <option value="" disabled selected>Select Category</option>
+                        <option value="" disabled selected>Select Department</option>
                         {% for category in categories %}
                           <option value="{{ category.CategoryID }}" {% if category.CategoryID == product.category_id %} selected {% endif %}>
                             {{ category.name }}
@@ -106,10 +106,10 @@
 
                   <!-- Sub Category Selection -->
                   <div class="form-group row mb-3">
-                    <label for="sub_category_id" class="col-sm-2 col-form-label">Sub Category:</label>
+                    <label for="sub_category_id" class="col-sm-2 col-form-label">Section:</label>
                     <div class="col-sm-10">
                       <select name="sub_category_id" id="sub_category_id" class="form-control select2">
-                        <option value="" disabled selected>Select Sub Category</option>
+                        <option value="" disabled selected>Select Section</option>
                       </select>
                     </div>
                   </div>
@@ -209,7 +209,7 @@
         .then(response => response.json())
         .then(subCategories => {
           // Clear existing options
-          subCategorySelect.innerHTML = '<option value="" disabled selected>Select Sub Category</option>';
+          subCategorySelect.innerHTML = '<option value="" disabled selected>Select Section</option>';
 
           // Populate sub-category dropdown based on selected category
           subCategories.forEach(subCategory => {
@@ -219,7 +219,7 @@
             subCategorySelect.appendChild(option);
           });
         })
-        .catch(error => console.error('Error fetching sub-categories:', error));
+        .catch(error => console.error('Error fetching Sections:', error));
     }
 
     // Automatically load sub-categories if category is already selected

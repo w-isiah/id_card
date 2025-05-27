@@ -101,9 +101,9 @@
                 <input type="text" name="name" class="form-control" value="{{ selected_filters.name }}">
               </div>
               <div class="col-md-3 mb-2">
-                <label for="sub_category_id">Sub Category</label>
+                <label for="sub_category_id">Section</label>
                 <select name="sub_category_id" class="form-control select2">
-                  <option value="">All Sub Categories</option>
+                  <option value="">All Sections</option>
                   {% for sub in sub_categories %}
                   <option value="{{ sub.sub_category_id }}"
                   {% if selected_filters.sub_category_id == sub.sub_category_id|string %}selected{% endif %}>

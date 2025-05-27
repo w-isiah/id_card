@@ -236,7 +236,7 @@ def cat_head_add_product():
 
             if existing_product:
                 flash("This product already exists in the selected category!", "danger")
-                return redirect(url_for('department_h_blueprint.cat_head_add_product'))
+                return redirect(url_for('department_h_blueprint.cat_head_add_products'))
 
             # Handle image upload if present
             image_file = request.files.get('image')
