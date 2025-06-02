@@ -84,17 +84,29 @@
           <form action="{{ url_for('teachers_blueprint.edit_teacher', teacher_id=teacher.teacher_id) }}" method="POST" enctype="multipart/form-data">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
 
-            <!-- Teacher Number (Read-only if auto-generated) -->
-           
+            <div class="form-row">
+              <div class="form-group col-md-4">
+                <label>Teacher Number</label>
+                <input type="text" name="teacher_number" class="form-control" value="{{ teacher.teacher_number }}" readonly>
+              </div>
+              <div class="form-group col-md-4">
+                <label>First Name</label>
+                <input type="text" name="first_name" class="form-control" value="{{ teacher.first_name }}" required>
+              </div>
+              <div class="form-group col-md-4">
+                <label>Other Name</label>
+                <input type="text" name="other_name" class="form-control" value="{{ teacher.other_name }}">
+              </div>
+            </div>
 
             <div class="form-row">
               <div class="form-group col-md-4">
-                <label>First Name</label>
-                <input type="text" name="first_name" class="form-control" value="{{ teacher.first_name }}">
+                <label>Last Name</label>
+                <input type="text" name="last_name" class="form-control" value="{{ teacher.last_name }}" required>
               </div>
               <div class="form-group col-md-4">
-                <label>Last Name</label>
-                <input type="text" name="last_name" class="form-control" value="{{ teacher.last_name }}">
+                <label>Name SF</label>
+                <input type="text" name="name_sf" class="form-control" value="{{ teacher.name_sf }}">
               </div>
               <div class="form-group col-md-4">
                 <label>Date of Birth</label>
@@ -111,9 +123,17 @@
                   <option value="Other" {{ 'selected' if teacher.gender == 'Other' else '' }}>Other</option>
                 </select>
               </div>
+
               <div class="form-group col-md-6">
                 <label>Subject Specialty</label>
-                <input type="text" name="subject_specialty" class="form-control" value="{{ teacher.subject_specialty }}">
+                <select name="subject_specialty" class="form-control" required>
+                  <option value="" disabled {% if not teacher.subject_specialty %}selected{% endif %}>Select Subject</option>
+                  {% for subject in subjects %}
+                    <option value="{{ subject.subject_name }}" {{ 'selected' if subject.subject_name == teacher.subject_specialty else '' }}>
+                      {{ subject.subject_name }}
+                    </option>
+                  {% endfor %}
+                </select>
               </div>
             </div>
 
@@ -156,7 +176,7 @@
             <div class="form-group">
               <label>Current Image</label><br>
               {% if teacher.image %}
-                <img src="{{ url_for('static', filename='uploads/' ~ teacher.image) }}" style="max-width: 150px;">
+                <img src="{{ url_for('static', filename='uploads/' ~ teacher.image) }}" style="max-width: 150px; border-radius: 5px;">
               {% else %}
                 <p>No image uploaded.</p>
               {% endif %}
@@ -164,14 +184,14 @@
 
             <div class="form-group">
               <label>Upload New Image</label>
-              <input type="file" name="image" class="form-control-file">
+              <input type="file" name="image" class="form-control-file" accept="image/*">
             </div>
 
             <!-- Sign Image -->
             <div class="form-group">
               <label>Current Signature</label><br>
               {% if teacher.sign_image %}
-                <img src="{{ url_for('static', filename='uploads/' ~ teacher.sign_image) }}" style="max-width: 150px;">
+                <img src="{{ url_for('static', filename='uploads/' ~ teacher.sign_image) }}" style="max-width: 150px; border-radius: 5px;">
               {% else %}
                 <p>No signature uploaded.</p>
               {% endif %}
@@ -179,12 +199,13 @@
 
             <div class="form-group">
               <label>Upload New Signature</label>
-              <input type="file" name="sign_image" class="form-control-file">
+              <input type="file" name="sign_image" class="form-control-file" accept="image/*">
             </div>
 
             <div class="form-group text-right">
               <button type="submit" class="btn btn-primary btn-sm">Save Changes</button>
             </div>
+
           </form>
         </div>
       </div>

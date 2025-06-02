@@ -91,7 +91,6 @@
 
       
 
-
 <!-- Inventory Section -->
 <div class="col-lg-3 col-6">
   <div class="small-box bg-warning">
@@ -108,8 +107,10 @@
   </div>
 </div>
 
-{% if session['role'] == 'admin' %}
-  <!-- User Accounts Section (Visible to Admin Only) -->
+
+
+{% if session['role'] == 'admin' or session['role'] == 'Head_ICT' %}
+  <!-- User Accounts Section (Visible to Admin and Head_ICT Only) -->
   <div class="col-lg-3 col-6">
     <div class="small-box bg-primary">
       <div class="inner">
@@ -126,7 +127,14 @@
   </div>
 {% endif %}
 
-      
+
+
+
+
+
+
+
+
 
 
 

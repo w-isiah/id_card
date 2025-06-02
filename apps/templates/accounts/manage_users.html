@@ -1,21 +1,27 @@
 {% extends "layouts/base.html" %}
 
 {% block title %}Users{% endblock %}
-
 {% block body_class %}sidebar-mini layout-fixed{% endblock %}
 
 {% block stylesheets %}
-<!-- Google Font: Source Sans Pro -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-<!-- Font Awesome -->
-<link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
-<!-- Ionicons -->
-<link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback" rel="stylesheet">
+
+<!-- Icons -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+
 <!-- AdminLTE Theme -->
-<link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
-<!-- DataTables CSS -->
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
-<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css">
+<link href="/static/assets/css/adminlte.min.css" rel="stylesheet">
+<link href="/static/assets/css/mine.css" rel="stylesheet">
+
+<!-- Select2 -->
+<link href="/static/assets/css/select2.min.css" rel="stylesheet">
+
+<!-- DataTables -->
+<link href="https://cdn.datatables.net/2.2.2/css/dataTables.dataTables.css" rel="stylesheet">
+<link href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css" rel="stylesheet">
+<link href="https://cdn.datatables.net/fixedcolumns/5.0.4/css/fixedColumns.dataTables.css" rel="stylesheet">
+
 <style>
   .alert-container {
     position: fixed;
@@ -30,7 +36,6 @@
 
 {% block content %}
 <div class="content-wrapper">
-
   <!-- Page Header -->
   <section class="content-header">
     <div class="container-fluid">
@@ -42,7 +47,6 @@
           <a href="/add_user" class="btn btn-success">
             <i class="fas fa-user-plus mr-1"></i> Add User
           </a>
-         
         </div>
         <div class="col-12 mt-2">
           <ol class="breadcrumb float-sm-right">
@@ -79,14 +83,14 @@
           <h3 class="card-title">User List</h3>
         </div>
         <div class="card-body">
-          <table id="accounts" class="table table-bordered table-striped table-responsive nowrap" style="width: 100%">
-            <thead>
+          <table id="accounts" class="table table-striped table-bordered nowrap" style="width: 100%;">
+            <thead class="thead-dark">
               <tr>
                 <th>Username</th>
                 <th>Role</th>
                 <th>Status</th>
                 <th>Section Roles</th>
-                <th>Deaprtment Roles</th>
+                <th>Department Roles</th>
                 <th>Activity Logs</th>
                 <th>Actions</th>
               </tr>
@@ -104,18 +108,19 @@
                   {% endif %}
                 </td>
                 <td>
-                  <a href="/view_user/{{ user.id }}" class="btn btn-warning btn-sm" title="View Profile & Roles">
-                    <i class="fas fa-clipboard-list"></i> View
-                  </a>
+                  {% if user.role == 'section_head' %}
+                    <a href="/view_user/{{ user.id }}" class="btn btn-warning btn-sm" title="View Profile & Roles">
+                      <i class="fas fa-clipboard-list"></i> View
+                    </a>
+                  {% endif %}
                 </td>
-
-                 <td>
-                  <a href="/view_user_cat_roles/{{ user.id }}" class="btn btn-warning btn-sm" title="View Profile & Roles">
-                    <i class="fas fa-clipboard-list"></i> View
-                  </a>
+                <td>
+                  {% if user.role == 'department_head' %}
+                    <a href="/view_user_cat_roles/{{ user.id }}" class="btn btn-warning btn-sm" title="View Profile & Roles">
+                      <i class="fas fa-clipboard-list"></i> View
+                    </a>
+                  {% endif %}
                 </td>
-
-
                 <td>
                   <a href="/activity_logs/{{ user.id }}" class="btn btn-warning btn-sm" title="View Activity Logs">
                     <i class="fas fa-clipboard-list"></i> View
@@ -126,8 +131,10 @@
                     <a href="/edit_user/{{ user.id }}" class="btn btn-info btn-sm" title="Edit User">
                       <i class="fas fa-edit"></i>
                     </a>
-                    <a href="{{ url_for('authentication_blueprint.delete_user', id=user.id) }}" class="btn btn-danger btn-sm"
-                      onclick="return confirm('Are you sure you want to delete user: {{ user.username }}?');" title="Delete User">
+                    <a href="{{ url_for('authentication_blueprint.delete_user', id=user.id) }}"
+                       class="btn btn-danger btn-sm"
+                       onclick="return confirm('Are you sure you want to delete user: {{ user.username }}?');"
+                       title="Delete User">
                       <i class="fas fa-trash-alt"></i>
                     </a>
                   </div>
@@ -144,29 +151,32 @@
 {% endblock %}
 
 {% block javascripts %}
-<!-- Required Scripts -->
-<script src="/static/assets/plugins/jquery/jquery.min.js"></script>
+<!-- Core Scripts -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="/static/assets/js/adminlte.min.js"></script>
+<script src="/static/assets/js/adminlte.js"></script>
 
-<!-- DataTables -->
-<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<!-- Plugins -->
+<script src="https://cdn.datatables.net/2.2.2/js/dataTables.js"></script>
 <script src="https://cdn.datatables.net/responsive/2.3.0/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/fixedcolumns/5.0.4/js/dataTables.fixedColumns.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="/static/assets/js/mine.js"></script>
 
 <script>
   $(function () {
     // Initialize DataTables
     $('#accounts').DataTable({
-      responsive: true,
-      autoWidth: false,
-      ordering: true,
-      paging: true,
-      language: {
-        paginate: { next: 'Next', previous: 'Previous' }
-      }
+      fixedColumns: { left: 1, right: 1 },
+      paging: false,
+      scrollX: true,
+      scrollY: '300px',
+      scrollCollapse: true,
+      stateSave: true
     });
 
-    // Poll user statuses every 10 seconds
+    // Live status updater
     function updateUserStatus(userId) {
       $.get('/get_user_status/' + userId, function(response) {
         const badge = response.status === 'online'
@@ -178,7 +188,7 @@
 
     setInterval(function () {
       {% for user in users %}
-      updateUserStatus({{ user.id }});
+        updateUserStatus({{ user.id }});
       {% endfor %}
     }, 10000);
   });

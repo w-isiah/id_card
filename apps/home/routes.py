@@ -28,7 +28,7 @@ def index():
                 cursor.execute("SELECT * FROM users WHERE id = %s", (session['id'],))
                 user = cursor.fetchone()
 
-                if not user:
+                if not user: 
                     # If the user is not found, prompt to log in again
                     flash('User not found. Please log in again.', 'error')
                     return redirect(url_for('authentication_blueprint.login'))
@@ -45,6 +45,9 @@ def index():
                 elif user['role'] == 'department_head':
                     return render_template('home/department_head_index.html', segment='index')
                 elif user['role'] == 'assistant_manager':
+                    return render_template('home/inventory_manager_index.html', segment='index')
+
+                elif user['role'] == 'Head_ICT':
                     return render_template('home/inventory_manager_index.html', segment='index')
 
                 elif user['role'] == 'other':
