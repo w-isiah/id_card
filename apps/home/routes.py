@@ -48,7 +48,7 @@ def index():
                     return render_template('home/inventory_manager_index.html', segment='index')
 
                 elif user['role'] == 'Head_ICT':
-                    return render_template('home/inventory_manager_index.html', segment='index')
+                    return render_template('home/inventory_ict_head_manager_index.html', segment='index')
 
                 elif user['role'] == 'other':
                     return render_template('home/other_user_index.html', segment='index')

@@ -825,7 +825,7 @@ def term_report_card(reg_no):
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
-    # Get pupil details
+    # Fetch pupil details
     cursor.execute("""
         SELECT p.reg_no, CONCAT(p.first_name, ' ', p.other_name, ' ', p.last_name) AS full_name,
                p.image, p.gender, p.dorm_id, p.stream_id, p.year_id, p.term_id,
@@ -841,6 +841,16 @@ def term_report_card(reg_no):
     if not pupil:
         return "Pupil not found", 404
 
+    # Load grade scale
+    cursor.execute("SELECT * FROM grades ORDER BY weight")
+    grade_scale = cursor.fetchall()
+
+    def get_grade(score):
+        for g in grade_scale:
+            if g['min_score'] <= score <= g['max_score']:
+                return g['grade_letter'], g['remark']
+        return '-', '-'
+
     # Get all scores
     cursor.execute("""
         SELECT a.assessment_name, sub.subject_name, s.Mark
@@ -852,71 +862,56 @@ def term_report_card(reg_no):
     """, (reg_no,))
     results = cursor.fetchall()
 
-    # Collect and organize assessment data
-    subject_scores_map = {}  # {subject: [marks]}
+    # Process assessment data
+    subject_scores = {}
     assessment_names = set()
-    subject_totals = {}
-    overall_total = 0
-    overall_count = 0
 
     for row in results:
         subject = row['subject_name']
         assess = row['assessment_name']
-        mark = row['Mark']
+        mark = float(row['Mark']) if row['Mark'] is not None else None
         assessment_names.add(assess)
 
-        if subject not in subject_scores_map:
-            subject_scores_map[subject] = {}
+        if subject not in subject_scores:
+            subject_scores[subject] = {}
+        subject_scores[subject][assess] = mark
 
-        subject_scores_map[subject][assess] = float(mark) if mark is not None else None
+    assessment_list = sorted(assessment_names)
 
-        if mark is not None:
-            subject_totals[subject] = subject_totals.get(subject, 0) + float(mark)
-            overall_total += float(mark)
-            overall_count += 1
+    subjects_data = []
+    overall_total = 0
+    subject_count = 0
 
-    # Final mark per subject
-    final_marks = {subject: round(total, 2) for subject, total in subject_totals.items()}
-
-    # Subject position (per subject average ranking across all pupils)
-    subject_positions_map = {}
-    for subject in subject_totals:
-        cursor.execute("""
-            SELECT s.reg_no, SUM(s.Mark) AS total
-            FROM scores s
-            JOIN subjects sub ON s.subject_id = sub.subject_id
-            JOIN pupils p ON s.reg_no = p.reg_no
-            WHERE sub.subject_name = %s
-              AND p.term_id = %s
-              AND p.year_id = %s
-            GROUP BY s.reg_no
-            ORDER BY total DESC
-        """, (subject, pupil['term_id'], pupil['year_id']))
-
-        subject_rankings = cursor.fetchall()
-        for i, entry in enumerate(subject_rankings):
-            if entry['reg_no'] == reg_no:
-                subject_positions_map[subject] = i + 1
-                break
-
-    # Assessment view preparation
-    assessments = []
-    assessment_list = sorted(list(assessment_names))
-    for assessment in assessment_list:
-        scores = {subject: subject_scores_map[subject].get(assessment) for subject in subject_scores_map}
-        total = sum(m for m in scores.values() if m is not None)
-        count = sum(1 for m in scores.values() if m is not None)
+    for subject, scores in subject_scores.items():
+        total = sum([m for m in scores.values() if m is not None])
+        count = sum([1 for m in scores.values() if m is not None])
         average = round(total / count, 2) if count else 0
-        assessments.append({
-            'name': assessment,
-            'scores': scores,
+        grade_letter, remark = get_grade(average)
+        subject_entry = {
+            'subject': subject,
+            'marks': [],
             'total': total,
-            'average': average
-        })
+            'average': average,
+            'grade': grade_letter,
+            'remark': remark
+        }
 
-    overall_average = round(overall_total / overall_count, 2) if overall_count else 0
+        for assessment in assessment_list:
+            mark = scores.get(assessment)
+            if mark is not None:
+                g, r = get_grade(mark)
+                subject_entry['marks'].append({'mark': mark, 'grade': g, 'remark': r})
+            else:
+                subject_entry['marks'].append({'mark': '-', 'grade': '-', 'remark': '-'})
+        
+        subjects_data.append(subject_entry)
+        overall_total += average
+        subject_count += 1
 
-    # Stream and Class position
+    overall_average = round(overall_total / subject_count, 2) if subject_count else 0
+    overall_grade, overall_remark = get_grade(overall_average)
+
+    # Stream and class position
     cursor.execute("""
         SELECT p.reg_no, AVG(s.Mark) AS avg
         FROM scores s
@@ -939,14 +934,13 @@ def term_report_card(reg_no):
     cursor.close()
     connection.close()
 
-    return render_template('reports/term_report_card.html',
+    return render_template("reports/term_report_card.html",
         pupil=pupil,
-        assessments=assessments,
-        subject_totals=subject_totals,
-        final_marks=final_marks,
-        subject_positions=subject_positions_map,
-        overall_total=overall_total,
+        subjects=subjects_data,
+        assessments=assessment_list,
         overall_average=overall_average,
+        overall_grade=overall_grade,
+        overall_remark=overall_remark,
         stream_position=stream_position,
         class_position=class_position,
         print_date=datetime.now()
