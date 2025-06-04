@@ -49,22 +49,21 @@ def teachers():
 
 
 
-
 @blueprint.route('/add_teacher', methods=['GET', 'POST'])
 def add_teacher():
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
-    # Fetch subjects for dropdown
+    # Fetch subjects for dropdown (if needed)
     cursor.execute("SELECT * FROM subjects ORDER BY subject_name")
     subjects = cursor.fetchall()
 
     if request.method == 'POST':
-        # Retrieve form data including other_name and name_sf
+        # Get form data
         teacher_number = request.form.get('teacher_number')
         first_name = request.form.get('first_name')
-        other_name = request.form.get('other_name')
         last_name = request.form.get('last_name')
+        other_name = request.form.get('other_name')
         name_sf = request.form.get('name_sf')
         date_of_birth = request.form.get('date_of_birth')
         gender = request.form.get('gender')
@@ -76,7 +75,7 @@ def add_teacher():
         address = request.form.get('address')
         status = request.form.get('status')
 
-        # Check if teacher_number already exists
+        # Check for duplicate teacher_number
         cursor.execute("SELECT 1 FROM teachers WHERE teacher_number = %s", (teacher_number,))
         if cursor.fetchone():
             flash(f"Teacher number {teacher_number} already exists.", "danger")
@@ -84,7 +83,7 @@ def add_teacher():
             connection.close()
             return render_template('teachers/add_teacher.html', subjects=subjects, segment='add_teacher')
 
-        # Handle image uploads
+        # Handle image upload
         image_filename = None
         image_file = request.files.get('image')
         if image_file and allowed_file(image_file.filename):
@@ -93,6 +92,7 @@ def add_teacher():
             os.makedirs(os.path.dirname(image_path), exist_ok=True)
             image_file.save(image_path)
 
+        # Handle signature image upload
         sign_image_filename = None
         sign_image_file = request.files.get('sign_image')
         if sign_image_file and allowed_file(sign_image_file.filename):
@@ -101,26 +101,24 @@ def add_teacher():
             os.makedirs(os.path.dirname(sign_image_path), exist_ok=True)
             sign_image_file.save(sign_image_path)
 
-        # Optional: Insert created_at with Kampala time
-        created_at = get_kampala_time()
-
-        # Insert new teacher record
+        # Insert new teacher into the database
         cursor.execute(
             '''
             INSERT INTO teachers (
                 teacher_number, first_name, other_name, last_name, name_sf,
                 date_of_birth, gender, subject_specialty, grade_level,
                 contact_number, email, hire_date, address, status,
-                image, sign_image, created_at
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                image, sign_image
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ''',
             (
                 teacher_number, first_name, other_name, last_name, name_sf,
                 date_of_birth, gender, subject_specialty, grade_level,
                 contact_number, email, hire_date, address, status,
-                image_filename, sign_image_filename, created_at
+                image_filename, sign_image_filename
             )
         )
+
         connection.commit()
         flash("Teacher successfully added!", "success")
         cursor.close()
@@ -131,7 +129,6 @@ def add_teacher():
     cursor.close()
     connection.close()
     return render_template('teachers/add_teacher.html', subjects=subjects, segment='add_teacher')
-
 
 
 
