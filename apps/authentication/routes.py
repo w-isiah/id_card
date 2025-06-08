@@ -1,12 +1,21 @@
-from flask import render_template, redirect, request, url_for, flash, session,current_app,jsonify
-from apps import get_db_connection
-from apps.authentication import blueprint
-from datetime import datetime
-
+from flask import (
+    render_template, redirect, request, url_for, flash, session, current_app, jsonify
+)
 from werkzeug.utils import secure_filename
+from datetime import datetime, timedelta
+from PIL import Image
 import os
 import mysql.connector
-from datetime import datetime, timedelta
+
+from apps import get_db_connection
+from apps.authentication import blueprint
+
+
+from datetime import datetime
+import pytz
+def get_kampala_time():
+    kampala = pytz.timezone("Africa/Kampala")
+    return datetime.now(kampala)
 
 
 
@@ -24,6 +33,7 @@ def route_default():
 
 
 
+
 @blueprint.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -31,56 +41,61 @@ def login():
         password = request.form['password']
 
         try:
-            # Get DB connection using context manager
             with get_db_connection() as connection:
                 with connection.cursor(dictionary=True) as cursor:
-                    # Retrieve the user by username
                     cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
                     user = cursor.fetchone()
 
                     if user:
-                        # Compare the password directly (no hashing)
-                        if user['password'] == password:  # Direct comparison (no hashing)
+                        if user['password'] == password:  # Note: no hashing here, consider adding hashing in future
                             try:
-                                # Insert a new login record in the user_activity table
-                                cursor.execute("INSERT INTO user_activity (user_id, login_time) VALUES (%s, %s)", 
-                                               (user['id'], datetime.utcnow()))
-                                
-                                # Set user as online (update `is_online` field to 1)
-                                cursor.execute("UPDATE users SET is_online = 1 WHERE id = %s", (user['id'],))
-                                connection.commit()  # Commit the changes to the database
+                                current_time = get_kampala_time()
 
-                                # Storing user session data
+                                # Insert a new login record with Kampala time
+                                cursor.execute(
+                                    "INSERT INTO user_activity (user_id, login_time) VALUES (%s, %s)", 
+                                    (user['id'], current_time)
+                                )
+                                
+                                # Set user as online
+                                cursor.execute("UPDATE users SET is_online = 1 WHERE id = %s", (user['id'],))
+                                connection.commit()
+
+                                # Update session
                                 session.update({
                                     'loggedin': True,
                                     'id': user['id'],
                                     'username': user['username'],
-                                    'profile_image': user['profile_image'],
-                                    'first_name': user['first_name'],
-                                    'role': user['role'],
-                                    'last_activity': datetime.utcnow()
+                                    'profile_image': user.get('profile_image'),
+                                    'first_name': user.get('first_name'),
+                                    'role': user.get('role'),
+                                    'last_activity': current_time
                                 })
-                                session.permanent = True  # Make the session permanent
-                                
-                                print(f"Session updated with user_id: {session.get('id')}")  # Debugging line
+                                session.permanent = True
+
+                                print(f"Session updated with user_id: {session.get('id')}")
 
                                 flash('Login successful!', 'success')
-                                return redirect(url_for('home_blueprint.index'))  # Redirect to home page after successful login
+                                return redirect(url_for('home_blueprint.index'))
+
                             except Exception as e:
                                 print(f"Error during session handling or user activity logging: {str(e)}")
                                 flash('An error occurred during the login process. Please try again later.', 'danger')
-                                return redirect(url_for('authentication_blueprint.login'))  # Redirect back to login page in case of error
+                                return redirect(url_for('authentication_blueprint.login'))
                         else:
                             flash('Incorrect password.', 'danger')
-                            return redirect(url_for('authentication_blueprint.login'))  # Redirect to login if password is incorrect
+                            return redirect(url_for('authentication_blueprint.login'))
                     else:
                         flash('Username not found', 'danger')
-                        return redirect(url_for('authentication_blueprint.login'))  # Redirect to login if username is not found
+                        return redirect(url_for('authentication_blueprint.login'))
 
         except Exception as e:
-            flash(f"An error occurred: {str(e)}", 'danger')  # Handle any database or other errors
+            flash(f"An error occurred: {str(e)}", 'danger')
 
-    return render_template('accounts/login.html')  # Render the login page on GET request
+    return render_template('accounts/login.html')
+
+
+
 
 
 
@@ -95,46 +110,54 @@ def login():
 def check_inactivity():
     """Check for session timeout due to inactivity."""
     if 'loggedin' in session:
-        last_activity = session.get('last_activity')
+        last_activity_str = session.get('last_activity')
+        if last_activity_str:
+            try:
+                # Parse ISO 8601 string with timezone info
+                last_activity = datetime.fromisoformat(last_activity_str)
+            except Exception:
+                last_activity = None
 
-        if last_activity:
-            # Ensure last_activity is a naive datetime object
-            if last_activity.tzinfo is not None:
-                last_activity = last_activity.replace(tzinfo=None)
+            current_time = get_kampala_time()
 
-            # Get the current time as a naive datetime object
-            current_time = datetime.utcnow()
+            if last_activity:
+                time_diff = current_time - last_activity
+                # Timeout after 30 minutes of inactivity
+                if time_diff > timedelta(minutes=30):
+                    try:
+                        with get_db_connection() as connection:
+                            with connection.cursor(dictionary=True) as cursor:
+                                # Strip tzinfo before storing in MariaDB DATETIME
+                                logout_time_naive = current_time.replace(tzinfo=None)
 
-            # Check if the session has been inactive for more than 30 minutes
-            time_diff = current_time - last_activity
-            if time_diff > timedelta(minutes=2000):  # Timeout after 30 minutes
-                try:
-                    # Log the user out and update the logout time in user_activity
-                    with get_db_connection() as connection:
-                        with connection.cursor(dictionary=True) as cursor:
-                            # Update the logout time for the current active session
-                            cursor.execute("""
-                                UPDATE user_activity 
-                                SET logout_time = %s 
-                                WHERE user_id = %s AND logout_time IS NULL
-                            """, (current_time, session['id']))
+                                cursor.execute("""
+                                    UPDATE user_activity 
+                                    SET logout_time = %s 
+                                    WHERE user_id = %s AND logout_time IS NULL
+                                """, (logout_time_naive, session['id']))
 
-                            # Set user as offline (update `is_online` field to 0)
-                            cursor.execute("UPDATE users SET is_online = 0 WHERE id = %s", (session['id'],))
-                            connection.commit()
+                                cursor.execute("UPDATE users SET is_online = 0 WHERE id = %s", (session['id'],))
+                                connection.commit()
 
-                    # Clear the session (log the user out)
-                    session.clear()  # Remove session data
-                    flash('Session expired due to inactivity.', 'warning')
-                    return redirect(url_for('authentication_blueprint.login'))
-                except Exception as e:
-                    # If any exception occurs while updating the database, log the error
-                    flash(f"An error occurred while updating the logout status: {str(e)}", 'danger')
-                    session.clear()  # Ensure the session is cleared
-                    return redirect(url_for('authentication_blueprint.login'))
+                        session.clear()
+                        flash('Session expired due to inactivity.', 'warning')
+                        return redirect(url_for('authentication_blueprint.login'))
+                    except Exception as e:
+                        flash(f"An error occurred while updating the logout status: {str(e)}", 'danger')
+                        session.clear()
+                        return redirect(url_for('authentication_blueprint.login'))
 
-        # Update last_activity to the current time for future checks
-        session['last_activity'] = datetime.utcnow()
+        # Update last_activity timestamp on each request as ISO string with timezone
+        session['last_activity'] = get_kampala_time().isoformat()
+
+
+
+
+
+
+
+
+
 
 
 
@@ -145,42 +168,53 @@ def check_inactivity():
 
 @blueprint.route('/logout')
 def logout():
-    """Logs the user out and updates the logout time in the database."""
-    if 'username' in session:
-        username = session['username']
-        
+    user_id = session.get('id')
+    username = session.get('username')
+
+    print(f"Logout called for user_id: {user_id}, username: {username}")
+
+    if user_id and username:
         try:
-            # Get DB connection using context manager
             with get_db_connection() as connection:
                 with connection.cursor(dictionary=True) as cursor:
-                    # Update the logout time for the current active session
+                    current_time = get_kampala_time()
+                    current_time_naive = current_time.replace(tzinfo=None)
+
+                    print(f"Updating user_activity logout_time for user_id={user_id} to {current_time_naive}")
                     cursor.execute("""
                         UPDATE user_activity 
                         SET logout_time = %s 
                         WHERE user_id = %s AND logout_time IS NULL
-                    """, (datetime.utcnow(), session['id']))
-                    
-                    # Set user as offline (update `is_online` field to 0)
-                    cursor.execute("UPDATE users SET is_online = 0 WHERE id = %s", (session['id'],))
-                    
-                    # Commit the changes to the database
-                    connection.commit()
+                    """, (current_time_naive, user_id))
 
-                    # Optional: You can log the user activity (e.g., logging this action)
+                    print(f"Setting is_online = 0 for user_id={user_id}")
+                    cursor.execute("UPDATE users SET is_online = 0 WHERE id = %s", (user_id,))
+
+                    connection.commit()
                     print(f"User '{username}' logged out successfully.")
-        
+
+
+
+                    
+
         except Exception as e:
-            # Log any exceptions that occur during the database update
+            print(f"Exception in logout route: {e}")
             flash(f"An error occurred while updating the logout status: {str(e)}", 'danger')
 
-    # Clear the session to log out the user
-    session.clear()  # Remove session data
-    
-    # Flash a success message to the user
+    session.clear()
     flash('You have been logged out successfully.', 'success')
-    
-    # Redirect the user to the login page
     return redirect(url_for('authentication_blueprint.login'))
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -191,13 +225,16 @@ def manage_users():
             with connection.cursor(dictionary=True) as cursor:
                 # Check if the user has admin privileges
                 if session.get('role') == 'admin':
-                    cursor.execute("SELECT * FROM users WHERE role != 'admin'")
+                    cursor.execute("SELECT * FROM users WHERE role != 'admin' AND role != 'super_admin' ")
                 elif session.get('role') == 'inventory_manager':
-                    cursor.execute("SELECT * FROM users WHERE role != 'admin' AND role != 'inventory_manager' AND role != 'class_teacher' ")
+                    cursor.execute("SELECT * FROM users WHERE role != 'admin' AND role != 'inventory_manager' AND role != 'super_admin' AND role != 'class_teacher' ")
+                elif session.get('role') == 'super_admin':
+                    cursor.execute("SELECT * FROM users WHERE role != 'super_admin'")
+
 
                 else:
                     flash('You do not have permission to access this page.', 'warning')
-                    return redirect(url_for('authentication_blueprint.index'))
+                    return redirect(url_for('authentication_blueprint.login'))
 
                 users = cursor.fetchall()
                 num = len(users)
@@ -209,7 +246,8 @@ def manage_users():
     return render_template('accounts/manage_users.html', num=num, users=users)
 
 
-# New route for getting user status
+
+
 @blueprint.route('/get_user_status/<int:user_id>', methods=['GET'])
 def get_user_status(user_id):
     try:
@@ -217,13 +255,21 @@ def get_user_status(user_id):
             with connection.cursor(dictionary=True) as cursor:
                 cursor.execute("SELECT is_online FROM users WHERE id = %s", (user_id,))
                 user = cursor.fetchone()
-
                 if user:
-                    return jsonify({'status': 'online' if user['is_online'] else 'offline'})
+                    status = 'online' if user['is_online'] else 'offline'
+                    print(f"[DEBUG] User {user_id} status: {status}")
+                    return jsonify({'status': status})
                 else:
-                    return jsonify({'status': 'offline'})  # Default to offline if user not found
+                    print(f"[DEBUG] User {user_id} not found")
+                    return jsonify({'status': 'offline'})
     except Exception as e:
+        print(f"[ERROR] get_user_status error: {e}")
         return jsonify({'status': 'offline'})
+
+
+
+
+
 
 
 @blueprint.route('/activity_logs/<int:id>', methods=['GET', 'POST'])
@@ -246,6 +292,13 @@ def activity_logs(id):
     except Exception as e:
         flash(f"An error occurred: {str(e)}", 'danger')
         return redirect(url_for('authentication_blueprint.index'))
+
+
+
+
+
+
+
 
 
 # Add user
@@ -581,12 +634,12 @@ def delete_user(id):
     return redirect(url_for('home_blueprint.index'))
 
 
-# Image upload helper function
+
+
 def handle_image_upload(image_file):
     filename = secure_filename(image_file.filename)
-    #profile_image_path = os.path.join(UPLOAD_FOLDER, filename)
-    profile_image_path = os.path.join(current_app.config['UPLOAD_FOLDER'])
-    
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    profile_image_path = os.path.join(upload_folder, filename)
 
     try:
         img = Image.open(image_file)
@@ -601,7 +654,12 @@ def handle_image_upload(image_file):
         flash(f"Error processing image: {e}", 'danger')
         return None
 
-    return os.path.join(UPLOAD_FOLDER, filename)
+    # Return filename or relative path as per your app needs
+    return filename
+
+
+
+
 
 
 @blueprint.route('/edit_user_profile/<int:id>', methods=['GET', 'POST'])

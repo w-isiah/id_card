@@ -7,20 +7,16 @@
 {% block stylesheets %}
   <!-- Google Font: Source Sans Pro -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-  
   <!-- Font Awesome -->
   <link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
-  
   <!-- Ionicons -->
   <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
-  
   <!-- AdminLTE Theme -->
   <link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
-  
   <!-- DataTables CSS -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css">
-  
+
   <!-- Custom CSS for Flash Messages -->
   <style>
     .alert-container {
@@ -59,17 +55,12 @@
 
 {% block content %}
 <div class="content-wrapper">
-  
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       <div class="alert-container" id="flashMessageContainer">
         {% for category, message in messages %}
           <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-            <i class="fas fa-{{ 
-              'check-circle' if category == 'success' 
-              else 'exclamation-circle' if category == 'warning' 
-              else 'times-circle' if category == 'danger' 
-              else 'info-circle' }}"></i>
+            <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-circle' if category == 'warning' else 'times-circle' if category == 'danger' else 'info-circle' }}"></i>
             <span>{{ message }}</span>
             <button type="button" class="close" data-dismiss="alert" aria-label="Close">
               <span aria-hidden="true">&times;</span>
@@ -157,7 +148,7 @@
                       </a>
                     </td>
                     <td>
-                      {% if session['role'] == 'admin' %}
+                      {% if session['role'] == 'super_admin' %}
                       <a href="/delete_stream/{{ stream.stream_id }}" class="btn btn-sm btn-danger"
                          onclick="return confirm('Are you sure you want to delete {{ stream.stream_name }}?')">
                         Delete

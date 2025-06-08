@@ -131,12 +131,21 @@
                     <a href="/edit_user/{{ user.id }}" class="btn btn-info btn-sm" title="Edit User">
                       <i class="fas fa-edit"></i>
                     </a>
+
+                    {% if session['role'] == 'super_admin' %}
                     <a href="{{ url_for('authentication_blueprint.delete_user', id=user.id) }}"
                        class="btn btn-danger btn-sm"
                        onclick="return confirm('Are you sure you want to delete user: {{ user.username }}?');"
                        title="Delete User">
                       <i class="fas fa-trash-alt"></i>
                     </a>
+
+                    {% else %}
+
+                    <span>—</span>
+
+                     {% endif %}
+
                   </div>
                 </td>
               </tr>

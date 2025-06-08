@@ -1,67 +1,29 @@
 {% extends "layouts/base.html" %}
-
-{% block title %}Dashboard{% endblock %}
-
-{% block body_class %}sidebar-mini{% endblock %}
+{% block title %}Add Stream{% endblock %}
+{% block body_class %}sidebar-mini layout-fixed layout-footer-fixed{% endblock %}
 
 {% block stylesheets %}
-  <!-- Google Font: Source Sans Pro -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-  <!-- Font Awesome -->
-  <link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
-  <!-- Ionicons -->
-  <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
-  <!-- AdminLTE Theme -->
-  <link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
-  <!-- DataTables CSS -->
-  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
-  <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css">
-
-  <!-- Custom CSS for Flash Messages -->
-  <style>
-    .alert-container {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 9999;
-      max-width: 600px;
-      width: 90%;
-      display: none;
-    }
-
-    .alert {
-      opacity: 1;
-      transition: opacity 0.5s ease-in-out;
-      margin-bottom: 10px;
-      padding: 0.75rem 1.25rem;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      display: flex;
-      align-items: center;
-    }
-
-    .alert i {
-      font-size: 1.2rem;
-      margin-right: 10px;
-    }
-
-    .alert .close {
-      margin-left: auto;
-      font-size: 1.2rem;
-      line-height: 1;
-    }
-  </style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+<link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
+<link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
 {% endblock %}
 
 {% block content %}
 <div class="content-wrapper">
+  
+  <!-- Flash Messages -->
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-      <div class="alert-container" id="flashMessageContainer">
+      <div class="container mt-3">
         {% for category, message in messages %}
           <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-            <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-circle' if category == 'warning' else 'times-circle' if category == 'danger' else 'info-circle' }}"></i>
-            <span>{{ message }}</span>
+            <i class="fas 
+              {% if category == 'success' %}fa-check-circle
+              {% elif category == 'warning' %}fa-exclamation-circle
+              {% elif category == 'danger' %}fa-times-circle
+              {% else %}fa-info-circle
+              {% endif %} mr-2"></i>
+            {{ message }}
             <button type="button" class="close" data-dismiss="alert" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
@@ -71,72 +33,56 @@
     {% endif %}
   {% endwith %}
 
-  <!-- Content Header -->
+  <!-- Page Header -->
   <section class="content-header">
     <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-6"><h1>Add Stream</h1></div>
-        <div class="col-sm-6">
-          <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="/index">Home</a></li>
-            <li class="breadcrumb-item"><a href="{{ url_for('streams_blueprint.streams') }}">Streams</a></li>
-            <li class="breadcrumb-item active">Add Stream</li>
-          </ol>
-        </div>
-      </div>
+      <h1>Add Stream</h1>
     </div>
   </section>
 
-  <!-- Main Form -->
+  <!-- Form -->
   <section class="content">
     <div class="container-fluid">
       <div class="card card-primary">
-        <div class="card-header">
-          <h3 class="card-title">Stream Information</h3>
-        </div>
-        <form action="{{ url_for('streams_blueprint.add_stream') }}" method="POST">
+        <div class="card-header"><h3 class="card-title">Stream Information</h3></div>
+        <form method="POST" action="{{ url_for('streams_blueprint.add_stream') }}">
           <div class="card-body">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
 
             <div class="form-group">
               <label for="stream_name">Stream Name</label>
-              <input type="text" class="form-control" name="stream_name" placeholder="Enter stream name" required>
+              <input type="text" class="form-control" name="stream_name" required>
             </div>
 
             <div class="form-group">
-              <label for="class_id">Select Class</label>
-              <select class="form-control" name="class_id" required>
-                <option value="">-- Select a Class --</option>
-                {% for cls in classes %}
-                  <option value="{{ cls.class_id }}">{{ cls.class_name }}</option>
+              <label for="class_id">Class</label>
+              <select name="class_id" class="form-control" required>
+                <option value="">-- Select Class --</option>
+                {% for c in classes %}
+                  <option value="{{ c.class_id }}">{{ c.class_name }}</option>
                 {% endfor %}
               </select>
             </div>
 
-          
-
             <div class="form-group">
-              <label for="room_id">Select room</label>
-              <select class="form-control" name="room_id" required>
-                <option value="">-- Select a room --</option>
-                {% for cls in rooms %}
-                  <option value="{{ cls.room_id }}">{{ cls.room_name }}</option>
+              <label for="room_id">Room</label>
+              <select name="room_id" class="form-control">
+                <option value="">-- Select Room --</option>
+                {% for r in rooms %}
+                  <option value="{{ r.room_id }}">{{ r.room_name }}</option>
                 {% endfor %}
               </select>
             </div>
 
-
-
-
             <div class="form-group">
-              <label for="description">Description (optional)</label>
-              <textarea class="form-control" name="description" rows="3" placeholder="Enter any additional info..."></textarea>
+              <label for="description">Description</label>
+              <textarea name="description" class="form-control" rows="3" placeholder="Optional description..."></textarea>
             </div>
           </div>
 
           <div class="card-footer">
             <button type="submit" class="btn btn-success">Save Stream</button>
-            <a href="{{ url_for('streams_blueprint.streams') }}" class="btn btn-secondary float-right">Back to Streams</a>
+            <a href="{{ url_for('streams_blueprint.streams') }}" class="btn btn-secondary float-right">Back</a>
           </div>
         </form>
       </div>
@@ -145,26 +91,14 @@
 </div>
 {% endblock %}
 
- <!-- jQuery -->
-  <script src="/static/assets/plugins/jquery/jquery.min.js"></script>
-  <!-- Bootstrap 4 -->
-  <script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-  <!-- AdminLTE -->
-  <script src="/static/assets/js/adminlte.min.js"></script>
-  <!-- Demo Script -->
-  <script src="/static/assets/js/demo.js"></script>
-
 {% block javascripts %}
-
-
-  <script>
-    $(document).ready(function () {
-      const $flash = $('#flashMessageContainer');
-      if ($flash.length) {
-        $flash.fadeIn(400).delay(3500).fadeOut(600);
-      }
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+  $(document).ready(function () {
+    $(".alert").fadeTo(4000, 500).slideUp(500, function () {
+      $(this).alert('close');
     });
-  </script>
-
-  
-{% endblock javascripts %}
+  });
+</script>
+{% endblock %}
+ 

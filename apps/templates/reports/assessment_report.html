@@ -125,6 +125,7 @@
                       <th>{{ col }}</th>
                     {% endfor %}
                     <th>Report</th>
+                    <th>some Report</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -142,6 +143,9 @@
                       {% endfor %}
                       <td>
                         <a href="{{ url_for('reports_blueprint.term_report_card', reg_no=student.reg_no) }}" class="btn btn-sm btn-info">View</a>
+                      </td>
+                      <td>
+                        <a href="{{ url_for('reports_blueprint.some_report', reg_no=student.reg_no) }}" class="btn btn-sm btn-info">View</a>
                       </td>
                     </tr>
                   {% endfor %}

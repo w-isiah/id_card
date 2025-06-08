@@ -945,3 +945,155 @@ def term_report_card(reg_no):
         class_position=class_position,
         print_date=datetime.now()
     )
+
+
+
+@blueprint.route('/scores_p_reports', methods=['GET'])
+def scores_p_reports():
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    # Load dropdown data
+    cursor.execute("SELECT * FROM classes")
+    class_list = cursor.fetchall()
+
+    cursor.execute("SELECT * FROM study_year")
+    study_years = cursor.fetchall()
+
+    cursor.execute("SELECT * FROM terms")
+    terms = cursor.fetchall()
+
+    cursor.execute("SELECT * FROM assessment")
+    assessments = cursor.fetchall()
+
+    # Get filters from request
+    class_id = request.args.get('class_id', type=int)
+    year_id = request.args.get('year_id', type=int)
+    term_id = request.args.get('term_id', type=int)
+    assessment_name = request.args.get('assessment_name', type=str)
+
+    filters = {
+        'class_id': class_id,
+        'year_id': year_id,
+        'term_id': term_id,
+        'assessment_name': assessment_name
+    }
+
+    # If no filters selected, render empty page
+    if not any(filters.values()):
+        return render_template('reports/scores_p_reports.html',
+            reports=[], subject_names=[], class_list=class_list,
+            study_years=study_years, terms=terms, assessments=assessments,
+            selected_class_id=None, selected_study_year_id=None,
+            selected_term_id=None, selected_assessment_name=None, segment='reports'
+        )
+
+    # Build base SQL query
+    query = """
+    SELECT 
+        p.reg_no,
+        CONCAT_WS(' ', p.first_name, p.other_name, p.last_name) AS full_name,
+        y.year_name,
+        t.term_name,
+        a.assessment_name,
+        sub.subject_name,
+        s.Mark,
+        g.grade_letter,
+        g.remark
+    FROM scores s
+    JOIN pupils p ON s.reg_no = p.reg_no
+    JOIN assessment a ON s.assessment_id = a.assessment_id
+    JOIN terms t ON s.term_id = t.term_id
+    JOIN subjects sub ON s.subject_id = sub.subject_id
+    JOIN study_year y ON s.year_id = y.year_id
+    LEFT JOIN grades g ON s.Mark BETWEEN g.min_score AND g.max_score
+    WHERE 1=1
+    """
+
+    params = []
+    if class_id:
+        query += " AND p.class_id = %s"
+        params.append(class_id)
+    if year_id:
+        query += " AND p.year_id = %s"
+        params.append(year_id)
+    if term_id:
+        query += " AND s.term_id = %s"
+        params.append(term_id)
+    if assessment_name:
+        query += " AND a.assessment_name = %s"
+        params.append(assessment_name)
+
+    # Execute query
+    cursor.execute(query, params)
+    raw_data = cursor.fetchall()
+    cursor.close()
+    connection.close()
+
+    # Extract subject names and initialize student mapping
+    subject_names = sorted({row['subject_name'] for row in raw_data})
+    student_map = {}
+
+    for row in raw_data:
+        reg = row['reg_no']
+        if reg not in student_map:
+            student_map[reg] = {
+                'reg_no': reg,
+                'full_name': row['full_name'],
+                'year_name': row['year_name'],
+                'term_name': row['term_name'],
+                'assessment_name': row['assessment_name'],
+                'marks': {},
+                'grades': {},
+                'remarks': {}
+            }
+
+        subject = row['subject_name']
+        mark = row['Mark']
+
+        student_map[reg]['marks'][subject] = mark if mark is not None else np.nan
+        student_map[reg]['grades'][subject] = row['grade_letter'] or ''
+        student_map[reg]['remarks'][subject] = row['remark'] or ''
+
+    # Calculate totals, averages, and prepare for ranking
+    reports = []
+    for student in student_map.values():
+        marks_array = np.array([
+            student['marks'].get(subject, np.nan) for subject in subject_names
+        ], dtype=np.float64)
+
+        total = np.nansum(marks_array)
+        count = np.count_nonzero(~np.isnan(marks_array))
+        average = np.round(total / count, 2) if count > 0 else 0
+
+        student['total_score'] = total
+        student['average_score'] = average
+        reports.append(student)
+
+    # Sort and assign positions
+    reports.sort(key=lambda x: x['average_score'], reverse=True)
+
+    current_position = 1
+    last_average = None
+    for index, student in enumerate(reports):
+        if student['average_score'] == last_average:
+            student['position'] = current_position  # same position for tie
+        else:
+            current_position = index + 1
+            student['position'] = current_position
+            last_average = student['average_score']
+
+    # Render template with results
+    return render_template('reports/scores_p_reports.html',
+        reports=reports,
+        subject_names=subject_names,
+        class_list=class_list,
+        study_years=study_years,
+        terms=terms,
+        assessments=assessments,
+        selected_class_id=class_id,
+        selected_study_year_id=year_id,
+        selected_term_id=term_id,
+        selected_assessment_name=assessment_name,
+        segment='reports'
+    )

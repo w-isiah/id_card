@@ -659,24 +659,34 @@ def insert_into_database(processed_data):
 
 
 
-@blueprint.route('/delete_pupil/<int:pupils_id>')
-def delete_pupil(pupils_id):
-    """Deletes a pupils from the database."""
+
+@blueprint.route('/delete_pupil', methods=['POST'])
+def delete_pupil():
+    """Deletes selected pupils from the database."""
+    pupil_ids = request.form.getlist('pupil_ids')
+    
+    if not pupil_ids:
+        flash("No pupils selected for deletion.", "warning")
+        return redirect(url_for('pupils_blueprint.pupils'))
+
     connection = get_db_connection()
     cursor = connection.cursor()
 
     try:
-        # Delete the pupils with the specified ID
-        cursor.execute('DELETE FROM pupils WHERE pupil_id = %s', (pupils_id,))
+        placeholders = ', '.join(['%s'] * len(pupil_ids))
+        cursor.execute(f"DELETE FROM pupils WHERE pupil_id IN ({placeholders})", tuple(pupil_ids))
         connection.commit()
-        flash("pupils deleted successfully.", "success")
+        flash(f"Deleted {cursor.rowcount} pupil(s) successfully.", "success")
     except Exception as e:
-        flash(f"Error: {str(e)}", "danger")
+        flash(f"Error deleting pupil(s): {str(e)}", "danger")
     finally:
         cursor.close()
         connection.close()
 
     return redirect(url_for('pupils_blueprint.pupils'))
+
+
+
 
 
 

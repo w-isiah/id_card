@@ -131,7 +131,7 @@
                         <a href="/edit_grades/{{ grade.grade_id }}" class="btn btn-sm btn-warning">Edit</a>
                       </td>
                       <td>
-                        {% if session['role'] == 'admin' %}
+                        {% if session['role'] == 'super_admin' %}
                         <a href="/delete_grades/{{ grade.grade_id }}" class="btn btn-sm btn-danger" 
                            onclick="return confirm('Delete grade {{ grade.grade_letter }}?')">
                           Delete

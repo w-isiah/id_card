@@ -11,6 +11,12 @@ import re  # <-- Add this line
 from apps import get_db_connection
 from jinja2 import TemplateNotFound
 
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+import re
+from datetime import datetime
+import pytz
+
+
 
 @blueprint.route('/streams')
 def streams():
@@ -50,82 +56,120 @@ def streams():
 
 
 
+
+
+
+def get_kampala_time():
+    return datetime.now(pytz.timezone("Africa/Kampala"))
+
+
+
+
+
+
+
+
+
+
+
+
+
 @blueprint.route('/add_stream', methods=['GET', 'POST'])
 def add_stream():
-    """Handles adding a new stream to the database."""
+    """Handles creation of a new stream."""
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
-    # Fetch the list of classes for the dropdown
-    cursor.execute('SELECT class_id, class_name FROM classes')
-    classes = cursor.fetchall()
+    try:
+        if request.method == 'POST':
+            # Extract form data
+            stream_name = request.form.get('stream_name')
+            class_id = request.form.get('class_id')
+            room_id = request.form.get('room_id')
+            description = request.form.get('description') or None
+            user_id = session.get('id')
+            now = get_kampala_time()
 
-    # Fetch the list of rooms for the dropdown
-    cursor.execute('SELECT room_id, room_name FROM rooms')
-    rooms = cursor.fetchall()
+            # Validation
+            if not all([stream_name, class_id, user_id]):
+                flash("Stream name, class, and user are required.", "warning")
+                return redirect(url_for('streams_blueprint.add_stream'))
 
-    if request.method == 'POST':
-        stream_name = request.form.get('stream_name')
-        class_id = request.form.get('class_id')
-        description = request.form.get('description')
-        room_id = request.form.get('room_id')  # Room ID from form
-        user_id = session.get('id')  # Get the user ID from the session
+            # Check for duplicate stream in class
+            cursor.execute("""
+                SELECT 1 FROM stream WHERE stream_name = %s AND class_id = %s
+            """, (stream_name, class_id))
+            if cursor.fetchone():
+                flash("A stream with this name already exists in the selected class.", "warning")
+                return redirect(url_for('streams_blueprint.add_stream'))
 
-        # Validate inputs
-        if not stream_name or not class_id or not room_id:
-            flash("Please fill out all required fields!", "warning")
-        #elif not re.match(r'^[A-Za-z0-9_ ]+$', stream_name):
-        #    flash("Stream name must contain only letters, numbers, and spaces!", "danger")
-        else:
-            try:
-                # Check if the stream already exists for this class
-                cursor.execute(
-                    'SELECT * FROM stream WHERE stream_name = %s AND class_id = %s',
-                    (stream_name, class_id)
-                )
-                existing_stream = cursor.fetchone()
+            # Validate and check room assignment
+            room_id_int = int(room_id) if room_id else None
+            if room_id_int:
+                cursor.execute("""
+                    SELECT 1 FROM room_assignment WHERE room_id = %s
+                """, (room_id_int,))
+                if cursor.fetchone():
+                    flash("The selected room is already assigned.", "danger")
+                    return redirect(url_for('streams_blueprint.add_stream'))
 
-                if existing_stream:
-                    flash("Stream already exists for this class!", "warning")
-                else:
-                    # Check if the room is already assigned (for any class or stream)
-                    cursor.execute(
-                        'SELECT * FROM room_assignment WHERE room_id = %s',
-                        (room_id,)
-                    )
-                    existing_assignment = cursor.fetchone()
+            # Insert stream
+            cursor.execute("""
+                INSERT INTO stream (stream_name, class_id, room_id, description, created_at, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (stream_name, class_id, room_id_int, description, now, now))
+            stream_id = cursor.lastrowid
 
-                    if existing_assignment:
-                        flash("Room is already assigned!", "warning")
-                        return redirect(url_for('streams_blueprint.add_stream'))
-                    else:
-                        # Insert the new stream into the database
-                        cursor.execute(
-                            'INSERT INTO stream (stream_name, class_id, description, room_id) VALUES (%s, %s, %s, %s)',
-                            (stream_name, class_id, description, room_id)
-                        )
-                        connection.commit()
+            # Assign room if applicable
+            if room_id_int:
+                cursor.execute("""
+                    INSERT INTO room_assignment 
+                    (room_id, user_id, assigned_to_type, assigned_to_id, created_at, updated_at)
+                    VALUES (%s, %s, 'stream', %s, %s, %s)
+                """, (room_id_int, user_id, stream_id, now, now))
 
-                        # Insert into room_assignment
-                        stream_id = cursor.lastrowid
-                        cursor.execute(
-                            'INSERT INTO room_assignment (room_id, user_id, assigned_to_type, assigned_to_id) VALUES (%s, %s, %s, %s)',
-                            (room_id, user_id, 'stream', stream_id)
-                        )
-                        connection.commit()
+            connection.commit()
+            flash("Stream created successfully!", "success")
+            return redirect(url_for('streams_blueprint.streams'))
 
-                        flash("Stream successfully added!", "success")
-                        return redirect(url_for('streams_blueprint.streams'))
+        # GET: Load form data
+        cursor.execute("SELECT class_id, class_name FROM classes")
+        classes = cursor.fetchall()
 
-            except Exception as err:
-                flash(f"Error: {err}", "danger")
+        cursor.execute("SELECT room_id, room_name FROM rooms")
+        rooms = cursor.fetchall()
 
-    # Close the cursor and connection
-    cursor.close()
-    connection.close()
+        cursor.execute("SELECT room_id, room_name FROM rooms")
+        rooms = cursor.fetchall()
 
-    # Render the template with the classes and rooms for the dropdown
-    return render_template('streams/add_stream.html', classes=classes, rooms=rooms, segment='streams')
+        return render_template(
+            'streams/add_stream.html',
+            classes=classes,
+            rooms=rooms,
+            segment='streams'
+        )
+
+    except ValueError:
+        flash("Invalid room ID format. Please enter a numeric value.", "danger")
+    except Exception as e:
+        connection.rollback()
+        flash(f"Database error: {str(e)}", "danger")
+        print(f"Database error: {str(e)}")
+    finally:
+        cursor.close()
+        connection.close()
+
+    return redirect(url_for('streams_blueprint.add_stream'))
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -162,9 +206,7 @@ def edit_stream(stream_id):
                 flash("Stream name is required!", "warning")
                 return redirect(url_for('streams_blueprint.edit_stream', stream_id=stream_id))
 
-            #if not re.match(r'^[A-Za-z0-9_ ]+$', stream_name):
-            #    flash("Stream name must contain only letters, numbers, and spaces!", "danger")
-            #    return redirect(url_for('streams_blueprint.edit_stream', stream_id=stream_id))
+           
 
             # Check for duplicate stream name in the same class
             cursor.execute(
@@ -183,9 +225,9 @@ def edit_stream(stream_id):
             """, (room_id, stream_id))
             existing_assignment = cursor.fetchone()
 
-            #if existing_assignment:
-            #    flash("Room is already assigned!", "warning")
-            #    return redirect(url_for('streams_blueprint.edit_stream', stream_id=stream_id))
+            if existing_assignment:
+                flash("Room is already assigned!", "warning")
+                return redirect(url_for('streams_blueprint.edit_stream', stream_id=stream_id))
 
             # Update stream record
             cursor.execute(

@@ -134,7 +134,7 @@
                       </td>
 
                       <td>
-                        {% if session['role'] == 'admin' %}
+                        {% if session['role'] == 'super_admin' %}
                         <a href="/delete_room/{{ room.room_id }}"
                            class="btn btn-sm btn-danger"
                            style="--bs-btn-padding-y: .25rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .75rem;"

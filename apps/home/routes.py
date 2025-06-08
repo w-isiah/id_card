@@ -44,6 +44,8 @@ def index():
                     return render_template('home/inventory_section_head_index.html', segment='index')
                 elif user['role'] == 'department_head':
                     return render_template('home/department_head_index.html', segment='index')
+                elif user['role'] == 'super_admin':
+                    return render_template('home/sa_index.html', segment='sa_index')
                 elif user['role'] == 'assistant_manager':
                     return render_template('home/inventory_manager_index.html', segment='index')
 

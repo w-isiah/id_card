@@ -88,7 +88,7 @@
                   </a>
                 </td>
                 <td>
-                  {% if session.get('role') == 'admin' %}
+                  {% if session['role'] == 'super_admin' %}
                   <a href="/delete_sub_category/{{ sub.sub_category_id }}"
                      class="btn btn-sm btn-danger"
                      onclick="return confirm('Delete {{ sub.sub_category_name }}?')"

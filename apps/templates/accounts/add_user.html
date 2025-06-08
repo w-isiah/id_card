@@ -112,7 +112,7 @@
               <label class="form-check-label" for="show_password">Show Password</label>
             </div>
 
-            {% if session['role'] == 'admin' %}
+            {% if session['role'] == 'admin' or session['role'] == 'super_admin' %}
               <div class="form-group">
                 <label for="role">Role</label>
                 <select class="form-control select2" id="role" name="role" required>

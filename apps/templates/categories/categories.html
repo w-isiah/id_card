@@ -118,14 +118,14 @@
                           </a>
                         </td>
                         <td>
-                          {% if session['role'] == 'admin' %}
+                         {% if session['role'] == 'super_admin' %}
                             <a href="/delete_category/{{ category.CategoryID }}"
                                class="btn btn-sm btn-danger"
                                onclick="return confirm('Are you sure you want to delete {{ category.name }}?')">
                               Delete
                             </a>
                           {% else %}
-                            <span>Admin</span>
+                            <span>-</span>
                           {% endif %}
                         </td>
                       </tr>
