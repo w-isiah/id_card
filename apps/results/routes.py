@@ -24,6 +24,9 @@ from mysql.connector import Error
 from apps.results import blueprint
 from apps import get_db_connection
 
+from openpyxl.styles import Font, Alignment
+
+
 
 
 # Access the upload folder from the current Flask app configuration
@@ -54,6 +57,10 @@ def streams_data():
 
     # No need to manually convert if using dictionary cursor
     return jsonify(streams)
+
+
+
+
 
 
 
@@ -101,35 +108,21 @@ def pdownload_template():
         streams = fetch_column("SELECT stream_name FROM stream", "stream_name")
 
         # Lookups
-        cursor.execute("SELECT class_name FROM classes WHERE class_id = %s", (class_id,))
-        class_row = cursor.fetchone()
+        def get_value(query, value):
+            cursor.execute(query, (value,))
+            row = cursor.fetchone()
+            return row and list(row.values())[0]
 
-        cursor.execute("SELECT stream_name FROM stream WHERE stream_id = %s", (stream_id,))
-        stream_row = cursor.fetchone()
+        class_name = get_value("SELECT class_name FROM classes WHERE class_id = %s", class_id)
+        stream_name = get_value("SELECT stream_name FROM stream WHERE stream_id = %s", stream_id)
+        term_name = get_value("SELECT term_name FROM terms WHERE term_id = %s", term_id)
+        assessment_name = get_value("SELECT assessment_name FROM assessment WHERE assessment_id = %s", assessment_id)
+        year_name = get_value("SELECT year_name FROM study_year WHERE year_id = %s", year_id)
+        subject_name = get_value("SELECT subject_name FROM subjects WHERE subject_id = %s", subject_id)
 
-        cursor.execute("SELECT term_name FROM terms WHERE term_id = %s", (term_id,))
-        term_row = cursor.fetchone()
-
-        cursor.execute("SELECT assessment_name FROM assessment WHERE assessment_id = %s", (assessment_id,))
-        assessment_row = cursor.fetchone()
-
-        cursor.execute("SELECT year_name FROM study_year WHERE year_id = %s", (year_id,))
-        year_row = cursor.fetchone()
-
-        cursor.execute("SELECT subject_name FROM subjects WHERE subject_id = %s", (subject_id,))
-        subject_row = cursor.fetchone()
-
-        if not all([class_row, stream_row, term_row, assessment_row, year_row, subject_row]):
+        if not all([class_name, stream_name, term_name, assessment_name, year_name, subject_name]):
             flash("Invalid selection detected. Please try again.", "error")
             return redirect(url_for('results_blueprint.pupload_excel'))
-
-        # Unpack
-        class_name = class_row['class_name']
-        stream_name = stream_row['stream_name']
-        term_name = term_row['term_name']
-        assessment_name = assessment_row['assessment_name']
-        year_name = year_row['year_name']
-        subject_name = subject_row['subject_name']
 
         # Pupils
         cursor.execute("""
@@ -148,14 +141,34 @@ def pdownload_template():
         flash("No pupils found for the selected filters.", "error")
         return redirect(url_for('results_blueprint.pupload_excel'))
 
-    # Create Excel
+    # Create Excel workbook and active sheet
     wb = Workbook()
     ws = wb.active
     ws.title = "Results Template"
 
-    headers = ["reg_no", "first_name", "other_name", "last_name", "class", "stream", "term", "assessment", "study_year", "notes", "subject", "mark"]
+    # Title rows
+    ws.merge_cells('A1:L1')
+    ws.merge_cells('A2:L2')
+    ws.merge_cells('A3:L3')
+
+    ws['A1'] = "SACRED HEART PRIMARY SCHOOL - KYAMUSANSALA"
+    ws['A2'] = "P.O. Box 1759, Masaka | Tel: 0772-848153 / 0702-253560"
+    ws['A3'] = "Email: shps-rscjp@gmail.com"
+
+    for row in range(1, 4):
+        cell = ws[f'A{row}']
+        cell.font = Font(bold=True, size=12)
+        cell.alignment = Alignment(horizontal='center')
+
+    # Header row (row 4)
+    headers = [
+        "reg_no", "first_name", "other_name", "last_name",
+        "class", "stream", "term", "assessment",
+        "study_year", "notes", "subject", "mark"
+    ]
     ws.append(headers)
 
+    # Data rows (start from row 5)
     for pupil in pupils:
         ws.append([
             pupil['reg_no'], pupil['first_name'], pupil['other_name'], pupil['last_name'],
@@ -174,6 +187,7 @@ def pdownload_template():
         ", ".join(subjects)
     ])
 
+    # Safe list string builder (max 255 characters)
     def safe_join(values):
         return ",".join([str(v).replace('"', "'") for v in values])[:255]
 
@@ -188,16 +202,20 @@ def pdownload_template():
 
     for dv, col in validations:
         ws.add_data_validation(dv)
-        dv.add(f"{col}2:{col}{len(pupils)+1}")
+        dv.add(f"{col}5:{col}{len(pupils) + 4}")
 
+    # Send file
     output = BytesIO()
     wb.save(output)
     output.seek(0)
 
-    return send_file(output,
-                     as_attachment=True,
-                     download_name="filtered_results_template.xlsx",
-                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name="shpsk_Marks_Upload_Template.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
 
 
 
