@@ -17,15 +17,13 @@ from datetime import datetime
 import pytz
 
 
-
 @blueprint.route('/streams')
 def streams():
-    """Fetches all streams with class names, room names, and renders the manage streams page."""
+    """Fetches all streams including those with and without assigned teachers."""
     try:
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
 
-        # Join streams with classes and rooms to get class_name and room_name
         cursor.execute("""
             SELECT 
                 stream.stream_id,
@@ -35,10 +33,12 @@ def streams():
                 stream.updated_at,
                 stream.class_id,
                 classes.class_name,
-                rooms.room_name  -- Adding room_name from rooms table
+                rooms.room_name,
+                users.username AS teacher_username
             FROM stream
-            JOIN classes ON stream.class_id = classes.class_id
-            JOIN rooms ON stream.room_id = rooms.room_id  -- Joining the rooms table
+            LEFT JOIN classes ON stream.class_id = classes.class_id
+            LEFT JOIN rooms ON stream.room_id = rooms.room_id
+            LEFT JOIN users ON users.id = stream.teacher_id
         """)
         streams = cursor.fetchall()
 
@@ -51,6 +51,8 @@ def streams():
         connection.close()
 
     return render_template('streams/streams.html', streams=streams, segment='streams')
+
+
 
 
 
@@ -73,7 +75,6 @@ def get_kampala_time():
 
 
 
-
 @blueprint.route('/add_stream', methods=['GET', 'POST'])
 def add_stream():
     """Handles creation of a new stream."""
@@ -81,63 +82,78 @@ def add_stream():
     cursor = connection.cursor(dictionary=True)
 
     try:
+        # Fetch all teachers
+        cursor.execute('SELECT username, id FROM users WHERE role = "teacher"')
+        teachers = cursor.fetchall()
+
         if request.method == 'POST':
             # Extract form data
             stream_name = request.form.get('stream_name')
             class_id = request.form.get('class_id')
             room_id = request.form.get('room_id')
-            description = request.form.get('description') or None
+            teacher_id = request.form.get('teacher_id')
+            description = request.form.get('description')
             user_id = session.get('id')
             now = get_kampala_time()
 
-            # Validation
+            # Validate required fields
             if not all([stream_name, class_id, user_id]):
                 flash("Stream name, class, and user are required.", "warning")
                 return redirect(url_for('streams_blueprint.add_stream'))
 
-            # Check for duplicate stream in class
-            cursor.execute("""
-                SELECT 1 FROM stream WHERE stream_name = %s AND class_id = %s
-            """, (stream_name, class_id))
+            # Check for duplicate stream in the same class
+            cursor.execute(
+                "SELECT 1 FROM stream WHERE stream_name = %s AND class_id = %s",
+                (stream_name, class_id)
+            )
             if cursor.fetchone():
                 flash("A stream with this name already exists in the selected class.", "warning")
                 return redirect(url_for('streams_blueprint.add_stream'))
 
-            # Validate and check room assignment
-            room_id_int = int(room_id) if room_id else None
+            # Convert room_id and teacher_id to integers if present
+            try:
+                room_id_int = int(room_id) if room_id else None
+                teacher_id_int = int(teacher_id) if teacher_id else None
+            except ValueError:
+                flash("Invalid room or teacher ID format. Please enter a numeric value.", "danger")
+                return redirect(url_for('streams_blueprint.add_stream'))
+
+            # Validate room assignment
             if room_id_int:
-                cursor.execute("""
-                    SELECT 1 FROM room_assignment WHERE room_id = %s
-                """, (room_id_int,))
+                cursor.execute("SELECT 1 FROM room_assignment WHERE room_id = %s", (room_id_int,))
                 if cursor.fetchone():
                     flash("The selected room is already assigned.", "danger")
                     return redirect(url_for('streams_blueprint.add_stream'))
 
-            # Insert stream
-            cursor.execute("""
-                INSERT INTO stream (stream_name, class_id, room_id, description, created_at, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """, (stream_name, class_id, room_id_int, description, now, now))
+            # Insert new stream record
+            cursor.execute(
+                """
+                INSERT INTO stream 
+                (stream_name, class_id, teacher_id, room_id, description, created_at, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """,
+                (stream_name, class_id, teacher_id_int, room_id_int, description, now, now)
+            )
             stream_id = cursor.lastrowid
 
             # Assign room if applicable
             if room_id_int:
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO room_assignment 
                     (room_id, user_id, assigned_to_type, assigned_to_id, created_at, updated_at)
                     VALUES (%s, %s, 'stream', %s, %s, %s)
-                """, (room_id_int, user_id, stream_id, now, now))
+                    """,
+                    (room_id_int, user_id, stream_id, now, now)
+                )
 
             connection.commit()
             flash("Stream created successfully!", "success")
             return redirect(url_for('streams_blueprint.streams'))
 
-        # GET: Load form data
+        # GET request: load form data
         cursor.execute("SELECT class_id, class_name FROM classes")
         classes = cursor.fetchall()
-
-        cursor.execute("SELECT room_id, room_name FROM rooms")
-        rooms = cursor.fetchall()
 
         cursor.execute("SELECT room_id, room_name FROM rooms")
         rooms = cursor.fetchall()
@@ -146,15 +162,15 @@ def add_stream():
             'streams/add_stream.html',
             classes=classes,
             rooms=rooms,
+            teachers=teachers,
             segment='streams'
         )
 
-    except ValueError:
-        flash("Invalid room ID format. Please enter a numeric value.", "danger")
     except Exception as e:
         connection.rollback()
-        flash(f"Database error: {str(e)}", "danger")
-        print(f"Database error: {str(e)}")
+        flash(f"Database error: {e}", "danger")
+        print(f"Database error: {e}")
+
     finally:
         cursor.close()
         connection.close()
@@ -184,13 +200,14 @@ def edit_stream(stream_id):
     cursor = connection.cursor(dictionary=True)
 
     if request.method == 'POST':
-        # Retrieve the form data
-        stream_name = request.form['stream_name']
-        description = request.form['description']
-        room_id = request.form['room']  # room_id instead of room name
+        # Retrieve form data
+        stream_name = request.form.get('stream_name')
+        description = request.form.get('description')
+        room_id = request.form.get('room') or None
+        teacher_id = request.form.get('teacher_id') or None
 
         try:
-            # Fetch existing stream data to get class_id
+            # Fetch current stream info
             cursor.execute("SELECT * FROM stream WHERE stream_id = %s", (stream_id,))
             stream_data = cursor.fetchone()
 
@@ -199,55 +216,70 @@ def edit_stream(stream_id):
                 return redirect(url_for('streams_blueprint.streams'))
 
             class_id = stream_data['class_id']
-            current_room_id = stream_data['room_id']
 
             # Input validation
             if not stream_name:
                 flash("Stream name is required!", "warning")
                 return redirect(url_for('streams_blueprint.edit_stream', stream_id=stream_id))
 
-           
-
             # Check for duplicate stream name in the same class
-            cursor.execute(
-                'SELECT * FROM stream WHERE stream_name = %s AND class_id = %s AND stream_id != %s',
-                (stream_name, class_id, stream_id)
-            )
-            existing_stream = cursor.fetchone()
-            if existing_stream:
+            cursor.execute("""
+                SELECT 1 FROM stream
+                WHERE stream_name = %s AND class_id = %s AND stream_id != %s
+            """, (stream_name, class_id, stream_id))
+            if cursor.fetchone():
                 flash("A stream with this name already exists in the class!", "warning")
                 return redirect(url_for('streams_blueprint.edit_stream', stream_id=stream_id))
 
-            # Check if the room is already assigned elsewhere (excluding current assignment)
-            cursor.execute("""
-                SELECT * FROM room_assignment
-                WHERE room_id = %s AND NOT (assigned_to_type = 'stream' AND assigned_to_id = %s)
-            """, (room_id, stream_id))
-            existing_assignment = cursor.fetchone()
-
-            if existing_assignment:
-                flash("Room is already assigned!", "warning")
-                return redirect(url_for('streams_blueprint.edit_stream', stream_id=stream_id))
+            # Check room assignment conflict (ignore if room is same as current)
+            if room_id:
+                cursor.execute("""
+                    SELECT 1 FROM room_assignment
+                    WHERE room_id = %s AND NOT (assigned_to_type = 'stream' AND assigned_to_id = %s)
+                """, (room_id, stream_id))
+                if cursor.fetchone():
+                    flash("The selected room is already assigned!", "warning")
+                    return redirect(url_for('streams_blueprint.edit_stream', stream_id=stream_id))
 
             # Update stream record
-            cursor.execute(
-                'UPDATE stream SET stream_name = %s, description = %s, room_id = %s WHERE stream_id = %s',
-                (stream_name, description, room_id, stream_id)
-            )
+            cursor.execute("""
+                UPDATE stream
+                SET stream_name = %s, description = %s, room_id = %s, teacher_id = %s
+                WHERE stream_id = %s
+            """, (stream_name, description, room_id, teacher_id, stream_id))
             connection.commit()
 
-            # Update room_assignment
-            cursor.execute("""
-                UPDATE room_assignment
-                SET room_id = %s
-                WHERE assigned_to_type = 'stream' AND assigned_to_id = %s
-            """, (room_id, stream_id))
-            connection.commit()
+            # Update or insert room assignment
+            if room_id:
+                cursor.execute("""
+                    SELECT 1 FROM room_assignment
+                    WHERE assigned_to_type = 'stream' AND assigned_to_id = %s
+                """, (stream_id,))
+                exists = cursor.fetchone()
+
+                if exists:
+                    cursor.execute("""
+                        UPDATE room_assignment
+                        SET room_id = %s
+                        WHERE assigned_to_type = 'stream' AND assigned_to_id = %s
+                    """, (room_id, stream_id))
+                else:
+                    now = get_kampala_time()
+                    user_id = session.get('id')
+                    cursor.execute("""
+                        INSERT INTO room_assignment
+                        (room_id, user_id, assigned_to_type, assigned_to_id, created_at, updated_at)
+                        VALUES (%s, %s, 'stream', %s, %s, %s)
+                    """, (room_id, user_id, stream_id, now, now))
+
+                connection.commit()
 
             flash("Stream updated successfully!", "success")
 
         except Exception as e:
-            flash(f"Error: {str(e)}", "danger")
+            connection.rollback()
+            flash(f"An error occurred: {str(e)}", "danger")
+
         finally:
             cursor.close()
             connection.close()
@@ -255,30 +287,41 @@ def edit_stream(stream_id):
         return redirect(url_for('streams_blueprint.streams'))
 
     else:
-        # GET method
+        # GET method: load stream details and options
         cursor.execute("""
-            SELECT s.*, c.class_name, c.year, c.teacher_in_charge, r.room_name
+            SELECT s.*, c.class_name, c.year, u.username AS teacher_in_charge, r.room_name
             FROM stream s
             JOIN classes c ON s.class_id = c.class_id
+            LEFT JOIN users u ON s.teacher_id = u.id
             LEFT JOIN rooms r ON s.room_id = r.room_id
             WHERE s.stream_id = %s
         """, (stream_id,))
         stream_data = cursor.fetchone()
+
+        if not stream_data:
+            flash("Stream not found.", "danger")
+            cursor.close()
+            connection.close()
+            return redirect(url_for('streams_blueprint.streams'))
+
+        # Fetch rooms
+        cursor.execute("SELECT room_id, room_name FROM rooms")
+        rooms = cursor.fetchall()
+
+        # Fetch teachers
+        cursor.execute("SELECT id, username FROM users WHERE role = 'teacher'")
+        teachers = cursor.fetchall()
+
         cursor.close()
         connection.close()
 
-        if stream_data:
-            connection = get_db_connection()
-            cursor = connection.cursor(dictionary=True)
-            cursor.execute("SELECT * FROM rooms")
-            rooms = cursor.fetchall()
-            cursor.close()
-            connection.close()
-
-            return render_template('streams/edit_streams.html', stream=stream_data, rooms=rooms, segment='streams')
-        else:
-            flash("Stream not found.", "danger")
-            return redirect(url_for('streams_blueprint.streams'))
+        return render_template(
+            'streams/edit_streams.html',
+            stream=stream_data,
+            rooms=rooms,
+            teachers=teachers,
+            segment='streams'
+        )
 
 
 

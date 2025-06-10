@@ -4,46 +4,24 @@
 {% block body_class %}sidebar-mini{% endblock %}
 
 {% block stylesheets %}
-  <!-- Fonts and Icons -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-  <link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
-  <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback" rel="stylesheet">
 
-  <!-- AdminLTE and Plugins -->
-  <link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
-  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
-  <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css">
-  <link rel="stylesheet" href="/static/assets/css/select2.min.css">
+  <!-- FontAwesome & Ionicons -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet" />
+  <link href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css" rel="stylesheet" />
 
-  <style>
-    .alert-container {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 9999;
-      max-width: 600px;
-      width: 90%;
-      display: none;
-    }
-    .alert {
-      transition: opacity 0.5s ease-in-out;
-      margin-bottom: 10px;
-      padding: 0.75rem 1.25rem;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      display: flex;
-      align-items: center;
-    }
-    .alert i {
-      font-size: 1.2rem;
-      margin-right: 10px;
-    }
-    .alert .close {
-      margin-left: auto;
-      font-size: 1.2rem;
-      line-height: 1;
-    }
-  </style>
+  <!-- AdminLTE & Custom Styles -->
+  <link href="/static/assets/css/adminlte.min.css" rel="stylesheet" />
+  <link href="/static/assets/css/mine.css" rel="stylesheet" />
+
+  <!-- Select2 -->
+  <link href="/static/assets/css/select2.min.css" rel="stylesheet" />
+
+  <!-- DataTables -->
+  <link href="https://cdn.datatables.net/2.2.2/css/dataTables.dataTables.css" rel="stylesheet" />
+  <link href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css" rel="stylesheet" />
+  <link href="https://cdn.datatables.net/fixedcolumns/5.0.4/css/fixedColumns.dataTables.css" rel="stylesheet" />
 {% endblock %}
 
 {% block content %}
@@ -52,15 +30,16 @@
   <!-- Flash Messages -->
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-      <div class="alert-container" id="flashMessageContainer">
+      <div class="alert-container fixed-top mt-3 mx-auto" style="max-width:600px; z-index:1050;">
         {% for category, message in messages %}
-          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
             <i class="fas fa-{{ 
-              'check-circle' if category == 'success' else 
-              'exclamation-circle' if category == 'warning' else 
-              'times-circle' if category == 'danger' else 
-              'info-circle' }}"></i>
-            <span>{{ message }}</span>
+              'check-circle' if category == 'success' else
+              'exclamation-circle' if category == 'warning' else
+              'times-circle' if category == 'danger' else
+              'info-circle'
+            }}"></i>
+            <span class="ml-2">{{ message }}</span>
             <button type="button" class="close" data-dismiss="alert" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
@@ -70,12 +49,12 @@
     {% endif %}
   {% endwith %}
 
-  <!-- Header -->
+  <!-- Page Header -->
   <section class="content-header">
     <div class="container-fluid">
-      <div class="row mb-2">
+      <div class="row mb-2 align-items-center">
         <div class="col-sm-6">
-          <h1>Assessment Marks</h1>
+          <h1 class="m-0">Assessment Marks</h1>
         </div>
         <div class="col-sm-6">
           <ol class="breadcrumb float-sm-right">
@@ -91,119 +70,146 @@
   <section class="content">
     <div class="container-fluid">
 
-      <!-- Filter Form -->
-      <form method="GET" action="{{ url_for('reports_blueprint.reports') }}" class="mb-4">
-        <div class="row">
-          <!-- Class -->
-          <div class="col-md-3">
-            <label for="class_id">Class</label>
-            <select name="class_id" class="form-control select2">
-              <option value="">-- Select Class --</option>
-              {% for c in class_list %}
-                <option value="{{ c.class_id }}" {% if c.class_id == selected_class_id %}selected{% endif %}>{{ c.class_name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-
-          <!-- Study Year -->
-          <div class="col-md-3">
-            <label for="year_id">Study Year</label>
-            <select name="year_id" class="form-control select2">
-              <option value="">-- Select Study Year --</option>
-              {% for y in study_years %}
-                <option value="{{ y.year_id }}" {% if y.year_id == selected_study_year_id %}selected{% endif %}>{{ y.year_name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-
-          <!-- Term -->
-          <div class="col-md-3">
-            <label for="term_id">Term</label>
-            <select name="term_id" class="form-control select2">
-              <option value="">-- Select Term --</option>
-              {% for t in terms %}
-              <option value="{{ t.term_id }}" {% if t.term_id == selected_term_id %}selected{% endif %}>{{ t.term_name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-
-
-
-          <!-- subject -->
-          <div class="col-md-3">
-            <label for="subject_id">subject</label>
-            <select name="subject_id" class="form-control select2">
-              <option value="">-- Select subject --</option>
-              {% for s in subjects %}
-              <option value="{{ s.subject_id }}" {% if s.subject_id == selected_subject_id %}selected{% endif %}>{{ s.subject_name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-
-
-
-          <!-- Assessment -->
-          <div class="col-md-3">
-            <label for="assessment_name">Assessment</label>
-            <select name="assessment_name" class="form-control select2">
-              <option value="">-- Select Assessment --</option>
-              {% for a in assessments %}
-                <option value="{{ a.assessment_name }}" {% if a.assessment_name == selected_assessment_name %}selected{% endif %}>{{ a.assessment_name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-        </div>
-
-        <!-- Submit -->
-        <div class="row mt-3">
-          <div class="col-md-12 text-right">
-            <button type="submit" class="btn btn-primary">
-              <i class="fas fa-search"></i> Filter Results
-            </button>
-          </div>
-        </div>
-      </form>
-
-      <!-- Report Table -->
+      <!-- Filter Card -->
       <div class="card">
         <div class="card-header">
-          <h3 class="card-title">Pupil Performance</h3>
+          <h3 class="card-title">Filter Assessment Marks</h3>
         </div>
         <div class="card-body">
-          <div class="table-responsive">
-            <table id="reportTable" class="table table-striped display nowrap" style="width:100%">
-              <thead>
-                <tr>
-                  <th>Reg No</th>
-                  <th>Report</th>
-                  <th>Full Name</th>
-                  <th>year</th>
-                  <th>Term</th>
-                  <th>Assessment</th>
-                  <th>Subject</th>
-                  <th>Mark</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for report in reports %}
-                  <tr>
-                    <td>{{ report.reg_no }}</td>
-                    <td>
-                      {# Uncomment the following line if individual report view is implemented #}
-                      {# <a href="{{ url_for('reports_blueprint.report_card', reg_no=report.reg_no) }}" class="btn btn-sm btn-warning">Report</a> #}
-                    </td>
-                    <td>{{ report.full_name }}</td>
-                    <td>{{ report.year_name}}</td>
-                    <td>{{ report.term_name }}</td>
-                    <td>{{ report.assessment_name }}</td>
-                    <td>{{ report.subject_name }}</td>
-                    <td>{{ report.Mark }}</td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
+          <form method="GET" action="{{ url_for('reports_blueprint.reports') }}">
+            <div class="row">
+              <!-- Class -->
+              <div class="form-group col-md-3">
+                <label for="class_id">Class</label>
+                <select name="class_id" id="class_id" class="form-control select2">
+                  <option value="">-- Select Class --</option>
+                  {% for c in class_list %}
+                    <option value="{{ c.class_id }}" {% if c.class_id == selected_class_id %}selected{% endif %}>{{ c.class_name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <!-- Stream -->
+              <div class="form-group col-md-3">
+                <label for="stream_id">Stream</label>
+                <select name="stream_id" id="stream_id" class="form-control select2">
+                  <option value="">-- Select Stream --</option>
+                  {% for st in streams %}
+                    <option value="{{ st.stream_id }}" {% if st.stream_id == selected_stream_id %}selected{% endif %}>{{ st.stream_name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <!-- Study Year -->
+              <div class="form-group col-md-3">
+                <label for="year_id">Study Year</label>
+                <select name="year_id" id="year_id" class="form-control select2">
+                  <option value="">-- Select Study Year --</option>
+                  {% for y in study_years %}
+                    <option value="{{ y.year_id }}" {% if y.year_id == selected_study_year_id %}selected{% endif %}>{{ y.year_name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <!-- Term -->
+              <div class="form-group col-md-3">
+                <label for="term_id">Term</label>
+                <select name="term_id" id="term_id" class="form-control select2">
+                  <option value="">-- Select Term --</option>
+                  {% for t in terms %}
+                    <option value="{{ t.term_id }}" {% if t.term_id == selected_term_id %}selected{% endif %}>{{ t.term_name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+
+            <div class="row">
+              <!-- Subject -->
+              <div class="form-group col-md-3">
+                <label for="subject_id">Subject</label>
+                <select name="subject_id" id="subject_id" class="form-control select2">
+                  <option value="">-- Select Subject --</option>
+                  {% for s in subjects %}
+                    <option value="{{ s.subject_id }}" {% if s.subject_id == selected_subject_id %}selected{% endif %}>{{ s.subject_name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <!-- Assessment -->
+              <div class="form-group col-md-3">
+                <label for="assessment_name">Assessment</label>
+                <select name="assessment_name" id="assessment_name" class="form-control select2">
+                  <option value="">-- Select Assessment --</option>
+                  {% for a in assessments %}
+                    <option value="{{ a.assessment_name }}" {% if a.assessment_name == selected_assessment_name %}selected{% endif %}>{{ a.assessment_name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <!-- Filter Button -->
+              <div class="form-group col-md-6 d-flex align-items-end justify-content-end">
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-search"></i> Filter Results
+                </button>
+              </div>
+            </div>
+          </form>
         </div>
+      </div>
+
+      <!-- Results and Delete Form -->
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h3 class="card-title">Pupil Performance</h3>
+        </div>
+
+        <form method="POST" action="{{ url_for('reports_blueprint.delete_scores') }}" id="deleteForm">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+          
+          <div class="card-body">
+            <div class="form-group mb-3">
+              <label for="deletion_notes" class="mb-1">Notes for deletion <span class="text-danger">*</span></label>
+              <textarea name="deletion_notes" id="deletion_notes" class="form-control" rows="2" placeholder="Add reason or notes for deleting selected scores..." required></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-danger btn-sm mb-3" onclick="return confirm('Are you sure you want to delete selected marks?')">
+              <i class="fas fa-trash-alt"></i> Delete Selected
+            </button>
+
+            <div class="table-responsive p-0" style="max-height: 400px;">
+              <table id="reportTable" class="table table-striped table-hover nowrap" style="width:100%">
+                <thead>
+                  <tr>
+                    <th><input type="checkbox" id="selectAll" /></th>
+                    <th>Reg No</th>
+                    <th>Full Name</th>
+                    <th>Year</th>
+                    <th>Term</th>
+                    <th>Stream</th>
+                    <th>Assessment</th>
+                    <th>Subject</th>
+                    <th>Mark</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for report in reports %}
+                    <tr>
+                      <td><input type="checkbox" name="score_ids" value="{{ report.score_id }}" /></td>
+                      <td>{{ report.reg_no }}</td>
+                      <td>{{ report.full_name }}</td>
+                      <td>{{ report.year_name }}</td>
+                      <td>{{ report.term_name }}</td>
+                      <td>{{ report.stream_name }}</td>
+                      <td>{{ report.assessment_name }}</td>
+                      <td>{{ report.subject_name }}</td>
+                      <td>{{ report.Mark }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </form>
       </div>
 
     </div>
@@ -212,38 +218,60 @@
 {% endblock %}
 
 {% block javascripts %}
-  <!-- Scripts -->
-<!-- jQuery and Bootstrap -->
-<script src="/static/assets/plugins/jquery/jquery.min.js"></script>
-<script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
-<!-- AdminLTE -->
-<script src="/static/assets/js/adminlte.js"></script>
+  <!-- Bootstrap Bundle -->
+  <script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
 
-<!-- Plugins -->
-<script src="/static/assets/js/select2.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/responsive/2.3.0/js/dataTables.responsive.min.js"></script>
+  <!-- AdminLTE -->
+  <script src="/static/assets/js/adminlte.js"></script>
 
+  <!-- DataTables & Extensions -->
+  <script src="https://cdn.datatables.net/2.2.2/js/dataTables.js"></script>
+  <script src="https://cdn.datatables.net/responsive/2.3.0/js/dataTables.responsive.min.js"></script>
+  <script src="https://cdn.datatables.net/fixedcolumns/5.0.4/js/dataTables.fixedColumns.js"></script>
 
+  <!-- Select2 -->
+  <script src="/static/assets/js/select2.min.js"></script>
 
+  <!-- Custom JS -->
+  <script src="/static/assets/js/mine.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
   <script>
-    $(document).ready(function () {
+    $(function () {
+      // Initialize Select2
       $('.select2').select2();
 
+      // Initialize DataTable with fixed columns and scrolling
       $('#reportTable').DataTable({
-        paging: true,
-        searching: true,
-        ordering: true,
-        responsive: true
+      fixedColumns: { left: 2, right: 1 },
+      paging: false,
+      scrollX: true,
+      scrollY: '300px',
+      scrollCollapse: true,
+      stateSave: true
+    });
+
+
+      // Select/Deselect all checkboxes
+      $('#selectAll').on('click', function () {
+        $('input[name="score_ids"]').prop('checked', this.checked);
       });
 
-      const $flash = $('#flashMessageContainer');
-      if ($flash.length) {
-        $flash.fadeIn(400).delay(3500).fadeOut(600);
-      }
+      // Auto dismiss flash messages after 5 seconds
+      $('.alert').delay(5000).fadeTo(1000, 0).slideUp(500, function () {
+        $(this).alert('close');
+      });
+
+      // Prevent delete form submission if no scores selected
+      $('#deleteForm').on('submit', function (e) {
+        if ($('input[name="score_ids"]:checked').length === 0) {
+          alert('No scores selected for deletion.');
+          e.preventDefault();
+        }
+      });
     });
   </script>
 {% endblock %}
-s

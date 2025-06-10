@@ -16,10 +16,10 @@ import numpy as np
 
 
 
-
 @blueprint.route('/reports', methods=['GET'])
 def reports():
-    """Fetches pupil marks per subject for a given assessment and renders the reports page."""
+    """Fetches pupil marks per subject for a given assessment and renders the reports page,
+       including pupils without marks for the chosen assessment."""
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
@@ -39,8 +39,8 @@ def reports():
     cursor.execute("SELECT * FROM subjects")
     subjects = cursor.fetchall()
 
-
-
+    cursor.execute("SELECT * FROM stream")
+    streams = cursor.fetchall()
 
     # Retrieve query parameters with default values (for applied filters)
     class_id = request.args.get('class_id', type=int)
@@ -48,36 +48,39 @@ def reports():
     term_id = request.args.get('term_id', type=int)
     subject_id = request.args.get('subject_id', type=int)
     assessment_name = request.args.get('assessment_name', type=str)
+    stream_id = request.args.get('stream_id', type=int)
 
     filters = {
         'class_id': class_id,
         'year_id': year_id,
         'term_id': term_id,
         'subject_id': subject_id,
-        'assessment_name': assessment_name
+        'assessment_name': assessment_name,
+        'stream_id': stream_id
     }
 
-    # If no filters are applied, return an empty list immediately
+    # If no filters applied, return empty list (or you can change this to show all pupils if you want)
     if not any(filters.values()):
-        demo_data = []  # No filters applied, return an empty list
         cursor.close()
         connection.close()
         return render_template(
             'reports/reports.html',
-            reports=demo_data,
+            reports=[],
             class_list=class_list,
             study_years=study_years,
             terms=terms,
             subjects=subjects,
             assessments=assessments,
+            streams=streams,
             selected_class_id=None,
             selected_study_year_id=None,
             selected_term_id=None,
             selected_assessment_name=None,
+            selected_stream_id=None,
             segment='reports'
         )
 
-    # Base query to fetch the report data
+    # Base query with LEFT JOINs to include pupils without matching scores
     query = """
     SELECT 
         p.reg_no,
@@ -87,38 +90,48 @@ def reports():
         sub.subject_name,
         s.Mark,
         p.pupil_id,
-        y.year_name
-
+        y.year_name,
+        str.stream_name,
+        s.score_id
     FROM 
-        scores s
-    JOIN 
-        pupils p ON s.reg_no = p.reg_no
-    JOIN 
+        pupils p
+    LEFT JOIN 
+        scores s ON p.reg_no = s.reg_no
+    LEFT JOIN 
         assessment a ON s.assessment_id = a.assessment_id
-    JOIN 
+    LEFT JOIN 
         terms t ON s.term_id = t.term_id
-    JOIN 
+    LEFT JOIN 
         subjects sub ON s.subject_id = sub.subject_id
-    JOIN 
+    LEFT JOIN 
         study_year y ON s.year_id = y.year_id
+    LEFT JOIN
+        stream str ON p.stream_id = str.stream_id
     WHERE 1=1
     """
 
-    # Add filters to query
+    # Add filters to the query
     if class_id:
         query += f" AND p.class_id = {class_id}"
+    if stream_id:
+        query += f" AND p.stream_id = {stream_id}"
+
+    # For filters on scores-related tables, include condition OR NULL to include pupils without scores
     if year_id:
-        query += f" AND p.year_id = {year_id}"
+        query += f" AND (y.year_id = {year_id} OR y.year_id IS NULL)"
     if term_id:
-        query += f" AND s.term_id = {term_id}"
+        query += f" AND (t.term_id = {term_id} OR t.term_id IS NULL)"
     if subject_id:
-        query +=f" AND s.subject_id = {subject_id}"
+        query += f" AND (sub.subject_id = {subject_id} OR sub.subject_id IS NULL)"
     if assessment_name:
-        query += f" AND a.assessment_name = '{assessment_name}'"
-    
+        query += f" AND (a.assessment_name = '{assessment_name}' OR a.assessment_name IS NULL)"
+
+    # Optional: order by pupil full name to keep results organized
+    query += " ORDER BY p.last_name, p.first_name, p.other_name"
+
     cursor.execute(query)
     reports = cursor.fetchall()
-    
+
     cursor.close()
     connection.close()
 
@@ -130,12 +143,89 @@ def reports():
         terms=terms,
         subjects=subjects,
         assessments=assessments,
+        streams=streams,
         selected_class_id=class_id,
         selected_study_year_id=year_id,
         selected_term_id=term_id,
         selected_assessment_name=assessment_name,
+        selected_stream_id=stream_id,
         segment='reports'
     )
+
+
+
+
+
+
+
+
+
+
+from datetime import datetime
+import pytz
+
+
+def get_kampala_time():
+    kampala = pytz.timezone("Africa/Kampala")
+    return datetime.now(kampala)
+
+@blueprint.route('/delete_scores', methods=['POST'])
+def delete_scores():
+    """Deletes selected scores and logs them with optional notes."""
+
+    score_ids = request.form.getlist('score_ids')
+    print(score_ids)
+
+
+    deletion_notes = request.form.get('deletion_notes', '').strip()  # get notes from form (optional)
+
+    if not score_ids:
+        flash('No scores selected for deletion.', 'warning')
+        return redirect(url_for('reports_blueprint.reports'))
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        # Fetch rows to log
+        format_strings = ','.join(['%s'] * len(score_ids))
+        cursor.execute(f"SELECT * FROM scores WHERE score_id IN ({format_strings})", score_ids)
+        rows_to_log = cursor.fetchall()
+
+        # Prepare insert query for logs (includes notes and deleted_at)
+        log_query = """
+            INSERT INTO scores_del_logs
+            (score_id, user_id, reg_no, class_id, stream_id, term_id, year_id, assessment_id, subject_id, Mark, notes, deleted_at)
+            VALUES (%(score_id)s, %(user_id)s, %(reg_no)s, %(class_id)s, %(stream_id)s, %(term_id)s, %(year_id)s,
+                    %(assessment_id)s, %(subject_id)s, %(Mark)s, %(notes)s, %(deleted_at)s)
+        """
+
+        kampala_time = get_kampala_time()
+
+        # Insert each deleted row into the logs table with your deletion notes
+        for row in rows_to_log:
+            row['deleted_at'] = kampala_time
+            # Use deletion notes from form; if none provided, fallback to existing notes or NULL
+            row['notes'] = deletion_notes if deletion_notes else row.get('notes', None)
+            cursor.execute(log_query, row)
+
+        # Now delete from scores table
+        cursor.execute(f"DELETE FROM scores WHERE score_id IN ({format_strings})", score_ids)
+
+        connection.commit()
+
+        flash(f"{cursor.rowcount} score(s) deleted and logged successfully.", 'success')
+
+    except Error as e:
+        flash(f"An error occurred: {e}", 'danger')
+
+    finally:
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
+
+    return redirect(url_for('reports_blueprint.reports'))
 
 
 

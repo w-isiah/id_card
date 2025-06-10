@@ -172,7 +172,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  {% if user_assignments %}
+              
                     {% for ua in user_assignments %}
                       <tr>
                         <td><input type="checkbox" name="user_ids" value="{{ ua.user_id }}"></td>
@@ -182,11 +182,7 @@
                         <td>{{ ua.assigned_subjects or '—' }}</td>
                       </tr>
                     {% endfor %}
-                  {% else %}
-                    <tr>
-                      <td colspan="5" class="text-center">No teachers found.</td>
-                    </tr>
-                  {% endif %}
+                 
                 </tbody>
               </table>
             </div>
