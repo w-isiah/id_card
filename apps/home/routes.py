@@ -48,6 +48,8 @@ def index():
                     return render_template('home/sa_index.html', segment='sa_index')
                 elif user['role'] == 'assistant_manager':
                     return render_template('home/inventory_manager_index.html', segment='index')
+                elif user['role'] == 'teacher':
+                    return render_template('home/teacher_index.html', segment='index')
 
                 elif user['role'] == 'Head_ICT':
                     return render_template('home/inventory_ict_head_manager_index.html', segment='index')

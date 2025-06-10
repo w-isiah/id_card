@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/fixedcolumns/4.3.0/css/fixedColumns.dataTables.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css">
 
   <style>
     .alert-container {
@@ -41,7 +42,6 @@
 {% block content %}
 <div class="content-wrapper">
 
-  <!-- Flash Messages -->
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       <div class="alert-container" id="flashMessageContainer">
@@ -56,7 +56,6 @@
     {% endif %}
   {% endwith %}
 
-  <!-- Header -->
   <section class="content-header">
     <div class="container-fluid">
       <div class="row mb-2">
@@ -72,7 +71,6 @@
     </div>
   </section>
 
-  <!-- Table -->
   <section class="content">
     <div class="container-fluid">
       <div class="card">
@@ -162,23 +160,29 @@
   <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
   <script src="https://cdn.datatables.net/fixedcolumns/4.3.0/js/dataTables.fixedColumns.min.js"></script>
 
+  <!-- DataTables Export to Excel scripts -->
+  <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+
   <script>
     $(document).ready(function () {
       $('#teachersTable').DataTable({
+        fixedColumns: { left: 1, right: 1 },
+        paging: false,
         scrollX: true,
-        paging: true,
-        ordering: true,
-        searching: true,
-        fixedColumns: {
-          leftColumns: 2,
-          rightColumns: 1
-        },
-        language: {
-          paginate: {
-            next: 'Next',
-            previous: 'Previous'
+        scrollY: '300px',
+        scrollCollapse: true,
+        stateSave: true,
+        dom: 'Bfrtip',
+        buttons: [
+          {
+            extend: 'excelHtml5',
+            title: 'Teachers List',
+            text: '<i class="fas fa-file-excel"></i> Export to Excel',
+            className: 'btn btn-success mb-2'
           }
-        }
+        ]
       });
 
       const flashContainer = $('#flashMessageContainer');

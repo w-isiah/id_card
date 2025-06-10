@@ -4,23 +4,17 @@
 {% block body_class %}sidebar-mini layout-fixed{% endblock %}
 
 {% block stylesheets %}
-<!-- Google Fonts -->
-<link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback" rel="stylesheet">
+<!-- Google Fonts & AdminLTE CSS -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+<link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
+<link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
 
-<!-- Icons -->
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-
-<!-- AdminLTE Theme -->
-<link href="/static/assets/css/adminlte.min.css" rel="stylesheet">
-<link href="/static/assets/css/mine.css" rel="stylesheet">
-
-<!-- Select2 -->
-<link href="/static/assets/css/select2.min.css" rel="stylesheet">
-
-<!-- DataTables -->
-<link href="https://cdn.datatables.net/2.2.2/css/dataTables.dataTables.css" rel="stylesheet">
-<link href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css" rel="stylesheet">
-<link href="https://cdn.datatables.net/fixedcolumns/5.0.4/css/fixedColumns.dataTables.css" rel="stylesheet">
+<!-- Plugins -->
+<link rel="stylesheet" href="/static/assets/css/select2.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/2.2.2/css/dataTables.dataTables.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/fixedcolumns/5.0.4/css/fixedColumns.dataTables.css">
+<link rel="stylesheet" href="/static/assets/css/mine.css">
 
 <style>
   .alert-container {
@@ -36,23 +30,20 @@
 
 {% block content %}
 <div class="content-wrapper">
-  <!-- Page Header -->
+  <!-- Header -->
   <section class="content-header">
     <div class="container-fluid">
-      <div class="row mb-2 align-items-center">
+      <div class="row mb-2">
         <div class="col-sm-6">
-          <h1>Users</h1>
+          <h1><i class="fas fa-users"></i> Users</h1>
         </div>
         <div class="col-sm-6 text-right">
-          <a href="/add_user" class="btn btn-success">
-            <i class="fas fa-user-plus mr-1"></i> Add User
-          </a>
+          <a href="/add_user" class="btn btn-success"><i class="fas fa-user-plus mr-1"></i> Add User</a>
         </div>
-        <div class="col-12 mt-2">
+        <div class="col-12">
           <ol class="breadcrumb float-sm-right">
             <li class="breadcrumb-item"><a href="/index">Home</a></li>
-            <li class="breadcrumb-item"><a href="/manage_users">Users</a></li>
-            <li class="breadcrumb-item active">User List</li>
+            <li class="breadcrumb-item active">Users</li>
           </ol>
         </div>
       </div>
@@ -75,15 +66,15 @@
     {% endif %}
   {% endwith %}
 
-  <!-- Main Content -->
+  <!-- Users Table -->
   <section class="content">
     <div class="container-fluid">
       <div class="card">
         <div class="card-header">
-          <h3 class="card-title">User List</h3>
+          <h3 class="card-title"><i class="fas fa-table mr-2"></i>User List</h3>
         </div>
         <div class="card-body">
-          <table id="accounts" class="table table-striped table-bordered nowrap" style="width: 100%;">
+          <table id="accounts" class="table table-bordered table-striped table-hover nowrap" style="width:100%;">
             <thead class="thead-dark">
               <tr>
                 <th>Username</th>
@@ -109,43 +100,38 @@
                 </td>
                 <td>
                   {% if user.role == 'section_head' %}
-                    <a href="/view_user/{{ user.id }}" class="btn btn-warning btn-sm" title="View Profile & Roles">
-                      <i class="fas fa-clipboard-list"></i> View
+                    <a href="/view_user/{{ user.id }}" class="btn btn-warning btn-sm">
+                      <i class="fas fa-eye"></i> View
                     </a>
                   {% endif %}
                 </td>
                 <td>
                   {% if user.role == 'department_head' %}
-                    <a href="/view_user_cat_roles/{{ user.id }}" class="btn btn-warning btn-sm" title="View Profile & Roles">
-                      <i class="fas fa-clipboard-list"></i> View
+                    <a href="/view_user_cat_roles/{{ user.id }}" class="btn btn-warning btn-sm">
+                      <i class="fas fa-eye"></i> View
                     </a>
                   {% endif %}
                 </td>
                 <td>
-                  <a href="/activity_logs/{{ user.id }}" class="btn btn-warning btn-sm" title="View Activity Logs">
-                    <i class="fas fa-clipboard-list"></i> View
+                  <a href="/activity_logs/{{ user.id }}" class="btn btn-warning btn-sm">
+                    <i class="fas fa-history"></i> View
                   </a>
                 </td>
                 <td>
-                  <div class="btn-group" role="group">
+                  <div class="btn-group">
                     <a href="/edit_user/{{ user.id }}" class="btn btn-info btn-sm" title="Edit User">
                       <i class="fas fa-edit"></i>
                     </a>
-
                     {% if session['role'] == 'super_admin' %}
-                    <a href="{{ url_for('authentication_blueprint.delete_user', id=user.id) }}"
-                       class="btn btn-danger btn-sm"
-                       onclick="return confirm('Are you sure you want to delete user: {{ user.username }}?');"
-                       title="Delete User">
-                      <i class="fas fa-trash-alt"></i>
-                    </a>
-
+                      <a href="{{ url_for('authentication_blueprint.delete_user', id=user.id) }}"
+                         class="btn btn-danger btn-sm"
+                         onclick="return confirm('Are you sure you want to delete {{ user.username }}?')"
+                         title="Delete User">
+                        <i class="fas fa-trash"></i>
+                      </a>
                     {% else %}
-
-                    <span>—</span>
-
-                     {% endif %}
-
+                      <span class="text-muted">—</span>
+                    {% endif %}
                   </div>
                 </td>
               </tr>
@@ -160,32 +146,33 @@
 {% endblock %}
 
 {% block javascripts %}
-<!-- Core Scripts -->
+<!-- Core -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="/static/assets/js/adminlte.js"></script>
+<script src="/static/assets/js/adminlte.min.js"></script>
 
 <!-- Plugins -->
 <script src="https://cdn.datatables.net/2.2.2/js/dataTables.js"></script>
 <script src="https://cdn.datatables.net/responsive/2.3.0/js/dataTables.responsive.min.js"></script>
 <script src="https://cdn.datatables.net/fixedcolumns/5.0.4/js/dataTables.fixedColumns.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+<script src="/static/assets/js/select2.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="/static/assets/js/mine.js"></script>
 
 <script>
   $(function () {
-    // Initialize DataTables
+    // Initialize DataTable
     $('#accounts').DataTable({
-      fixedColumns: { left: 1, right: 1 },
-      paging: false,
+      responsive: true,
       scrollX: true,
       scrollY: '300px',
       scrollCollapse: true,
+      paging: false,
+      fixedColumns: { left: 1, right: 1 },
       stateSave: true
     });
 
-    // Live status updater
+    // Periodically update online status
     function updateUserStatus(userId) {
       $.get('/get_user_status/' + userId, function(response) {
         const badge = response.status === 'online'
