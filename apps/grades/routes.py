@@ -48,8 +48,8 @@ def add_grades():
             flash("Please fill out all required fields!", "warning")
         elif not min_score.isdigit() or not max_score.isdigit():
             flash("Scores must be valid numbers!", "danger")
-        elif len(grade_letter) != 1:  # Validate that the grade letter is of length 1 (e.g., A, B, C)
-            flash("Grade letter must be a single character!", "danger")
+        #elif len(grade_letter) != 1:  # Validate that the grade letter is of length 1 (e.g., A, B, C)
+        #    flash("Grade letter must be a single character!", "danger")
         else:
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)

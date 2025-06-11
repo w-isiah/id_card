@@ -168,6 +168,187 @@ def add_marks():
 
 
 
+@blueprint.route('/teacher_add_marks', methods=['GET', 'POST'])
+def teacher_add_marks():
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    user_id = session.get('id')  # Get logged-in teacher ID
+    if not user_id:
+        flash('You must be logged in as a teacher to access this page.', 'danger')
+        return redirect(url_for('authentication_blueprint.login'))
+
+    # Load dropdowns based on assignments only
+    # Classes (still unfiltered unless needed)
+    cursor.execute("""
+    SELECT DISTINCT c.class_id, c.class_name
+    FROM classes c
+    JOIN pupils p ON c.class_id = p.class_id
+    JOIN subject_assignment sa ON sa.stream_id = p.stream_id
+    WHERE sa.user_id = %s
+    """, (user_id,))
+    class_list = cursor.fetchall()
+
+
+    # Study years assigned to this teacher
+    cursor.execute("""
+        SELECT DISTINCT y.year_id, y.year_name
+        FROM study_year y
+        JOIN subject_assignment sa ON sa.year_id = y.year_id
+        WHERE sa.user_id = %s
+    """, (user_id,))
+    study_years = cursor.fetchall()
+
+    # Terms (likely fixed for all, can be filtered similarly if needed)
+    cursor.execute("SELECT * FROM terms")
+    terms = cursor.fetchall()
+
+    # Assessments (assumed to be global, keep all)
+    cursor.execute("SELECT * FROM assessment")
+    assessments = cursor.fetchall()
+
+    # Subjects assigned to this teacher
+    cursor.execute("""
+        SELECT DISTINCT s.subject_id, s.subject_name
+        FROM subjects s
+        JOIN subject_assignment sa ON sa.subject_id = s.subject_id
+        WHERE sa.user_id = %s
+    """, (user_id,))
+    subjects = cursor.fetchall()
+
+    # Streams assigned to this teacher
+    cursor.execute("""
+        SELECT DISTINCT str.stream_id, str.stream_name
+        FROM stream str
+        JOIN subject_assignment sa ON sa.stream_id = str.stream_id
+        WHERE sa.user_id = %s
+    """, (user_id,))
+    streams = cursor.fetchall()
+
+    cursor.execute("""
+    SELECT DISTINCT p.*
+    FROM pupils p
+    JOIN subject_assignment sa 
+        ON p.stream_id = sa.stream_id
+       AND sa.year_id = p.year_id
+    WHERE sa.user_id = %s
+    """, (user_id,))
+    pupils = cursor.fetchall()
+
+
+    # Filter parameters
+    class_id = request.args.get('class_id', type=int)
+    year_id = request.args.get('year_id', type=int)
+    term_id = request.args.get('term_id', type=int)
+    subject_id = request.args.get('subject_id', type=int)
+    assessment_name = request.args.get('assessment_name', type=str)
+    stream_id = request.args.get('stream_id', type=int)
+    pupil_name = request.args.get('pupil_name', type=str)
+    reg_no = request.args.get('reg_no', type=str)
+
+    if not (year_id and term_id and subject_id and assessment_name):
+        cursor.close()
+        connection.close()
+        return render_template('add_marks/add_marks.html',
+            add_marks=[], class_list=class_list, study_years=study_years,
+            terms=terms, subjects=subjects, assessments=assessments,
+            streams=streams, pupils=pupils,
+            selected_class_id=class_id,
+            selected_study_year_id=year_id,
+            selected_term_id=term_id,
+            selected_assessment_name=assessment_name,
+            selected_subject_id=subject_id,
+            selected_stream_id=stream_id,
+            selected_pupil_name=pupil_name,
+            entered_reg_no=reg_no,
+            segment='add_marks'
+        )
+
+    query = """
+        SELECT 
+            p.reg_no,
+            TRIM(CONCAT(p.first_name, ' ', COALESCE(p.other_name, ''), ' ', p.last_name)) AS full_name,
+            p.pupil_id,
+            y.year_name,
+            t.term_name,
+            str.stream_name,
+            sub.subject_name,
+            a.assessment_name,
+            p.class_id,
+            p.stream_id,
+            %s AS year_id,
+            %s AS term_id,
+            (SELECT assessment_id FROM assessment WHERE assessment_name = %s LIMIT 1) AS assessment_id,
+            %s AS subject_id
+        FROM pupils p
+        INNER JOIN subject_assignment sa ON sa.stream_id = p.stream_id 
+            AND sa.subject_id = %s
+            AND sa.year_id = %s
+            AND sa.user_id = %s
+        LEFT JOIN stream str ON p.stream_id = str.stream_id
+        LEFT JOIN study_year y ON y.year_id = %s
+        LEFT JOIN terms t ON t.term_id = %s
+        LEFT JOIN subjects sub ON sub.subject_id = %s
+        LEFT JOIN assessment a ON a.assessment_name = %s
+        WHERE NOT EXISTS (
+            SELECT 1 FROM scores s
+            WHERE s.reg_no = p.reg_no
+              AND s.year_id = %s
+              AND s.term_id = %s
+              AND s.subject_id = %s
+              AND s.assessment_id = (SELECT assessment_id FROM assessment WHERE assessment_name = %s LIMIT 1)
+        )
+    """
+
+    query_params = [
+        year_id, term_id, assessment_name, subject_id,  # SELECT fields
+        subject_id, year_id, user_id,                   # subject_assignment join
+        year_id, term_id, subject_id, assessment_name,  # LEFT JOINs
+        year_id, term_id, subject_id, assessment_name   # Subquery for scores
+    ]
+
+    if class_id:
+        query += " AND p.class_id = %s"
+        query_params.append(class_id)
+    if stream_id:
+        query += " AND p.stream_id = %s"
+        query_params.append(stream_id)
+    if pupil_name:
+        query += " AND TRIM(CONCAT(p.first_name, ' ', COALESCE(p.other_name, ''), ' ', p.last_name)) LIKE %s"
+        query_params.append(f"%{pupil_name}%")
+    if reg_no:
+        query += " AND p.reg_no = %s"
+        query_params.append(reg_no)
+
+    query += " ORDER BY p.last_name, p.first_name, p.other_name"
+
+    cursor.execute(query, query_params)
+    add_marks = cursor.fetchall()
+
+    cursor.close()
+    connection.close()
+
+    return render_template('add_marks/add_marks.html',
+        add_marks=add_marks,
+        class_list=class_list,
+        study_years=study_years,
+        terms=terms,
+        subjects=subjects,
+        assessments=assessments,
+        streams=streams,
+        pupils=pupils,
+        selected_class_id=class_id,
+        selected_study_year_id=year_id,
+        selected_term_id=term_id,
+        selected_assessment_name=assessment_name,
+        selected_subject_id=subject_id,
+        selected_stream_id=stream_id,
+        selected_pupil_name=pupil_name,
+        entered_reg_no=reg_no,
+        segment='add_marks'
+    )
+
+
 
 
 
@@ -181,7 +362,7 @@ def action_add_marks():
     user_id = session.get('id')
     if not user_id:
         flash("You must be logged in to add marks.", "danger")
-        return redirect(url_for('auth.login'))
+        return redirect(url_for('authentication_blueprint.login'))
 
     form_data = request.form.to_dict(flat=False)
     submitted_pupil_id = request.form.get('submit_add')  # For individual submissions
