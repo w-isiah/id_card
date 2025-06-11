@@ -11,42 +11,45 @@ import re  # <-- Add this line
 from apps import get_db_connection
 from jinja2 import TemplateNotFound
 import numpy as np 
+from datetime import datetime
+import pytz
+from flask import request, session, flash, redirect, url_for
 
 
+
+
+def get_kampala_time():
+    kampala = pytz.timezone("Africa/Kampala")
+    return datetime.now(kampala)
 
 
 
 from mysql.connector import Error
-@blueprint.route('/add_marks', methods=['GET'])
-def add_marks():
-    """Fetches all pupils, with marks for a given assessment if they exist."""
 
+@blueprint.route('/add_marks', methods=['GET', 'POST'])
+def add_marks():
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
-    # Dropdown data
+    # Load dropdown values
     cursor.execute("SELECT * FROM classes")
     class_list = cursor.fetchall()
-
     cursor.execute("SELECT * FROM study_year")
     study_years = cursor.fetchall()
-
     cursor.execute("SELECT * FROM terms")
     terms = cursor.fetchall()
-
     cursor.execute("SELECT * FROM assessment")
     assessments = cursor.fetchall()
-
     cursor.execute("SELECT * FROM subjects")
     subjects = cursor.fetchall()
-
     cursor.execute("SELECT * FROM stream")
     streams = cursor.fetchall()
-
     cursor.execute("SELECT * FROM pupils")
     pupils = cursor.fetchall()
 
-    # Filters
+    # --- NO DATA INSERTION LOGIC HERE ---
+
+    # Get filter parameters from query string
     class_id = request.args.get('class_id', type=int)
     year_id = request.args.get('year_id', type=int)
     term_id = request.args.get('term_id', type=int)
@@ -56,74 +59,65 @@ def add_marks():
     pupil_name = request.args.get('pupil_name', type=str)
     reg_no = request.args.get('reg_no', type=str)
 
-    filters = {
-        'class_id': class_id,
-        'year_id': year_id,
-        'term_id': term_id,
-        'subject_id': subject_id,
-        'assessment_name': assessment_name,
-        'stream_id': stream_id,
-        'pupil_name': pupil_name,
-        'reg_no': reg_no
-    }
-
-    if not any(filters.values()):
+    # If required filters are missing, render the page with empty results
+    if not (year_id and term_id and subject_id and assessment_name):
         cursor.close()
         connection.close()
-        return render_template(
-            'add_marks/add_marks.html',
-            add_marks=[],
-            class_list=class_list,
-            study_years=study_years,
-            terms=terms,
-            subjects=subjects,
-            assessments=assessments,
-            streams=streams,
-            pupils=pupils,
-            selected_class_id=None,
-            selected_study_year_id=None,
-            selected_term_id=None,
-            selected_assessment_name=None,
-            selected_subject_id=None,
-            selected_stream_id=None,
-            selected_pupil_name=None,
-            entered_reg_no=None,
+        return render_template('add_marks/add_marks.html',
+            add_marks=[], class_list=class_list, study_years=study_years,
+            terms=terms, subjects=subjects, assessments=assessments,
+            streams=streams, pupils=pupils,
+            selected_class_id=class_id,
+            selected_study_year_id=year_id,
+            selected_term_id=term_id,
+            selected_assessment_name=assessment_name,
+            selected_subject_id=subject_id,
+            selected_stream_id=stream_id,
+            selected_pupil_name=pupil_name,
+            entered_reg_no=reg_no,
             segment='add_marks'
         )
 
-    # Query to include all pupils, and join scores only if there's a match
+    # Query: Pupils without an existing score for the specified combo
     query = """
-    SELECT 
-        p.reg_no,
-        TRIM(CONCAT(p.first_name, ' ', COALESCE(p.other_name, ''), ' ', p.last_name)) AS full_name,
-        t.term_name,
-        a.assessment_name,
-        sub.subject_name,
-        s.Mark,
-        p.pupil_id,
-        y.year_name,
-        str.stream_name,
-        s.score_id
-    FROM pupils p
-    LEFT JOIN scores s 
-        ON p.reg_no = s.reg_no
-        AND (%s IS NULL OR s.assessment_id = (SELECT assessment_id FROM assessment WHERE assessment_name = %s LIMIT 1))
-        AND (%s IS NULL OR s.subject_id = %s)
-        AND (%s IS NULL OR s.year_id = %s)
-        AND (%s IS NULL OR s.term_id = %s)
-    LEFT JOIN assessment a ON s.assessment_id = a.assessment_id
-    LEFT JOIN terms t ON s.term_id = t.term_id
-    LEFT JOIN subjects sub ON s.subject_id = sub.subject_id
-    LEFT JOIN study_year y ON s.year_id = y.year_id
-    LEFT JOIN stream str ON p.stream_id = str.stream_id
-    WHERE 1=1
+        SELECT 
+            p.reg_no,
+            TRIM(CONCAT(p.first_name, ' ', COALESCE(p.other_name, ''), ' ', p.last_name)) AS full_name,
+            p.pupil_id,
+            y.year_name,
+            t.term_name,
+            str.stream_name,
+            sub.subject_name,
+            a.assessment_name,
+            p.class_id,
+            p.stream_id,
+            %s AS year_id,
+            %s AS term_id,
+            (SELECT assessment_id FROM assessment WHERE assessment_name = %s LIMIT 1) AS assessment_id,
+            %s AS subject_id
+        FROM pupils p
+        LEFT JOIN stream str ON p.stream_id = str.stream_id
+        LEFT JOIN study_year y ON y.year_id = %s
+        LEFT JOIN terms t ON t.term_id = %s
+        LEFT JOIN subjects sub ON sub.subject_id = %s
+        LEFT JOIN assessment a ON a.assessment_name = %s
+        WHERE NOT EXISTS (
+            SELECT 1 FROM scores s
+            WHERE s.reg_no = p.reg_no
+              AND s.year_id = %s
+              AND s.term_id = %s
+              AND s.subject_id = %s
+              AND s.assessment_id = (SELECT assessment_id FROM assessment WHERE assessment_name = %s LIMIT 1)
+        )
     """
 
-    query_params = [assessment_name, assessment_name,
-                    subject_id, subject_id,
-                    year_id, year_id,
-                    term_id, term_id]
+    query_params = [
+        year_id, term_id, assessment_name, subject_id,  # select fields
+        year_id, term_id, subject_id, assessment_name,  # joins
+        year_id, term_id, subject_id, assessment_name   # subquery filters
+    ]
 
+    # Optional filters
     if class_id:
         query += " AND p.class_id = %s"
         query_params.append(class_id)
@@ -145,8 +139,7 @@ def add_marks():
     cursor.close()
     connection.close()
 
-    return render_template(
-        'add_marks/add_marks.html',
+    return render_template('add_marks/add_marks.html',
         add_marks=add_marks,
         class_list=class_list,
         study_years=study_years,
@@ -176,116 +169,118 @@ def add_marks():
 
 
 
-from datetime import datetime
-import pytz
-from flask import request, session, flash, redirect, url_for
 
-def get_kampala_time():
-    kampala = pytz.timezone("Africa/Kampala")
-    return datetime.now(kampala)
 
-@blueprint.route('/edit_scores', methods=['POST'])
-def edit_scores():
-    """Edits selected scores, logs changes with reasons."""
+
+
+
+@blueprint.route('/action_add_marks', methods=['POST'])
+def action_add_marks():
+    """Handles adding marks and logging them."""
 
     user_id = session.get('id')
     if not user_id:
-        flash("You must be logged in to edit scores.", "danger")
+        flash("You must be logged in to add marks.", "danger")
         return redirect(url_for('auth.login'))
 
-    # Extract data from form: expected keys like new_marks[score_id], edit_reasons[score_id]
     form_data = request.form.to_dict(flat=False)
+    submitted_pupil_id = request.form.get('submit_add')  # For individual submissions
 
-    new_marks = {}
-    edit_reasons = {}
+    # Step 1: Parse submitted marks and remarks
+    add_marks = {}
+    add_remarks = {}
 
     for key, values in form_data.items():
-        if key.startswith("new_marks[") and key.endswith("]"):
-            score_id = key[len("new_marks["):-1]
-            new_marks[score_id] = values[0]
-        elif key.startswith("edit_reasons[") and key.endswith("]"):
-            score_id = key[len("edit_reasons["):-1]
-            edit_reasons[score_id] = values[0]
+        if key.startswith("add_marks[") and key.endswith("]"):
+            pupil_id = key[10:-1]
+            if not submitted_pupil_id or pupil_id == submitted_pupil_id:
+                add_marks[pupil_id] = values[0]
 
-    if not new_marks:
-        flash("No marks submitted for editing.", "warning")
+        if key.startswith("add_remarks[") and key.endswith("]"):
+            pupil_id = key[12:-1]
+            if not submitted_pupil_id or pupil_id == submitted_pupil_id:
+                add_remarks[pupil_id] = values[0]
+
+    if not add_marks:
+        flash("No marks submitted.", "warning")
         return redirect(request.referrer or url_for('reports_blueprint.reports'))
 
     try:
         connection = get_db_connection()
-        cursor = connection.cursor(dictionary=True)
-
+        cursor = connection.cursor()
         success_count = 0
         errors = []
 
-        for score_id_str, new_mark_str in new_marks.items():
-            reason = edit_reasons.get(score_id_str, "").strip()
-            if not reason:
-                errors.append(f"Missing reason for score ID {score_id_str}. Skipped.")
-                continue
-
+        for pupil_id, mark_str in add_marks.items():
             try:
-                score_id = int(score_id_str)
-                new_mark = float(new_mark_str)
-                if new_mark < 0 or new_mark > 100:
-                    errors.append(f"Invalid mark {new_mark} for score ID {score_id}. Skipped.")
+                mark = float(mark_str)
+                if mark < 0 or mark > 100:
+                    errors.append(f"Invalid mark {mark} for pupil ID {pupil_id}. Skipped.")
                     continue
             except ValueError:
-                errors.append(f"Invalid input for score ID {score_id_str}. Skipped.")
+                errors.append(f"Invalid mark input for pupil ID {pupil_id}. Skipped.")
                 continue
 
-            # Fetch current score record
-            cursor.execute("SELECT * FROM scores WHERE score_id = %s", (score_id,))
-            row = cursor.fetchone()
-            if not row:
-                errors.append(f"Score ID {score_id} not found. Skipped.")
+            remark = add_remarks.get(pupil_id, '')
+
+            # Fetch other fields from hidden inputs
+            def get_field(field): return request.form.get(f"{field}[{pupil_id}]")
+
+            reg_no = get_field("reg_no")
+            class_id = get_field("class_id")
+            stream_id = get_field("stream_id")
+            term_id = get_field("term_id")
+            year_id = get_field("year_id")
+            assessment_id = get_field("assessment_id")
+            subject_id = get_field("subject_id")
+
+            # Check required fields
+            missing = [f for f in ['reg_no', 'class_id', 'stream_id', 'term_id', 'year_id', 'assessment_id', 'subject_id']
+                       if not locals()[f]]
+            if missing:
+                errors.append(f"Missing fields {missing} for pupil ID {pupil_id}. Skipped.")
                 continue
-
-            old_mark = float(row['Mark'])
-
-            if old_mark == new_mark:
-                # No change, skip
-                continue
-
-            # Update score
-            cursor.execute("UPDATE scores SET Mark = %s WHERE score_id = %s", (new_mark, score_id))
-
-            # Insert log entry
-            log_query = """
-                INSERT INTO score_edit_logs
-                (score_id, user_id, class_id, stream_id, term_id, year_id, assessment_id, subject_id, old_mark, new_mark, reason, edited_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """
 
             kampala_time = get_kampala_time()
 
-            cursor.execute(log_query, (
-                score_id,
-                user_id,
-                row.get('class_id'),
-                row.get('stream_id'),
-                row.get('term_id'),
-                row.get('year_id'),
-                row.get('assessment_id'),
-                row.get('subject_id'),
-                old_mark,
-                new_mark,
-                reason,
-                kampala_time
+            # Insert into `scores` table
+            cursor.execute("""
+                INSERT INTO scores
+                (user_id, reg_no, class_id, stream_id, term_id, year_id,
+                 assessment_id, subject_id, Mark, notes, created_at, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                user_id, reg_no, int(class_id), int(stream_id), int(term_id),
+                int(year_id), int(assessment_id), int(subject_id),
+                mark, remark, kampala_time, kampala_time
+            ))
+
+            new_score_id = cursor.lastrowid
+
+            # Insert into `add_score_logs`
+            cursor.execute("""
+                INSERT INTO add_score_logs
+                (score_id, user_id, reg_no, class_id, stream_id, term_id,
+                 year_id, assessment_id, subject_id, new_mark, notes, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                new_score_id, user_id, reg_no, int(class_id), int(stream_id),
+                int(term_id), int(year_id), int(assessment_id), int(subject_id),
+                mark, remark, kampala_time
             ))
 
             success_count += 1
 
         connection.commit()
 
-        if success_count > 0:
-            flash(f"Successfully updated {success_count} score(s).", "success")
+        if success_count:
+            flash(f"Successfully added {success_count} score(s).", "success")
         if errors:
             flash("Some issues occurred:<br>" + "<br>".join(errors), "warning")
 
     except Exception as e:
         connection.rollback()
-        flash(f"An error occurred: {e}", "danger")
+        flash(f"An error occurred while saving: {str(e)}", "danger")
 
     finally:
         if cursor:
@@ -294,10 +289,6 @@ def edit_scores():
             connection.close()
 
     return redirect(request.referrer or url_for('reports_blueprint.reports'))
-
-
-
-
 
 
 
