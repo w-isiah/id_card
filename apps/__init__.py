@@ -23,7 +23,7 @@ def register_blueprints(app):
         'streams', 'rooms', 'stream_assign', 'categories', 'products',
         'p_restock', 'dorm_reg', 'sub_categories', 'sales', 'customers',
         'other_products', 'department_h_products', 'dep_restock', 'division',
-        'subject_assign', 'results_update', 'add_marks'
+        'subject_assign', 'results_update', 'add_marks','assessment'
     ]
 
     for module_name in modules:
