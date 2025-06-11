@@ -16,14 +16,16 @@ import numpy as np
 
 
 
+from mysql.connector import Error
+
 @blueprint.route('/results_update', methods=['GET'])
 def results_update():
-    """Fetches pupil marks per subject for a given assessment and renders the results_update page,
-       including pupils without marks for the chosen assessment."""
+    """Fetches pupil marks per subject for a given assessment, only including those with recorded marks."""
+
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
-    # Fetch dropdown filter data
+    # Dropdown data
     cursor.execute("SELECT * FROM classes")
     class_list = cursor.fetchall()
 
@@ -45,7 +47,7 @@ def results_update():
     cursor.execute("SELECT * FROM pupils")
     pupils = cursor.fetchall()
 
-    # Retrieve query parameters
+    # Filters
     class_id = request.args.get('class_id', type=int)
     year_id = request.args.get('year_id', type=int)
     term_id = request.args.get('term_id', type=int)
@@ -90,7 +92,7 @@ def results_update():
             segment='results_update'
         )
 
-    # Construct the query
+    # Query for only pupils with marks
     query = """
     SELECT 
         p.reg_no,
@@ -104,19 +106,13 @@ def results_update():
         str.stream_name,
         s.score_id
     FROM 
-        pupils p
-    LEFT JOIN 
-        scores s ON p.reg_no = s.reg_no
-    LEFT JOIN 
-        assessment a ON s.assessment_id = a.assessment_id
-    LEFT JOIN 
-        terms t ON s.term_id = t.term_id
-    LEFT JOIN 
-        subjects sub ON s.subject_id = sub.subject_id
-    LEFT JOIN 
-        study_year y ON s.year_id = y.year_id
-    LEFT JOIN
-        stream str ON p.stream_id = str.stream_id
+        scores s
+    INNER JOIN pupils p ON p.reg_no = s.reg_no
+    INNER JOIN assessment a ON s.assessment_id = a.assessment_id
+    INNER JOIN terms t ON s.term_id = t.term_id
+    INNER JOIN subjects sub ON s.subject_id = sub.subject_id
+    INNER JOIN study_year y ON s.year_id = y.year_id
+    INNER JOIN stream str ON p.stream_id = str.stream_id
     WHERE 1=1
     """
 
@@ -125,13 +121,13 @@ def results_update():
     if stream_id:
         query += f" AND p.stream_id = {stream_id}"
     if year_id:
-        query += f" AND (y.year_id = {year_id} OR y.year_id IS NULL)"
+        query += f" AND y.year_id = {year_id}"
     if term_id:
-        query += f" AND (t.term_id = {term_id} OR t.term_id IS NULL)"
+        query += f" AND t.term_id = {term_id}"
     if subject_id:
-        query += f" AND (sub.subject_id = {subject_id} OR sub.subject_id IS NULL)"
+        query += f" AND sub.subject_id = {subject_id}"
     if assessment_name:
-        query += f" AND (a.assessment_name = '{assessment_name}' OR a.assessment_name IS NULL)"
+        query += f" AND a.assessment_name = '{assessment_name}'"
     if pupil_name:
         query += f" AND TRIM(CONCAT(p.first_name, ' ', COALESCE(p.other_name, ''), ' ', p.last_name)) LIKE '%{pupil_name}%'"
     if reg_no:
@@ -175,64 +171,116 @@ def results_update():
 
 
 
-
 from datetime import datetime
 import pytz
-
+from flask import request, session, flash, redirect, url_for
 
 def get_kampala_time():
     kampala = pytz.timezone("Africa/Kampala")
     return datetime.now(kampala)
 
-@blueprint.route('/delete_scores', methods=['POST'])
-def delete_scores():
-    """Deletes selected scores and logs them with optional notes."""
+@blueprint.route('/edit_scores', methods=['POST'])
+def edit_scores():
+    """Edits selected scores, logs changes with reasons."""
 
-    score_ids = request.form.getlist('score_ids')
-    print(score_ids)
+    user_id = session.get('id')
+    if not user_id:
+        flash("You must be logged in to edit scores.", "danger")
+        return redirect(url_for('auth.login'))
 
+    # Extract data from form: expected keys like new_marks[score_id], edit_reasons[score_id]
+    form_data = request.form.to_dict(flat=False)
 
-    deletion_notes = request.form.get('deletion_notes', '').strip()  # get notes from form (optional)
+    new_marks = {}
+    edit_reasons = {}
 
-    if not score_ids:
-        flash('No scores selected for deletion.', 'warning')
-        return redirect(url_for('results_update_blueprint.results_update'))
+    for key, values in form_data.items():
+        if key.startswith("new_marks[") and key.endswith("]"):
+            score_id = key[len("new_marks["):-1]
+            new_marks[score_id] = values[0]
+        elif key.startswith("edit_reasons[") and key.endswith("]"):
+            score_id = key[len("edit_reasons["):-1]
+            edit_reasons[score_id] = values[0]
+
+    if not new_marks:
+        flash("No marks submitted for editing.", "warning")
+        return redirect(request.referrer or url_for('reports_blueprint.reports'))
 
     try:
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
 
-        # Fetch rows to log
-        format_strings = ','.join(['%s'] * len(score_ids))
-        cursor.execute(f"SELECT * FROM scores WHERE score_id IN ({format_strings})", score_ids)
-        rows_to_log = cursor.fetchall()
+        success_count = 0
+        errors = []
 
-        # Prepare insert query for logs (includes notes and deleted_at)
-        log_query = """
-            INSERT INTO scores_del_logs
-            (score_id, user_id, reg_no, class_id, stream_id, term_id, year_id, assessment_id, subject_id, Mark, notes, deleted_at)
-            VALUES (%(score_id)s, %(user_id)s, %(reg_no)s, %(class_id)s, %(stream_id)s, %(term_id)s, %(year_id)s,
-                    %(assessment_id)s, %(subject_id)s, %(Mark)s, %(notes)s, %(deleted_at)s)
-        """
+        for score_id_str, new_mark_str in new_marks.items():
+            reason = edit_reasons.get(score_id_str, "").strip()
+            if not reason:
+                errors.append(f"Missing reason for score ID {score_id_str}. Skipped.")
+                continue
 
-        kampala_time = get_kampala_time()
+            try:
+                score_id = int(score_id_str)
+                new_mark = float(new_mark_str)
+                if new_mark < 0 or new_mark > 100:
+                    errors.append(f"Invalid mark {new_mark} for score ID {score_id}. Skipped.")
+                    continue
+            except ValueError:
+                errors.append(f"Invalid input for score ID {score_id_str}. Skipped.")
+                continue
 
-        # Insert each deleted row into the logs table with your deletion notes
-        for row in rows_to_log:
-            row['deleted_at'] = kampala_time
-            # Use deletion notes from form; if none provided, fallback to existing notes or NULL
-            row['notes'] = deletion_notes if deletion_notes else row.get('notes', None)
-            cursor.execute(log_query, row)
+            # Fetch current score record
+            cursor.execute("SELECT * FROM scores WHERE score_id = %s", (score_id,))
+            row = cursor.fetchone()
+            if not row:
+                errors.append(f"Score ID {score_id} not found. Skipped.")
+                continue
 
-        # Now delete from scores table
-        cursor.execute(f"DELETE FROM scores WHERE score_id IN ({format_strings})", score_ids)
+            old_mark = float(row['Mark'])
+
+            if old_mark == new_mark:
+                # No change, skip
+                continue
+
+            # Update score
+            cursor.execute("UPDATE scores SET Mark = %s WHERE score_id = %s", (new_mark, score_id))
+
+            # Insert log entry
+            log_query = """
+                INSERT INTO score_edit_logs
+                (score_id, user_id, class_id, stream_id, term_id, year_id, assessment_id, subject_id, old_mark, new_mark, reason, edited_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """
+
+            kampala_time = get_kampala_time()
+
+            cursor.execute(log_query, (
+                score_id,
+                user_id,
+                row.get('class_id'),
+                row.get('stream_id'),
+                row.get('term_id'),
+                row.get('year_id'),
+                row.get('assessment_id'),
+                row.get('subject_id'),
+                old_mark,
+                new_mark,
+                reason,
+                kampala_time
+            ))
+
+            success_count += 1
 
         connection.commit()
 
-        flash(f"{cursor.rowcount} score(s) deleted and logged successfully.", 'success')
+        if success_count > 0:
+            flash(f"Successfully updated {success_count} score(s).", "success")
+        if errors:
+            flash("Some issues occurred:<br>" + "<br>".join(errors), "warning")
 
-    except Error as e:
-        flash(f"An error occurred: {e}", 'danger')
+    except Exception as e:
+        connection.rollback()
+        flash(f"An error occurred: {e}", "danger")
 
     finally:
         if cursor:
@@ -240,7 +288,8 @@ def delete_scores():
         if connection:
             connection.close()
 
-    return redirect(url_for('results_update_blueprint.results_update'))
+    return redirect(request.referrer or url_for('reports_blueprint.reports'))
+
 
 
 
