@@ -181,13 +181,14 @@ def teacher_add_marks():
     # Load dropdowns based on assignments only
     # Classes (still unfiltered unless needed)
     cursor.execute("""
-    SELECT DISTINCT c.class_id, c.class_name
+        SELECT DISTINCT c.class_id, c.class_name
     FROM classes c
-    JOIN pupils p ON c.class_id = p.class_id
-    JOIN subject_assignment sa ON sa.stream_id = p.stream_id
+    JOIN stream s ON s.class_id = c.class_id
+    JOIN subject_assignment sa ON sa.stream_id = s.stream_id
     WHERE sa.user_id = %s
     """, (user_id,))
     class_list = cursor.fetchall()
+
 
 
     # Study years assigned to this teacher
@@ -249,7 +250,7 @@ def teacher_add_marks():
     if not (year_id and term_id and subject_id and assessment_name):
         cursor.close()
         connection.close()
-        return render_template('add_marks/add_marks.html',
+        return render_template('add_marks/teacher_add_marks.html',
             add_marks=[], class_list=class_list, study_years=study_years,
             terms=terms, subjects=subjects, assessments=assessments,
             streams=streams, pupils=pupils,
@@ -328,7 +329,7 @@ def teacher_add_marks():
     cursor.close()
     connection.close()
 
-    return render_template('add_marks/add_marks.html',
+    return render_template('add_marks/teacher_add_marks.html',
         add_marks=add_marks,
         class_list=class_list,
         study_years=study_years,
@@ -347,6 +348,9 @@ def teacher_add_marks():
         entered_reg_no=reg_no,
         segment='add_marks'
     )
+
+
+
 
 
 
