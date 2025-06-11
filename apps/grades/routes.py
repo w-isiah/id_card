@@ -108,9 +108,9 @@ def edit_grades(grade_id):
             return redirect(url_for('grades_blueprint.edit_grades', grade_id=grade_id))
 
         # Validate grade_letter (it should be a string of 1 or 2 characters)
-        if not re.match(r'^[A-Za-z]{1,2}$', grade_letter):
-            flash("Grade letter must be a valid 1 or 2 character string!", "danger")
-            return redirect(url_for('grades_blueprint.edit_grades', grade_id=grade_id))
+        #if not re.match(r'^[A-Za-z]{1,2}$', grade_letter):
+        #    flash("Grade letter must be a valid 1 or 2 character string!", "danger")
+        #   return redirect(url_for('grades_blueprint.edit_grades', grade_id=grade_id))
 
         try:
             # Convert to integers

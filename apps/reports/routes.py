@@ -23,7 +23,7 @@ def reports():
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
-    # Fetch available filters (for dropdowns)
+    # Fetch dropdown filter data
     cursor.execute("SELECT * FROM classes")
     class_list = cursor.fetchall()
 
@@ -42,13 +42,18 @@ def reports():
     cursor.execute("SELECT * FROM stream")
     streams = cursor.fetchall()
 
-    # Retrieve query parameters with default values (for applied filters)
+    cursor.execute("SELECT * FROM pupils")
+    pupils = cursor.fetchall()
+
+    # Retrieve query parameters
     class_id = request.args.get('class_id', type=int)
     year_id = request.args.get('year_id', type=int)
     term_id = request.args.get('term_id', type=int)
     subject_id = request.args.get('subject_id', type=int)
     assessment_name = request.args.get('assessment_name', type=str)
     stream_id = request.args.get('stream_id', type=int)
+    pupil_name = request.args.get('pupil_name', type=str)
+    reg_no = request.args.get('reg_no', type=str)
 
     filters = {
         'class_id': class_id,
@@ -56,10 +61,11 @@ def reports():
         'term_id': term_id,
         'subject_id': subject_id,
         'assessment_name': assessment_name,
-        'stream_id': stream_id
+        'stream_id': stream_id,
+        'pupil_name': pupil_name,
+        'reg_no': reg_no
     }
 
-    # If no filters applied, return empty list (or you can change this to show all pupils if you want)
     if not any(filters.values()):
         cursor.close()
         connection.close()
@@ -72,15 +78,19 @@ def reports():
             subjects=subjects,
             assessments=assessments,
             streams=streams,
+            pupils=pupils,
             selected_class_id=None,
             selected_study_year_id=None,
             selected_term_id=None,
             selected_assessment_name=None,
+            selected_subject_id=None,
             selected_stream_id=None,
+            selected_pupil_name=None,
+            entered_reg_no=None,
             segment='reports'
         )
 
-    # Base query with LEFT JOINs to include pupils without matching scores
+    # Construct the query
     query = """
     SELECT 
         p.reg_no,
@@ -110,13 +120,10 @@ def reports():
     WHERE 1=1
     """
 
-    # Add filters to the query
     if class_id:
         query += f" AND p.class_id = {class_id}"
     if stream_id:
         query += f" AND p.stream_id = {stream_id}"
-
-    # For filters on scores-related tables, include condition OR NULL to include pupils without scores
     if year_id:
         query += f" AND (y.year_id = {year_id} OR y.year_id IS NULL)"
     if term_id:
@@ -125,8 +132,11 @@ def reports():
         query += f" AND (sub.subject_id = {subject_id} OR sub.subject_id IS NULL)"
     if assessment_name:
         query += f" AND (a.assessment_name = '{assessment_name}' OR a.assessment_name IS NULL)"
+    if pupil_name:
+        query += f" AND TRIM(CONCAT(p.first_name, ' ', COALESCE(p.other_name, ''), ' ', p.last_name)) LIKE '%{pupil_name}%'"
+    if reg_no:
+        query += f" AND p.reg_no = '{reg_no}'"
 
-    # Optional: order by pupil full name to keep results organized
     query += " ORDER BY p.last_name, p.first_name, p.other_name"
 
     cursor.execute(query)
@@ -144,13 +154,18 @@ def reports():
         subjects=subjects,
         assessments=assessments,
         streams=streams,
+        pupils=pupils,
         selected_class_id=class_id,
         selected_study_year_id=year_id,
         selected_term_id=term_id,
         selected_assessment_name=assessment_name,
+        selected_subject_id=subject_id,
         selected_stream_id=stream_id,
+        selected_pupil_name=pupil_name,
+        entered_reg_no=reg_no,
         segment='reports'
     )
+
 
 
 
