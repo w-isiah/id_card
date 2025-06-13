@@ -57,7 +57,7 @@
         <div class="card-header">
           <h3 class="card-title">Filter Report</h3>
         </div>
-        <form method="GET" action="{{ url_for('reports_blueprint.scores_positions_reports') }}">
+        <form method="GET" action="{{ url_for('reports_blueprint.scores_positions_reports_remarks') }}">
           <div class="card-body">
             <div class="form-row">
               <div class="form-group col-md-3">
@@ -115,8 +115,6 @@
         </div>
         <div class="card-body">
           <div class="table-responsive">
-
-
 <table id="reportTable" class="display nowrap stripe" style="width:100%">
   <thead>
     <tr>
@@ -129,6 +127,7 @@
       {% for subject in subject_names %}
         <th>{{ subject }} (Mark)</th>
         <th>{{ subject }} (Grade)</th>
+        <th>{{ subject }} (Remark)</th>
       {% endfor %}
 
       <th>Total Score</th>
@@ -152,6 +151,7 @@
         {% for subject in subject_names %}
           <td>{{ student.marks[subject] if student.marks[subject] is not none else 'N/A' }}</td>
           <td>{{ student.grades[subject] if student.grades[subject] else 'N/A' }}</td>
+          <td>{{ student.remarks[subject] if student.remarks[subject] else 'N/A' }}</td>
         {% endfor %}
 
         <td>{{ student.total_score }}</td>
@@ -164,10 +164,6 @@
     {% endfor %}
   </tbody>
 </table>
-
-
-
-
 
           </div>
         </div>

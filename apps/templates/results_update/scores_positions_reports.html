@@ -115,60 +115,50 @@
         </div>
         <div class="card-body">
           <div class="table-responsive">
-
-
-<table id="reportTable" class="display nowrap stripe" style="width:100%">
-  <thead>
-    <tr>
-      <th>Reg No</th>
-      <th>Full Name</th>
-      <th>Year</th>
-      <th>Term</th>
-      <th>Assessment</th>
-
-      {% for subject in subject_names %}
-        <th>{{ subject }} (Mark)</th>
-        <th>{{ subject }} (Grade)</th>
-      {% endfor %}
-
-      <th>Total Score</th>
-      <th>Average Score</th>
-      <th>Aggregate</th>
-      <th>Division</th>
-      <th>Stream Position</th>
-      <th>Class Position</th>
-    </tr>
-  </thead>
-
-  <tbody>
-    {% for student in reports %}
-      <tr>
-        <td>{{ student.reg_no }}</td>
-        <td>{{ student.full_name }}</td>
-        <td>{{ student.year_name }}</td>
-        <td>{{ student.term_name }}</td>
-        <td>{{ student.assessment_name }}</td>
-
-        {% for subject in subject_names %}
-          <td>{{ student.marks[subject] if student.marks[subject] is not none else 'N/A' }}</td>
-          <td>{{ student.grades[subject] if student.grades[subject] else 'N/A' }}</td>
-        {% endfor %}
-
-        <td>{{ student.total_score }}</td>
-        <td>{{ student.average_score }}</td>
-        <td>{{ student.aggregate }}</td>
-        <td>{{ student.division }}</td>
-        <td>{{ student.stream_position }}</td>
-        <td>{{ student.class_position }}</td>
-      </tr>
-    {% endfor %}
-  </tbody>
-</table>
-
-
-
-
-
+            <table id="reportTable" class="display nowrap stripe" style="width:100%">
+              <thead>
+                <tr>
+                  <th>Reg No</th>
+                  <th>Full Name</th>
+                  <th>Year</th>
+                  <th>Term</th>
+                  <th>Assessment</th>
+                  <th>Total Score</th>
+                  <th>Average Score</th>
+                  <th>Aggregate</th>
+                  <th>Division</th>
+                  <th>Stream Position</th>
+                  <th>Class Position</th>
+                  {% for subject in subject_names %}
+                    <th>{{ subject }} (Mark)</th>
+                    <th>{{ subject }} (Grade)</th>
+                    <th>{{ subject }} (Remark)</th>
+                  {% endfor %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for student in reports %}
+                <tr>
+                  <td>{{ student.reg_no }}</td>
+                  <td>{{ student.full_name }}</td>
+                  <td>{{ student.year_name }}</td>
+                  <td>{{ student.term_name }}</td>
+                  <td>{{ student.assessment_name }}</td>
+                  <td>{{ student.total_score }}</td>
+                  <td>{{ student.average_score }}</td>
+                  <td>{{ student.aggregate }}</td>
+                  <td>{{ student.division }}</td>
+                  <td>{{ student.stream_position }}</td>
+                  <td>{{ student.class_position }}</td>
+                  {% for subject in subject_names %}
+                    <td>{{ student.marks[subject] if student.marks[subject] is not none else 'N/A' }}</td>
+                    <td>{{ student.grades[subject] if student.grades[subject] else 'N/A' }}</td>
+                    <td>{{ student.remarks[subject] if student.remarks[subject] else 'N/A' }}</td>
+                  {% endfor %}
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

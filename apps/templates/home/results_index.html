@@ -194,7 +194,7 @@
     <div class="small-box bg-lightblue">
       <div class="inner">
         <h5>Stream Positions</h5>
-        <p>Scores with Positions</p>
+        <p>Scores, Positions</p>
       </div>
       <div class="icon"><i class="fas fa-signal"></i></div>
       <a href="{{ url_for('reports_blueprint.scores_positions_reports') }}" class="small-box-footer">
@@ -202,6 +202,27 @@
       </a>
     </div>
   </div>
+
+
+
+  
+
+<!-- Stream Position Scores -->
+<div class="col-lg-3 col-6">
+  <div class="small-box bg-lime">
+    <div class="inner text-dark">
+      <h5>Stream Positions</h5>
+      <p>Scores, Positions, Remarks</p>
+    </div>
+    <div class="icon text-white">
+      <i class="fas fa-signal"></i>
+    </div>
+    <a href="{{ url_for('reports_blueprint.scores_positions_reports_remarks') }}" class="small-box-footer text-white">
+      View More <i class="fas fa-arrow-circle-right"></i>
+    </a>
+  </div>
+</div>
+
 
   <!-- Grades -->
   <div class="col-lg-3 col-6">
