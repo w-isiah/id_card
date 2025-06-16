@@ -31,16 +31,31 @@
 {% block content %}
 <div class="content-wrapper">
   <!-- Header -->
+
+  <!-- Flash Messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="alert-container">
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+      <strong>{{ message }}</strong>
+      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  <!-- Page Header -->
   <section class="content-header">
     <div class="container-fluid">
-      <div class="row mb-2">
+      <div class="row mb-2 align-items-center">
         <div class="col-sm-6">
-          <h1><i class="fas fa-users"></i> Users</h1>
+           <h1><i class="fas fa-users"></i> Users</h1>
         </div>
-        <div class="col-sm-6 text-right">
-          <a href="/add_user" class="btn btn-success"><i class="fas fa-user-plus mr-1"></i> Add User</a>
-        </div>
-        <div class="col-12">
+        <div class="col-sm-6">
           <ol class="breadcrumb float-sm-right">
             <li class="breadcrumb-item"><a href="/index">Home</a></li>
             <li class="breadcrumb-item active">Users</li>
@@ -50,31 +65,20 @@
     </div>
   </section>
 
-  <!-- Flash Messages -->
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <div class="alert-container">
-        {% for category, message in messages %}
-          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-            <strong>{{ message }}</strong>
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
-        {% endfor %}
-      </div>
-    {% endif %}
-  {% endwith %}
-
-  <!-- Users Table -->
+  <!-- User Table Section -->
   <section class="content">
     <div class="container-fluid">
       <div class="card">
-        <div class="card-header">
-          <h3 class="card-title"><i class="fas fa-table mr-2"></i>User List</h3>
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h3 class="card-title mb-0">Section List</h3>
+          <a href="/add_user" class="btn btn-sm btn-primary">
+            <i class="fas fa-plus-circle"></i> Add a User
+          </a>
         </div>
+
+
         <div class="card-body">
-          <table id="accounts" class="table table-bordered table-striped table-hover nowrap" style="width:100%;">
+          <table id="accounts" class="stripe row-border order-column" style="width:100%">
             <thead class="thead-dark">
               <tr>
                 <th>Username</th>
@@ -93,23 +97,23 @@
                 <td>{{ user.role }}</td>
                 <td id="user-status-{{ user.id }}">
                   {% if user.is_online %}
-                    <span class="badge badge-success">Online</span>
+                  <span class="badge badge-success">Online</span>
                   {% else %}
-                    <span class="badge badge-danger">Offline</span>
+                  <span class="badge badge-danger">Offline</span>
                   {% endif %}
                 </td>
                 <td>
                   {% if user.role == 'section_head' %}
-                    <a href="/view_user/{{ user.id }}" class="btn btn-warning btn-sm">
-                      <i class="fas fa-eye"></i> View
-                    </a>
+                  <a href="/view_user/{{ user.id }}" class="btn btn-warning btn-sm">
+                    <i class="fas fa-eye"></i> View
+                  </a>
                   {% endif %}
                 </td>
                 <td>
                   {% if user.role == 'department_head' %}
-                    <a href="/view_user_cat_roles/{{ user.id }}" class="btn btn-warning btn-sm">
-                      <i class="fas fa-eye"></i> View
-                    </a>
+                  <a href="/view_user_cat_roles/{{ user.id }}" class="btn btn-warning btn-sm">
+                    <i class="fas fa-eye"></i> View
+                  </a>
                   {% endif %}
                 </td>
                 <td>
@@ -118,30 +122,35 @@
                   </a>
                 </td>
                 <td>
-                  <div class="btn-group">
+                  <div class="btn-group" role="group">
                     <a href="/edit_user/{{ user.id }}" class="btn btn-info btn-sm" title="Edit User">
                       <i class="fas fa-edit"></i>
                     </a>
-                    {% if session['role'] == 'super_admin' %}
-                      <a href="{{ url_for('authentication_blueprint.delete_user', id=user.id) }}"
-                         class="btn btn-danger btn-sm"
-                         onclick="return confirm('Are you sure you want to delete {{ user.username }}?')"
-                         title="Delete User">
-                        <i class="fas fa-trash"></i>
-                      </a>
-                    {% else %}
-                      <span class="text-muted">—</span>
-                    {% endif %}
-                  </div>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                    <a href="{{ url_for('authentication_blueprint.delete_user', id=user.id) }}"
+                    class="btn btn-danger btn-sm"
+                    onclick="return confirm('Are you sure you want to delete user: {{ user.username }}?');"
+                    title="Delete User">
+                    <i class="fas fa-trash-alt"></i>
+                  </a>
+                  {% if user.is_online %}
+                  <a href="{{ url_for('authentication_blueprint.force_logout', user_id=user.id) }}"
+                  class="btn btn-warning btn-sm"
+                  onclick="return confirm('Force sign out {{ user.username }}?');"
+                  title="Force Logout">
+                  <i class="fas fa-sign-out-alt"></i>
+                </a>
+                {% endif %}
+              </div>
+            </td>
+
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
-  </section>
+  </div>
+</div>
+</section>
 </div>
 {% endblock %}
 
@@ -163,28 +172,29 @@
   $(function () {
     // Initialize DataTable
     $('#accounts').DataTable({
-      responsive: true,
-      scrollX: true,
-      scrollY: '300px',
-      scrollCollapse: true,
+      fixedColumns: {
+        left: 2,
+        right: 1
+      },
       paging: false,
-      fixedColumns: { left: 1, right: 1 },
-      stateSave: true
+      scrollCollapse: true,
+      scrollX: true,
+      scrollY: 300
     });
 
     // Periodically update online status
     function updateUserStatus(userId) {
       $.get('/get_user_status/' + userId, function(response) {
         const badge = response.status === 'online'
-          ? '<span class="badge badge-success">Online</span>'
-          : '<span class="badge badge-danger">Offline</span>';
+        ? '<span class="badge badge-success">Online</span>'
+        : '<span class="badge badge-danger">Offline</span>';
         $('#user-status-' + userId).html(badge);
       });
     }
 
     setInterval(function () {
       {% for user in users %}
-        updateUserStatus({{ user.id }});
+      updateUserStatus({{ user.id }});
       {% endfor %}
     }, 10000);
   });

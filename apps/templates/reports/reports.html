@@ -197,7 +197,7 @@
             </button>
 
             <div class="table-responsive p-0" style="max-height: 400px;">
-              <table id="reportTable" class="table table-striped table-hover nowrap" style="width:100%">
+              <table id="reportTable" class="stripe row-border order-column" style="width:100%">
                 <thead>
                   <tr>
                     <th><input type="checkbox" id="selectAll" /></th>
@@ -266,13 +266,15 @@
 
       // Initialize DataTable with fixed columns and scrolling
       $('#reportTable').DataTable({
-        fixedColumns: { left: 2, right: 1 },
-        paging: false,
-        scrollX: true,
-        scrollY: '300px',
-        scrollCollapse: true,
-        stateSave: true
-      });
+      fixedColumns: {
+        left: 2,
+        right: 1
+      },
+      paging: false,
+      scrollCollapse: true,
+      scrollX: true,
+      scrollY: 300
+    });
 
 
       // Select/Deselect all checkboxes

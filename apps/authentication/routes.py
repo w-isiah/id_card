@@ -7,8 +7,10 @@ from PIL import Image
 import os
 import mysql.connector
 
+
 from apps import get_db_connection
 from apps.authentication import blueprint
+from apps.utils.decorators import login_required  # Adjust path as needed
 
 
 from datetime import datetime
@@ -47,47 +49,35 @@ def login():
                     user = cursor.fetchone()
 
                     if user:
-                        if user['password'] == password:  # Note: no hashing here, consider adding hashing in future
-                            try:
-                                current_time = get_kampala_time()
+                        if user['password'] == password:  # Change this to hash check in production
+                            current_time = get_kampala_time()
 
-                                # Insert a new login record with Kampala time
-                                cursor.execute(
-                                    "INSERT INTO user_activity (user_id, login_time) VALUES (%s, %s)", 
-                                    (user['id'], current_time)
-                                )
-                                
-                                # Set user as online
-                                cursor.execute("UPDATE users SET is_online = 1 WHERE id = %s", (user['id'],))
-                                connection.commit()
+                            cursor.execute(
+                                "INSERT INTO user_activity (user_id, login_time) VALUES (%s, %s)",
+                                (user['id'], current_time)
+                            )
+                            cursor.execute("UPDATE users SET is_online = 1 WHERE id = %s", (user['id'],))
+                            connection.commit()
 
-                                # Update session
-                                session.update({
-                                    'loggedin': True,
-                                    'id': user['id'],
-                                    'username': user['username'],
-                                    'profile_image': user.get('profile_image'),
-                                    'first_name': user.get('first_name'),
-                                    'role': user.get('role'),
-                                    'last_activity': current_time
-                                })
-                                session.permanent = True
+                            session.update({
+                                'loggedin': True,
+                                'id': user['id'],
+                                'username': user['username'],
+                                'profile_image': user.get('profile_image'),
+                                'first_name': user.get('first_name'),
+                                'role': user.get('role'),
+                                'last_activity': current_time
+                            })
 
-                                print(f"Session updated with user_id: {session.get('id')}")
+                            # Session expires when browser is closed
+                            session.permanent = False
 
-                                flash('Login successful!', 'success')
-                                return redirect(url_for('home_blueprint.index'))
-
-                            except Exception as e:
-                                print(f"Error during session handling or user activity logging: {str(e)}")
-                                flash('An error occurred during the login process. Please try again later.', 'danger')
-                                return redirect(url_for('authentication_blueprint.login'))
+                            flash('Login successful!', 'success')
+                            return redirect(url_for('home_blueprint.index'))
                         else:
                             flash('Incorrect password.', 'danger')
-                            return redirect(url_for('authentication_blueprint.login'))
                     else:
-                        flash('Username not found', 'danger')
-                        return redirect(url_for('authentication_blueprint.login'))
+                        flash('Username not found.', 'danger')
 
         except Exception as e:
             flash(f"An error occurred: {str(e)}", 'danger')
@@ -105,7 +95,7 @@ def login():
 
 
 
-
+@login_required
 @blueprint.before_app_request
 def check_inactivity():
     """Check for session timeout due to inactivity."""
@@ -210,68 +200,98 @@ def logout():
 
 
 
+@login_required
+@blueprint.route('/force_logout/<int:user_id>')
+def force_logout(user_id):
+    role = session.get('role')
+    if role not in ['admin', 'super_admin']:
+        flash("You do not have permission to force logout users.", "warning")
+        return redirect(url_for('authentication_blueprint.login'))
+
+    try:
+        with get_db_connection() as connection:
+            with connection.cursor(dictionary=True) as cursor:
+                current_time = get_kampala_time().replace(tzinfo=None)
+
+                # Update only the most recent active session
+                cursor.execute("""
+                    UPDATE user_activity
+                    SET logout_time = %s
+                    WHERE user_id = %s AND logout_time IS NULL
+                    ORDER BY login_time DESC
+                    LIMIT 1
+                """, (current_time, user_id))
+
+                cursor.execute("UPDATE users SET is_online = 0 WHERE id = %s", (user_id,))
+                connection.commit()
+
+        flash("User has been signed out successfully.", "success")
+    except Exception as e:
+        flash(f"Error during forced logout: {str(e)}", "danger")
+
+    return redirect(url_for('authentication_blueprint.manage_users'))
+
+
+
+    
 
 
 
 
 
-
-
-
+@login_required
 @blueprint.route('/manage_users')
 def manage_users():
+    role = session.get('role')
+    
+    # Define exclusions based on the current user's role
+    excluded_roles_map = {
+        'admin': ['admin', 'super_admin'],
+        'inventory_manager': ['admin', 'inventory_manager', 'super_admin', 'class_teacher'],
+        'super_admin': ['super_admin']
+    }
+
+    if role not in excluded_roles_map:
+        flash('You do not have permission to access this page.', 'warning')
+        return redirect(url_for('authentication_blueprint.login'))
+
+    excluded_roles = excluded_roles_map[role]
+
     try:
         with get_db_connection() as connection:
             with connection.cursor(dictionary=True) as cursor:
-                # Check if the user has admin privileges
-                if session.get('role') == 'admin':
-                    cursor.execute("SELECT * FROM users WHERE role != 'admin' AND role != 'super_admin' ")
-                elif session.get('role') == 'inventory_manager':
-                    cursor.execute("SELECT * FROM users WHERE role != 'admin' AND role != 'inventory_manager' AND role != 'super_admin' AND role != 'class_teacher' ")
-                elif session.get('role') == 'super_admin':
-                    cursor.execute("SELECT * FROM users WHERE role != 'super_admin'")
-
-
-                else:
-                    flash('You do not have permission to access this page.', 'warning')
-                    return redirect(url_for('authentication_blueprint.login'))
-
+                placeholders = ','.join(['%s'] * len(excluded_roles))
+                query = f"SELECT * FROM users WHERE role NOT IN ({placeholders})"
+                cursor.execute(query, tuple(excluded_roles))
                 users = cursor.fetchall()
-                num = len(users)
-
     except Exception as e:
-        flash(f"Error fetching data: {str(e)}", 'danger')
+        logger.error(f"Error fetching users: {e}")
+        flash("Error fetching user data.", "danger")
         return redirect(url_for('home_blueprint.index'))
 
-    return render_template('accounts/manage_users.html', num=num, users=users)
+    return render_template('accounts/manage_users.html', users=users, num=len(users))
 
 
 
 
-@blueprint.route('/get_user_status/<int:user_id>', methods=['GET'])
-def get_user_status(user_id):
+@login_required
+# Flask route (suggested)
+@blueprint.route('/get_all_user_statuses', methods=['GET'])
+def get_all_user_statuses():
     try:
         with get_db_connection() as connection:
             with connection.cursor(dictionary=True) as cursor:
-                cursor.execute("SELECT is_online FROM users WHERE id = %s", (user_id,))
-                user = cursor.fetchone()
-                if user:
-                    status = 'online' if user['is_online'] else 'offline'
-                    print(f"[DEBUG] User {user_id} status: {status}")
-                    return jsonify({'status': status})
-                else:
-                    print(f"[DEBUG] User {user_id} not found")
-                    return jsonify({'status': 'offline'})
+                cursor.execute("SELECT id, is_online FROM users")
+                statuses = cursor.fetchall()
+                return jsonify(statuses)
     except Exception as e:
-        print(f"[ERROR] get_user_status error: {e}")
-        return jsonify({'status': 'offline'})
+        return jsonify([]), 500
 
 
 
 
 
-
-
+@login_required
 @blueprint.route('/activity_logs/<int:id>', methods=['GET', 'POST'])
 def activity_logs(id):
     try:
@@ -300,7 +320,7 @@ def activity_logs(id):
 
 
 
-
+@login_required
 # Add user
 @blueprint.route('/add_user', methods=['GET', 'POST'])
 def add_user():
@@ -354,7 +374,7 @@ def add_user():
 
 
 
-
+@login_required
 @blueprint.route('/edit_user/<int:id>', methods=['GET', 'POST'])
 def edit_user(id):
     with get_db_connection() as connection:
@@ -413,7 +433,7 @@ def edit_user(id):
 
 
 
-
+@login_required
 @blueprint.route('/view_user/<int:id>', methods=['GET'])
 def view_user(id):
     with get_db_connection() as connection:
@@ -445,7 +465,7 @@ def view_user(id):
 
 
 
-
+@login_required
 @blueprint.route('/edit_user_roles/<int:id>', methods=['GET', 'POST'])
 def edit_user_roles(id):
     with get_db_connection() as connection:
@@ -496,7 +516,7 @@ def edit_user_roles(id):
 
 
 
-
+@login_required
 @blueprint.route('/view_user_cat_roles/<int:id>', methods=['GET'])
 def view_user_cat_roles(id):
     with get_db_connection() as connection:
@@ -528,7 +548,7 @@ def view_user_cat_roles(id):
 
 
 
-
+@login_required
 @blueprint.route('/edit_user_cat_roles/<int:id>', methods=['GET', 'POST'])
 def edit_user_cat_roles(id):
     with get_db_connection() as connection:
@@ -587,12 +607,12 @@ def edit_user_cat_roles(id):
 
 
 
-
+@login_required
 def get_user_password(cursor, user_id):
     cursor.execute('SELECT password FROM users WHERE id = %s', (user_id,))
     return cursor.fetchone()['password']
 
-
+@login_required
 def handle_profile_image(cursor, profile_image, user_id):
     if profile_image and allowed_file(profile_image.filename):
         filename = secure_filename(profile_image.filename)
@@ -606,7 +626,7 @@ def handle_profile_image(cursor, profile_image, user_id):
 
 
 
-
+@login_required
 @blueprint.route('/api/user/profile-image')
 def profile_image():
     if 'profile_image' in session:
@@ -618,7 +638,7 @@ def profile_image():
 
 
 
-
+@login_required
 # Route for deleting a user
 @blueprint.route('/delete_user/<int:id>', methods=['GET'])
 def delete_user(id):
@@ -635,7 +655,7 @@ def delete_user(id):
 
 
 
-
+@login_required
 def handle_image_upload(image_file):
     filename = secure_filename(image_file.filename)
     upload_folder = current_app.config['UPLOAD_FOLDER']
@@ -661,7 +681,7 @@ def handle_image_upload(image_file):
 
 
 
-
+@login_required
 @blueprint.route('/edit_user_profile/<int:id>', methods=['GET', 'POST'])
 def edit_user_profile(id):
     with get_db_connection() as connection:
@@ -719,14 +739,15 @@ def edit_user_profile(id):
 
 
 # Error Handlers
+@login_required
 @blueprint.errorhandler(403)
 def access_forbidden(error):
     return render_template('home/page-403.html'), 403
-
+@login_required
 @blueprint.errorhandler(404)
 def not_found_error(error):
     return render_template('home/page-404.html'), 404
-
+@login_required
 @blueprint.errorhandler(500)
 def internal_error(error):
     return render_template('home/page-500.html'), 500

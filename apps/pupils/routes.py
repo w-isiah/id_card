@@ -51,13 +51,17 @@ def allowed_file(filename):
     """Check if the uploaded file has a valid extension."""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_EXTENSIONS']
 
+
+
+
+
 @blueprint.route('/pupils')
 def pupils():
-    """Fetch and filter pupils based on multiple criteria."""
+    """Filter pupils based on user input. No data is shown until filters are applied."""
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
-    # Load dropdown data
+    # Load dropdown options
     cursor.execute('SELECT year_id, year_name AS study_year FROM study_year ORDER BY year_name')
     study_years = cursor.fetchall()
 
@@ -67,47 +71,57 @@ def pupils():
     cursor.execute('SELECT term_id, term_name FROM terms ORDER BY term_name')
     terms = cursor.fetchall()
 
-    # Collect filters from request
-    filters = []
-    params = {}
+    cursor.execute('SELECT stream_id, stream_name FROM stream ORDER BY stream_name')
+    stream_list = cursor.fetchall()
 
-    def add_filter(column, param_name, value, use_like=False):
-        if value:
-            clause = f"{column} LIKE %({param_name})s" if use_like else f"{column} = %({param_name})s"
-            filters.append(clause)
-            params[param_name] = f"%{value}%" if use_like else value
-
-    # Get query parameters
+    # Get query parameters from form submission
     reg_no = request.args.get('reg_no', '').strip()
+    emis_number = request.args.get('emis_number', '').strip()
     name = request.args.get('name', '').strip()
     class_id = request.args.get('class_name', '').strip()
+    stream_id = request.args.get('stream_id', '').strip()
     study_year_id = request.args.get('study_year', '').strip()
     term_id = request.args.get('term', '').strip()
     residential_status = request.args.get('residential_status', '').strip()
     nin_number = request.args.get('nin_number', '').strip()
     home_district = request.args.get('home_district', '').strip()
-    emis_number = request.args.get('emis_number', '').strip()
 
-    # Apply filters
-    add_filter("p.reg_no", "reg_no", reg_no, use_like=True)
-    add_filter("p.nin_number", "nin_number", nin_number, use_like=True)
-    add_filter("p.emis_number", "emis_number", emis_number, use_like=True)
-    add_filter("p.home_district", "home_district", home_district, use_like=True)
-    add_filter("p.class_id", "class_id", class_id)
-    add_filter("p.year_id", "study_year_id", study_year_id)
-    add_filter("p.term_id", "term_id", term_id)
-    add_filter("p.residential_status", "residential_status", residential_status)
-
-    if name:
-        filters.append("""
-            (p.first_name LIKE %(name)s OR 
-             p.last_name LIKE %(name)s OR 
-             p.other_name LIKE %(name)s)
-        """)
-        params['name'] = f"%{name}%"
+    # Determine if any filters are applied
+    filters_applied = any([
+        reg_no, emis_number, name, class_id, stream_id,
+        study_year_id, term_id, residential_status,
+        nin_number, home_district
+    ])
 
     pupils = []
-    if filters:
+    params = {}
+    filters = []
+
+    def add_filter(column, param, value, use_like=False):
+        if value:
+            clause = f"{column} LIKE %({param})s" if use_like else f"{column} = %({param})s"
+            filters.append(clause)
+            params[param] = f"%{value}%" if use_like else value
+
+    if filters_applied:
+        add_filter("p.reg_no", "reg_no", reg_no, use_like=True)
+        add_filter("p.emis_number", "emis_number", emis_number, use_like=True)
+        add_filter("p.nin_number", "nin_number", nin_number, use_like=True)
+        add_filter("p.home_district", "home_district", home_district, use_like=True)
+        add_filter("p.class_id", "class_id", class_id)
+        add_filter("p.stream_id", "stream_id", stream_id)
+        add_filter("p.year_id", "study_year_id", study_year_id)
+        add_filter("p.term_id", "term_id", term_id)
+        add_filter("p.residential_status", "residential_status", residential_status)
+
+        if name:
+            filters.append("""
+                (p.first_name LIKE %(name)s OR 
+                 p.last_name LIKE %(name)s OR 
+                 p.other_name LIKE %(name)s)
+            """)
+            params['name'] = f"%{name}%"
+
         query = f"""
             SELECT 
                 p.pupil_id,
@@ -133,6 +147,7 @@ def pupils():
             WHERE {" AND ".join(filters)}
             ORDER BY p.last_name
         """
+
         cursor.execute(query, params)
         pupils = cursor.fetchall()
 
@@ -144,6 +159,7 @@ def pupils():
         pupils=pupils,
         segment='pupils',
         class_list=class_list,
+        stream_list=stream_list,
         terms=terms,
         study_years=study_years,
         filters={
@@ -151,6 +167,7 @@ def pupils():
             'emis_number': emis_number,
             'name': name,
             'class_name': class_id,
+            'stream_id': stream_id,
             'study_year': study_year_id,
             'term': term_id,
             'residential_status': residential_status,
@@ -158,6 +175,8 @@ def pupils():
             'home_district': home_district
         }
     )
+
+
 
 
 
