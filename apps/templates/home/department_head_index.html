@@ -92,6 +92,26 @@
       
 
 
+{% if session['role1'] == 'teacher' %}
+            <!-- Add Marks -->
+  <div class="col-lg-3 col-6">
+    <div class="small-box bg-warning">
+      <div class="inner">
+        <h5>Add Marks</h5>
+        <p>Insert Scores</p>
+      </div>
+      <div class="icon"><i class="fas fa-plus-circle"></i></div>
+      <a href="/teacher_add_marks" class="small-box-footer">
+        More Info <i class="fas fa-angle-double-right"></i>
+      </a>
+    </div>
+  </div>
+
+{% endif %}
+     
+
+     
+
 
         <!-- Inventory -->
       <div class="col-lg-3 col-6">
