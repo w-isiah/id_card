@@ -38,16 +38,16 @@
 
   <!-- Flash Messages -->
   {% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-  {% for category, message in messages %}
-  <div class="alert alert-{{ category }} alert-dismissible fade show mx-3" role="alert">
-    <strong>{{ message }}</strong>
-    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-      <span aria-hidden="true">&times;</span>
-    </button>
-  </div>
-  {% endfor %}
-  {% endif %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show mx-3" role="alert">
+          <strong>{{ message }}</strong>
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+      {% endfor %}
+    {% endif %}
   {% endwith %}
 
   <!-- Main Content -->
@@ -62,6 +62,7 @@
           <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
           <div class="card-body">
             <div class="row">
+              <!-- Username -->
               <div class="col-md-6">
                 <div class="form-group">
                   <label for="username">Username</label>
@@ -69,6 +70,7 @@
                 </div>
               </div>
 
+              <!-- First Name -->
               <div class="col-md-6">
                 <div class="form-group">
                   <label for="first_name">First Name</label>
@@ -76,6 +78,7 @@
                 </div>
               </div>
 
+              <!-- Last Name -->
               <div class="col-md-6">
                 <div class="form-group">
                   <label for="last_name">Last Name</label>
@@ -83,6 +86,7 @@
                 </div>
               </div>
 
+              <!-- Other Name -->
               <div class="col-md-6">
                 <div class="form-group">
                   <label for="other_name">Other Name</label>
@@ -90,6 +94,7 @@
                 </div>
               </div>
 
+              <!-- Password -->
               <div class="col-md-6">
                 <div class="form-group">
                   <label for="password">Password <small class="text-muted">(leave blank to keep current)</small></label>
@@ -97,54 +102,39 @@
                 </div>
               </div>
 
+              <!-- Role -->
               <div class="col-md-6">
-                {% if session['role'] == 'admin' %}
                 <div class="form-group">
-                  <label for="role">Role</label>
+                  <label for="role">Primary Role</label>
                   <select class="form-control select2bs4" name="role" id="role" required>
                     <option value="" disabled>Select a role</option>
                     <option value="class_teacher" {% if user.role == 'class_teacher' %}selected{% endif %}>Class Teacher</option>
                     <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Administrator</option>
                     <option value="inventory_manager" {% if user.role == 'inventory_manager' %}selected{% endif %}>Inventory Manager</option>
-                    <option value="other" {% if user.role == 'other' %}selected{% endif %}>Other</option>
-
                     <option value="section_head" {% if user.role == 'section_head' %}selected{% endif %}>Head Of Section</option>
-
                     <option value="assistant_manager" {% if user.role == 'assistant_manager' %}selected{% endif %}>Assistant Inventory Manager</option>
-
                     <option value="Head_ICT" {% if user.role == 'Head_ICT' %}selected{% endif %}>Head ICT</option>
-
-
                     <option value="teacher" {% if user.role == 'teacher' %}selected{% endif %}>Teacher</option>
-
-                    <option value="Head_ICT" {% if user.role == 'Head_ICT' %}selected{% endif %}>Head ICT</option>
-
-
-
-
-
+                    <option value="other" {% if user.role == 'other' %}selected{% endif %}>Other</option>
                   </select>
                 </div>
-                {% else %}
-                <div class="form-group">
-                  <label for="role">Role</label>
-                  <select class="form-control select2bs4" name="role" id="role" required>
-
-                    <option value="section_head" {% if user.role == 'section_head' %}selected{% endif %}>Inventory Manager</option>
-                    <option value="department_head" {% if user.role == 'department_head' %}selected{% endif %}>Head of Inventory Department</option>
-
-                    <option value="other" {% if user.role == 'other' %}selected{% endif %}>other</option>
-                    <option value="assistant_manager" {% if user.role == 'assistant_manager' %}selected{% endif %}>Assistant Inventory Manager</option>
-
-
-
-                  </select>
-
-
-                </div>
-                {% endif %}
               </div>
 
+              <!-- Role1 -->
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="role1">Additional Role (role1)</label>
+                  <select class="form-control select2bs4" name="role1" id="role1">
+                    <option value="" disabled selected>Select additional role</option>
+                
+                    <option value="teacher" {% if user.role1 == 'teacher' %}selected{% endif %}>Teacher</option>
+                    <option value="teacher" {% if user.role1 == 'teacher' %}selected{% endif %}>None</option>
+                    
+                  </select>
+                </div>
+              </div>
+
+              <!-- Profile Image -->
               <div class="col-md-12">
                 <div class="form-group">
                   <label for="profile_image">Profile Image</label>
@@ -153,13 +143,12 @@
                     <label class="custom-file-label" for="profile_image">Choose image</label>
                   </div>
                   <small class="form-text text-muted">Accepted formats: PNG, JPG, JPEG, GIF.</small>
-
                   {% if user.profile_image %}
-                  <div class="mt-2">
-                    <img src="/static/uploads/{{ user.profile_image }}" alt="Profile Image" class="img-thumbnail" width="150">
-                  </div>
+                    <div class="mt-2">
+                      <img src="/static/uploads/{{ user.profile_image }}" alt="Profile Image" class="img-thumbnail" width="150">
+                    </div>
                   {% else %}
-                  <p class="mt-2">No profile image available</p>
+                    <p class="mt-2">No profile image available</p>
                   {% endif %}
                 </div>
               </div>

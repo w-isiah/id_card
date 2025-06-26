@@ -270,7 +270,7 @@
         const tempInput = document.createElement('textarea');
         tempInput.value = sku;
         document.body.appendChild(tempInput);
-        tempInput.select();
+        tempInput.select();  
         document.execCommand('copy');
         document.body.removeChild(tempInput);
         showNotification("SKU copied to clipboard: " + sku);

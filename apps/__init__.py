@@ -23,7 +23,7 @@ def register_blueprints(app):
         'streams', 'rooms', 'stream_assign', 'categories', 'products',
         'p_restock', 'dorm_reg', 'sub_categories', 'sales', 'customers',
         'other_products', 'department_h_products', 'dep_restock', 'division',
-        'subject_assign', 'results_update', 'add_marks','assessment'
+        'subject_assign', 'results_update', 'add_marks','assessment','term'
     ]
 
     for module_name in modules:
@@ -47,4 +47,4 @@ def create_app(config_class=Config):
         """Store user ID from session in the application context."""
         g.user_id = session.get('id')
 
-    return app
+    return app 

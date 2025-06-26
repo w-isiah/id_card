@@ -66,6 +66,7 @@ def login():
                                 'profile_image': user.get('profile_image'),
                                 'first_name': user.get('first_name'),
                                 'role': user.get('role'),
+                                'role1': user.get('role1'),
                                 'last_activity': current_time
                             })
 
@@ -311,7 +312,7 @@ def activity_logs(id):
                 return render_template('accounts/activity_logs.html', activities=activities)
     except Exception as e:
         flash(f"An error occurred: {str(e)}", 'danger')
-        return redirect(url_for('authentication_blueprint.index'))
+        return redirect(url_for('authentication_blueprint.login'))
 
 
 
@@ -387,6 +388,7 @@ def edit_user(id):
                 other_name = request.form['other_name']
                 password = request.form['password']
                 role = request.form['role']
+                role1 = request.form['role1']  # ✅ New: Get role1 from form
                 profile_image = request.files.get('profile_image')
 
                 # Use the existing password if none is provided
@@ -399,25 +401,26 @@ def edit_user(id):
                 try:
                     cursor.execute(''' 
                         UPDATE users 
-                        SET username = %s, first_name = %s, last_name = %s, other_name = %s, password = %s, role = %s, 
-                            profile_image = %s
+                        SET username = %s, first_name = %s, last_name = %s, other_name = %s, password = %s, 
+                            role = %s, role1 = %s, profile_image = %s
                         WHERE id = %s
                     ''', (
-                        username, first_name, last_name, other_name, password, role, 
-                        profile_image_path, id
+                        username, first_name, last_name, other_name, password,
+                        role, role1, profile_image_path, id  # ✅ Included role1 in query
                     ))
                     connection.commit()
                     flash('User updated successfully!', 'success')
                 except mysql.connector.Error as err:
                     flash(f'Error: {err}', 'danger')
 
-                return redirect(url_for('home_blueprint.index'))  # Redirect back to the home page or user list
+                return redirect(url_for('home_blueprint.index'))  # Redirect to home or user list
 
             # Retrieve the user information from the database to pre-fill the form
             cursor.execute('SELECT * FROM users WHERE id = %s', (id,))
             user = cursor.fetchone()
 
-    return render_template("accounts/edit_user.html", user=user)
+    return render_template("accounts/edit_user.html", user=user)  # Make sure form supports role1
+
 
 
 
@@ -461,6 +464,11 @@ def view_user(id):
         all_sub_categories=all_sub_categories,
         user_sub_category_ids=user_sub_category_ids
     )
+
+
+
+
+
 
 
 
