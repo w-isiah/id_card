@@ -1416,6 +1416,8 @@ def vd_reports():
     terms = cursor.fetchall()
     cursor.execute("SELECT * FROM assessment")
     assessments = cursor.fetchall()
+    cursor.execute("SELECT * FROM stream")
+    streams = cursor.fetchall()
 
     # Read filters
     class_id = request.args.get('class_id', type=int)
@@ -1428,7 +1430,7 @@ def vd_reports():
         return render_template('reports/vd_reports.html',
             reports=[], subject_names=[],
             class_list=class_list, study_years=study_years,
-            terms=terms, assessments=assessments,
+            terms=terms, assessments=assessments,streams=streams,
             selected_class_id=class_id,
             selected_study_year_id=year_id,
             selected_term_id=term_id,
@@ -1547,6 +1549,7 @@ def vd_reports():
         subject_names=subject_names,
         class_list=class_list,
         study_years=study_years,
+        streams=streams,
         terms=terms,
         assessments=assessments,
         selected_class_id=class_id,

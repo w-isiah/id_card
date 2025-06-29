@@ -30,22 +30,20 @@
 
 {% block content %}
 <div class="content-wrapper">
-  <!-- Header -->
-
   <!-- Flash Messages -->
   {% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-  <div class="alert-container">
-    {% for category, message in messages %}
-    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-      <strong>{{ message }}</strong>
-      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-        <span aria-hidden="true">&times;</span>
-      </button>
-    </div>
-    {% endfor %}
-  </div>
-  {% endif %}
+    {% if messages %}
+      <div class="alert-container">
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            <strong>{{ message }}</strong>
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
   {% endwith %}
 
   <!-- Page Header -->
@@ -53,7 +51,7 @@
     <div class="container-fluid">
       <div class="row mb-2 align-items-center">
         <div class="col-sm-6">
-           <h1><i class="fas fa-users"></i> Users</h1>
+          <h1><i class="fas fa-users"></i> Users</h1>
         </div>
         <div class="col-sm-6">
           <ol class="breadcrumb float-sm-right">
@@ -76,7 +74,6 @@
           </a>
         </div>
 
-
         <div class="card-body">
           <table id="accounts" class="stripe row-border order-column" style="width:100%">
             <thead class="thead-dark">
@@ -97,23 +94,23 @@
                 <td>{{ user.role }}</td>
                 <td id="user-status-{{ user.id }}">
                   {% if user.is_online %}
-                  <span class="badge badge-success">Online</span>
+                    <span class="badge badge-success">Online</span>
                   {% else %}
-                  <span class="badge badge-danger">Offline</span>
+                    <span class="badge badge-danger">Offline</span>
                   {% endif %}
                 </td>
                 <td>
                   {% if user.role == 'section_head' %}
-                  <a href="/view_user/{{ user.id }}" class="btn btn-warning btn-sm">
-                    <i class="fas fa-eye"></i> View
-                  </a>
+                    <a href="/view_user/{{ user.id }}" class="btn btn-warning btn-sm">
+                      <i class="fas fa-eye"></i> View
+                    </a>
                   {% endif %}
                 </td>
                 <td>
                   {% if user.role == 'department_head' %}
-                  <a href="/view_user_cat_roles/{{ user.id }}" class="btn btn-warning btn-sm">
-                    <i class="fas fa-eye"></i> View
-                  </a>
+                    <a href="/view_user_cat_roles/{{ user.id }}" class="btn btn-warning btn-sm">
+                      <i class="fas fa-eye"></i> View
+                    </a>
                   {% endif %}
                 </td>
                 <td>
@@ -127,35 +124,34 @@
                       <i class="fas fa-edit"></i>
                     </a>
                     <a href="{{ url_for('authentication_blueprint.delete_user', id=user.id) }}"
-                    class="btn btn-danger btn-sm"
-                    onclick="return confirm('Are you sure you want to delete user: {{ user.username }}?');"
-                    title="Delete User">
-                    <i class="fas fa-trash-alt"></i>
-                  </a>
-                  {% if user.is_online %}
-                  <a href="{{ url_for('authentication_blueprint.force_logout', user_id=user.id) }}"
-                  class="btn btn-warning btn-sm"
-                  onclick="return confirm('Force sign out {{ user.username }}?');"
-                  title="Force Logout">
-                  <i class="fas fa-sign-out-alt"></i>
-                </a>
-                {% endif %}
-              </div>
-            </td>
-
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+                       class="btn btn-danger btn-sm"
+                       onclick="return confirm('Are you sure you want to delete user: {{ user.username }}?');"
+                       title="Delete User">
+                      <i class="fas fa-trash-alt"></i>
+                    </a>
+                    {% if user.is_online %}
+                    <a href="{{ url_for('authentication_blueprint.force_logout', user_id=user.id) }}"
+                       class="btn btn-warning btn-sm"
+                       onclick="return confirm('Force sign out {{ user.username }}?');"
+                       title="Force Logout">
+                      <i class="fas fa-sign-out-alt"></i>
+                    </a>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
-</section>
+  </section>
 </div>
 {% endblock %}
 
 {% block javascripts %}
-<!-- Core -->
+<!-- Core Scripts -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="/static/assets/js/adminlte.min.js"></script>
@@ -182,12 +178,12 @@
       scrollY: 300
     });
 
-    // Periodically update online status
+    // Periodically update user online status
     function updateUserStatus(userId) {
       $.get('/get_user_status/' + userId, function(response) {
         const badge = response.status === 'online'
-        ? '<span class="badge badge-success">Online</span>'
-        : '<span class="badge badge-danger">Offline</span>';
+          ? '<span class="badge badge-success">Online</span>'
+          : '<span class="badge badge-danger">Offline</span>';
         $('#user-status-' + userId).html(badge);
       });
     }
@@ -196,7 +192,16 @@
       {% for user in users %}
       updateUserStatus({{ user.id }});
       {% endfor %}
-    }, 10000);
+    }, 10000); // every 10 seconds
+  });
+
+  // Auto-dismiss flash messages
+  $(document).ready(function () {
+    setTimeout(function () {
+      $('.alert').fadeTo(500, 0).slideUp(500, function () {
+        $(this).remove();
+      });
+    }, 5000); // fades out after 5 seconds
   });
 </script>
 {% endblock %}

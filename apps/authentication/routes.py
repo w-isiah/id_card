@@ -374,53 +374,66 @@ def add_user():
 
 
 
-
-@login_required
 @blueprint.route('/edit_user/<int:id>', methods=['GET', 'POST'])
+@login_required
 def edit_user(id):
     with get_db_connection() as connection:
         with connection.cursor(dictionary=True) as cursor:
-            if request.method == 'POST':
-                # Getting user data from the form
-                username = request.form['username']
-                first_name = request.form['first_name']
-                last_name = request.form['last_name']
-                other_name = request.form['other_name']
-                password = request.form['password']
-                role = request.form['role']
-                role1 = request.form['role1']  # ✅ New: Get role1 from form
-                profile_image = request.files.get('profile_image')
 
-                # Use the existing password if none is provided
-                password = password if password else get_user_password(cursor, id)
-
-                # Handle profile image if uploaded
-                profile_image_path = handle_profile_image(cursor, profile_image, id)
-
-                # Update the user information in the database
-                try:
-                    cursor.execute(''' 
-                        UPDATE users 
-                        SET username = %s, first_name = %s, last_name = %s, other_name = %s, password = %s, 
-                            role = %s, role1 = %s, profile_image = %s
-                        WHERE id = %s
-                    ''', (
-                        username, first_name, last_name, other_name, password,
-                        role, role1, profile_image_path, id  # ✅ Included role1 in query
-                    ))
-                    connection.commit()
-                    flash('User updated successfully!', 'success')
-                except mysql.connector.Error as err:
-                    flash(f'Error: {err}', 'danger')
-
-                return redirect(url_for('home_blueprint.index'))  # Redirect to home or user list
-
-            # Retrieve the user information from the database to pre-fill the form
-            cursor.execute('SELECT * FROM users WHERE id = %s', (id,))
+            # Fetch user for both GET and default values on POST
+            cursor.execute("SELECT * FROM users WHERE id = %s", (id,))
             user = cursor.fetchone()
 
-    return render_template("accounts/edit_user.html", user=user)  # Make sure form supports role1
+            if not user:
+                flash("User not found.", "danger")
+                return redirect(url_for("home_blueprint.index"))
 
+            if request.method == 'POST':
+                try:
+                    # Get form inputs
+                    username = request.form.get('username')
+                    first_name = request.form.get('first_name')
+                    last_name = request.form.get('last_name')
+                    other_name = request.form.get('other_name')
+                    password = request.form.get('password')
+                    role = request.form.get('role')
+                    role1 = request.form.get('role1') or None
+                    profile_image = request.files.get('profile_image')
+
+                    # Normalize role1
+                    if role1 in ('None', ''):
+                        role1 = None
+
+                    # Use existing password if blank
+                    if not password:
+                        password = get_user_password(cursor, id)
+
+                    # Handle image upload (or keep existing)
+                    profile_image_path = handle_profile_image(cursor, profile_image, id)
+                    if not profile_image_path:
+                        profile_image_path = user['profile_image']
+
+                    # Update user in DB
+                    cursor.execute('''
+                        UPDATE users
+                        SET username = %s, first_name = %s, last_name = %s, other_name = %s,
+                            password = %s, role = %s, role1 = %s, profile_image = %s
+                        WHERE id = %s
+                    ''', (
+                        username, first_name, last_name, other_name,
+                        password, role, role1, profile_image_path, id
+                    ))
+                    connection.commit()
+
+                    flash("User updated successfully!", "success")
+                    return redirect(url_for("authentication_blueprint.manage_users"))
+
+                except Exception as e:
+                    flash(f"Error updating user: {str(e)}", "danger")
+                    return redirect(url_for("authentication_blueprint.edit_user", id=id))
+
+            # GET request – render edit form
+            return render_template("accounts/edit_user.html", user=user)
 
 
 
