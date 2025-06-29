@@ -103,6 +103,22 @@
 
       {% if session['role1'] == 'teacher' %}
             <!-- Add Marks -->
+
+        <!-- Results Review -->
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-info">
+            <div class="inner">
+              <h5>Results Review</h5>
+              <p>Delete Marks</p>
+            </div>
+            <div class="icon"><i class="fas fa-search"></i></div>
+            <a href="{{ url_for('reports_blueprint.reports') }}" class="small-box-footer">
+              View More <i class="fas fa-arrow-circle-right"></i>
+            </a>
+          </div>
+        </div>
+
+          <!-- Add Marks -->
   <div class="col-lg-3 col-6">
     <div class="small-box bg-warning">
       <div class="inner">
@@ -115,6 +131,22 @@
       </a>
     </div>
   </div>
+
+        <!-- Uncomment if Pupils section is needed -->
+        
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-success">
+            <div class="inner">
+              <h5>Pupils</h5>
+              <p>List of Students</p>
+            </div>
+            <div class="icon"><i class="fas fa-user-graduate"></i></div>
+            <a href="/pupils" class="small-box-footer">More Info <i class="fas fa-arrow-circle-right"></i></a>
+          </div>
+        </div>
+
+
+        
 
 {% endif %}
      

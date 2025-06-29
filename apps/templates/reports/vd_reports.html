@@ -1,175 +1,133 @@
 {% extends "layouts/base.html" %}
 
-{% block title %}Scores & Positions Report{% endblock %}
+{% block title %}Assessment Report{% endblock %}
 {% block body_class %}sidebar-mini{% endblock %}
 
 {% block stylesheets %}
-<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-<link rel="stylesheet" href="https://cdn.datatables.net/2.2.2/css/dataTables.dataTables.css">
-<link rel="stylesheet" href="https://cdn.datatables.net/fixedcolumns/5.0.4/css/fixedColumns.dataTables.css">
-<link rel="stylesheet" href="/static/assets/css/select2.min.css">
-<link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
-<link rel="stylesheet" href="/static/assets/css/mine.css">
+{{ super() }}
+<link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+<link href="https://cdn.datatables.net/2.2.2/css/dataTables.dataTables.css" rel="stylesheet">
+<link href="https://cdn.datatables.net/fixedcolumns/5.0.4/css/fixedColumns.dataTables.css" rel="stylesheet">
+<link href="/static/assets/css/select2.min.css" rel="stylesheet">
+<link href="/static/assets/css/adminlte.min.css" rel="stylesheet">
+<link href="/static/assets/css/mine.css" rel="stylesheet">
+
+<style>
+  .print-header { text-align: center; margin-top: 20px; }
+  .print-header h1, .print-header .contact { color: red; }
+  .form-info { margin: 20px auto; width: 90%; font-weight: bold; color: #0000FF; }
+  .form-info span { color: black; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid black;
+    padding: 5px;
+    text-align: center;
+  }
+  th {
+    color: red;
+  }
+</style>
 {% endblock %}
 
 {% block content %}
 <div class="content-wrapper">
-
-  <!-- Flash Messages -->
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <div id="flashMessageContainer">
-        {% for category, message in messages %}
-          <div class="alert alert-{{ category }} alert-dismissible fade show mx-3 mt-3">
-            <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-circle' if category == 'warning' else 'times-circle' if category == 'danger' else 'info-circle' }}"></i>
-            {{ message }}
-            <button type="button" class="close" data-dismiss="alert">&times;</button>
-          </div>
-        {% endfor %}
-      </div>
-    {% endif %}
-  {% endwith %}
-
-  <!-- Page Header -->
+  
+  <!-- Content Header -->
   <section class="content-header">
     <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <h1>Scores & Positions Report</h1>
-        </div>
-        <div class="col-sm-6">
-          <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="/results_index">Home</a></li>
-            <li class="breadcrumb-item active">Scores & Positions</li>
-          </ol>
-        </div>
-      </div>
+      <h1>Printable Scores Report</h1>
     </div>
   </section>
 
   <!-- Filters and Report -->
   <section class="content">
     <div class="container-fluid">
-      
-      <!-- Filter Card -->
-      <div class="card card-primary card-outline">
+
+      <!-- Filters Card -->
+      <div class="card card-primary">
         <div class="card-header">
           <h3 class="card-title">Filter Report</h3>
         </div>
-        <form method="GET" action="{{ url_for('reports_blueprint.scores_positions_reports') }}">
+        <form method="GET" action="{{ url_for('reports_blueprint.vd_reports') }}">
           <div class="card-body">
-            <div class="form-row">
+            <div class="row">
               <div class="form-group col-md-3">
                 <label for="class_id">Class</label>
-                <select name="class_id" class="form-control select2">
+                <select name="class_id" class="form-control select2" id="class_id" required>
                   <option value="">-- Select Class --</option>
                   {% for c in class_list %}
-                  <option value="{{ c.class_id }}" {% if c.class_id == selected_class_id %}selected{% endif %}>{{ c.class_name }}</option>
+                    <option value="{{ c.class_id }}" {% if c.class_id == selected_class_id %}selected{% endif %}>{{ c.class_name }}</option>
                   {% endfor %}
                 </select>
               </div>
-
               <div class="form-group col-md-3">
                 <label for="year_id">Study Year</label>
-                <select name="year_id" class="form-control select2">
-                  <option value="">-- Select Study Year --</option>
+                <select name="year_id" class="form-control select2" id="year_id" required>
+                  <option value="">-- Select Year --</option>
                   {% for y in study_years %}
-                  <option value="{{ y.year_id }}" {% if y.year_id == selected_study_year_id %}selected{% endif %}>{{ y.year_name }}</option>
+                    <option value="{{ y.year_id }}" {% if y.year_id == selected_study_year_id %}selected{% endif %}>{{ y.year_name }}</option>
                   {% endfor %}
                 </select>
               </div>
-
               <div class="form-group col-md-3">
                 <label for="term_id">Term</label>
-                <select name="term_id" class="form-control select2">
+                <select name="term_id" class="form-control select2" id="term_id" required>
                   <option value="">-- Select Term --</option>
                   {% for t in terms %}
-                  <option value="{{ t.term_id }}" {% if t.term_id == selected_term_id %}selected{% endif %}>{{ t.term_name }}</option>
+                    <option value="{{ t.term_id }}" {% if t.term_id == selected_term_id %}selected{% endif %}>{{ t.term_name }}</option>
                   {% endfor %}
                 </select>
               </div>
-
               <div class="form-group col-md-3">
-                <label for="assessment_name">Assessment</label>
-                <select name="assessment_name" class="form-control select2">
-                  <option value="">-- Select Assessment --</option>
+                <label for="assessment_name">Assessments (Multiple)</label>
+                <select name="assessment_name" class="form-control select2" id="assessment_name" multiple required>
                   {% for a in assessments %}
-                  <option value="{{ a.assessment_name }}" {% if a.assessment_name == selected_assessment_name %}selected{% endif %}>{{ a.assessment_name }}</option>
+                    <option value="{{ a.assessment_name }}" {% if selected_assessment_name and a.assessment_name in selected_assessment_name %}selected{% endif %}>{{ a.assessment_name }}</option>
                   {% endfor %}
                 </select>
               </div>
             </div>
           </div>
           <div class="card-footer text-right">
-            <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Filter Results</button>
-            <button id="exportExcelButton" class="btn btn-success"><i class="fas fa-file-excel"></i> Export to Excel</button>
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-search"></i> Filter
+            </button>
           </div>
         </form>
       </div>
 
-      <!-- Table Card -->
-      <div class="card">
+      <!-- Pupil Selector Card -->
+      <div class="card card-info">
         <div class="card-header">
-          <h3 class="card-title">Pupil Performance</h3>
+          <h3 class="card-title">Select Pupil</h3>
         </div>
         <div class="card-body">
-          <div class="table-responsive">
+          <select id="studentSelect" class="form-control select2" style="width: 100%;">
+            <option value="">-- Select Pupil --</option>
+            {% set seen = [] %}
+            {% for student in reports %}
+              {% if student.reg_no not in seen %}
+                <option value="{{ student.reg_no }}">{{ student.full_name }}</option>
+                {% set _ = seen.append(student.reg_no) %}
+              {% endif %}
+            {% endfor %}
+          </select>
+        </div>
+      </div>
 
-
-<table id="reportTable" class="display nowrap stripe" style="width:100%">
-  <thead>
-    <tr>
-      <th>Reg No</th>
-      <th>Full Name</th>
-      <th>Year</th>
-      <th>Term</th>
-      <th>Assessment</th>
-
-      {% for subject in subject_names %}
-        <th>{{ subject }} (Mark)</th>
-        <th>{{ subject }} (Grade)</th>
-      {% endfor %}
-
-      <th>Total Score</th>
-      <th>Average Score</th>
-      <th>Aggregate</th>
-      <th>Division</th>
-      <th>Stream Position</th>
-      <th>Class Position</th>
-    </tr>
-  </thead>
-
-  <tbody>
-    {% for student in reports %}
-      <tr>
-        <td>{{ student.reg_no }}</td>
-        <td>{{ student.full_name }}</td>
-        <td>{{ student.year_name }}</td>
-        <td>{{ student.term_name }}</td>
-        <td>{{ student.assessment_name }}</td>
-
-        {% for subject in subject_names %}
-          <td>{{ student.marks[subject] if student.marks[subject] is not none else 'N/A' }}</td>
-          <td>{{ student.grades[subject] if student.grades[subject] else 'N/A' }}</td>
-        {% endfor %}
-
-        <td>{{ student.total_score }}</td>
-        <td>{{ student.average_score }}</td>
-        <td>{{ student.aggregate }}</td>
-        <td>{{ student.division }}</td>
-        <td>{{ student.stream_position }}</td>
-        <td>{{ student.class_position }}</td>
-      </tr>
-    {% endfor %}
-  </tbody>
-</table>
-
-
-
-
-
-          </div>
+      <!-- Report Display Card -->
+      <div class="card card-success">
+        <div class="card-header">
+          <h3 class="card-title">Report</h3>
+        </div>
+        <div class="card-body" id="printableReportContainer" style="overflow-x:auto;">
+          <p>Select a pupil to view the report.</p>
         </div>
       </div>
 
@@ -184,38 +142,84 @@
 <script src="https://cdn.datatables.net/2.2.2/js/dataTables.js"></script>
 <script src="https://cdn.datatables.net/fixedcolumns/5.0.4/js/dataTables.fixedColumns.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="/static/assets/js/adminlte.js"></script>
 <script src="/static/assets/js/mine.js"></script>
 
 <script>
-  $(document).ready(function () {
-    $('.select2').select2();
+  const allReports = {{ reports | tojson }};
+  const subjectNames = {{ subject_names | tojson }};
 
-    $('#reportTable').DataTable({
-      fixedColumns: {
-        left: 2,
-        right: 1
-      },
-      paging: false,
-      scrollX: true,
-      scrollY: '300px',
-      scrollCollapse: true,
-      stateSave: true
-    });
+  function renderStudentReport(studentId) {
+    const container = document.getElementById('printableReportContainer');
+    container.innerHTML = '';
 
-    const $flash = $('#flashMessageContainer');
-    if ($flash.length) {
-      $flash.fadeIn(400).delay(3500).fadeOut(600);
+    if (!studentId) {
+      container.innerHTML = '<p>Please select a pupil to view the report.</p>';
+      return;
     }
 
-    $('#exportExcelButton').click(function (e) {
-      e.preventDefault();
-      const table = document.getElementById('reportTable');
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.table_to_sheet(table);
-      XLSX.utils.book_append_sheet(wb, ws, 'Assessment');
-      XLSX.writeFile(wb, 'assessment_report.xlsx');
+    const studentReports = allReports.filter(s => s.reg_no === studentId);
+    if (studentReports.length === 0) {
+      container.innerHTML = '<p>No report data available for this pupil.</p>';
+      return;
+    }
+
+    const student = studentReports[0];
+
+    const header = `
+      <div class="print-header">
+        <h1>SACRED HEART GIRLS’ PRIMARY SCHOOL KYAMUSANSALA</h1>
+        <div class="contact">P.O.BOX 1759, MASAKA – UGANDA</div>
+        <div class="contact">TEL: 0772-848153 / 0782957781</div>
+      </div>
+      <div class="form-info">
+        <p>PUPIL’S NAME: <span>${student.full_name}</span></p>
+        <p>CLASS: <span>${student.class_name || 'N/A'}</span> STREAM: <span>${student.stream_name || 'N/A'}</span></p>
+        <p>NUMBER OF PUPILS IN THE CLASS: <span>${student.total_class_size || 'N/A'}</span></p>
+      </div>
+    `;
+
+    studentReports.sort((a, b) => a.assessment_name.localeCompare(b.assessment_name));
+
+    let table = `
+      <table class="table table-bordered table-sm">
+        <thead class="thead-light">
+          <tr>
+            <th>#</th>
+            <th>Assessment</th>
+            ${subjectNames.map(s => `<th>${s}</th><th>AGG</th>`).join('')}
+            <th>WT</th><th>TTL</th><th>T/AGG</th><th>DIV</th><th>POS</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${studentReports.map((rep, i) => `
+            <tr>
+              <td>${i + 1}</td>
+              <td>${rep.assessment_name}</td>
+              ${subjectNames.map(sub => `
+                <td>${rep.marks[sub] ?? ''}</td>
+                <td>${rep.grades[sub] ?? ''}</td>
+              `).join('')}
+              <td>${rep.aggregate ?? ''}</td>
+              <td>${rep.total_score ?? ''}</td>
+              <td>${rep.average_score ?? ''}</td>
+              <td>${rep.division ?? ''}</td>
+              <td>${rep.class_position ?? ''}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+
+    container.innerHTML = header + table;
+  }
+
+  $(function () {
+    $('.select2').select2();
+
+    $('#studentSelect').on('change', function () {
+      renderStudentReport(this.value);
     });
   });
 </script>

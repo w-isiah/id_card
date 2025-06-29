@@ -767,7 +767,7 @@ def scores_positions_reports():
 
 
 
-
+  
 
 @blueprint.route('/scores_positions_reports_remarks', methods=['GET'])
 def scores_positions_reports_remarks():  
@@ -1382,12 +1382,32 @@ def scores_p_reports():
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 @blueprint.route('/vd_reports', methods=['GET'])
 def vd_reports():
-    connection = get_db_connection()
-    cursor = connection.cursor(dictionary=True)
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
 
-    # Load dropdown options
+    # Load dropdown data
     cursor.execute("SELECT * FROM classes")
     class_list = cursor.fetchall()
     cursor.execute("SELECT * FROM study_year")
@@ -1397,127 +1417,130 @@ def vd_reports():
     cursor.execute("SELECT * FROM assessment")
     assessments = cursor.fetchall()
 
-    # Get filter parameters
+    # Read filters
     class_id = request.args.get('class_id', type=int)
     year_id = request.args.get('year_id', type=int)
     term_id = request.args.get('term_id', type=int)
-    assessment_name = request.args.get('assessment_name', type=str)
+    assessment_name_list = request.args.getlist('assessment_name')
 
-    if not all([class_id, year_id, term_id, assessment_name]):
+    # If filters incomplete, return empty
+    if not all([class_id, year_id, term_id, assessment_name_list]):
         return render_template('reports/vd_reports.html',
-            reports=[], subject_names=[], class_list=class_list,
-            study_years=study_years, terms=terms, assessments=assessments,
-            selected_class_id=class_id, selected_study_year_id=year_id,
-            selected_term_id=term_id, selected_assessment_name=assessment_name,
+            reports=[], subject_names=[],
+            class_list=class_list, study_years=study_years,
+            terms=terms, assessments=assessments,
+            selected_class_id=class_id,
+            selected_study_year_id=year_id,
+            selected_term_id=term_id,
+            selected_assessment_name=assessment_name_list,
             segment='reports'
         )
 
-    # Fetch scores and grades (without remarks)
-    cursor.execute("""
-        SELECT 
-            p.reg_no, p.stream_id, p.class_id,
-            CONCAT_WS(' ', p.first_name, p.other_name, p.last_name) AS full_name,
-            y.year_name, y.year_id,
-            t.term_name, t.term_id,
-            a.assessment_name,
-            sub.subject_name,
-            s.Mark,
-            g.grade_letter,
-            g.weight
-        FROM scores s
-        JOIN pupils p ON s.reg_no = p.reg_no
-        JOIN assessment a ON s.assessment_id = a.assessment_id
-        JOIN terms t ON s.term_id = t.term_id
-        JOIN study_year y ON s.year_id = y.year_id
-        JOIN subjects sub ON s.subject_id = sub.subject_id
-        LEFT JOIN grades g ON s.Mark BETWEEN g.min_score AND g.max_score
-        WHERE p.class_id = %s AND s.year_id = %s AND s.term_id = %s AND a.assessment_name = %s
-    """, (class_id, year_id, term_id, assessment_name))
+    # Build SQL filter for assessments
+    in_sql = ','.join(['%s'] * len(assessment_name_list))
+
+    # Query combined data using JOINs
+    query = f"""
+    SELECT
+      s.reg_no, p.stream_id, p.class_id,
+      CONCAT_WS(' ', p.first_name, p.other_name, p.last_name) AS full_name,
+      c.class_name,
+      st.stream_name,
+      y.year_name, y.year_id,
+      t.term_name, t.term_id,
+      a.assessment_name,
+      sub.subject_name,
+      s.Mark,
+      g.grade_letter,
+      g.weight,
+      cls.total_class_size
+    FROM scores s
+    JOIN pupils p USING (reg_no)
+    JOIN classes c ON p.class_id = c.class_id
+    JOIN stream st ON p.stream_id = st.stream_id
+    JOIN study_year y ON s.year_id = y.year_id
+    JOIN terms t ON s.term_id = t.term_id
+    JOIN assessment a ON s.assessment_id = a.assessment_id
+    JOIN subjects sub ON s.subject_id = sub.subject_id
+    LEFT JOIN grades g ON s.Mark BETWEEN g.min_score AND g.max_score
+    JOIN (
+      SELECT class_id, COUNT(*) AS total_class_size
+      FROM pupils GROUP BY class_id
+    ) cls ON cls.class_id = p.class_id
+    WHERE p.class_id=%s AND s.year_id=%s AND s.term_id=%s
+      AND a.assessment_name IN ({in_sql})
+    ORDER BY s.reg_no, a.assessment_name, sub.subject_name;
+    """
+
+    params = [class_id, year_id, term_id] + assessment_name_list
+    cursor.execute(query, params)
     rows = cursor.fetchall()
 
-    subject_names = sorted({row['subject_name'] for row in rows})
+    # Extract sorted subject list
+    subject_names = sorted({r['subject_name'] for r in rows})
 
-    # Organize by student
-    student_map = {}
-    for row in rows:
-        reg_no = row['reg_no']
-        if reg_no not in student_map:
-            student_map[reg_no] = {
-                'reg_no': reg_no,
-                'full_name': row['full_name'],
-                'class_id': row['class_id'],
-                'stream_id': row['stream_id'],
-                'year_id': row['year_id'],
-                'term_id': row['term_id'],
-                'year_name': row['year_name'],
-                'term_name': row['term_name'],
-                'assessment_name': row['assessment_name'],
+    # Group by (reg_no, assessment)
+    reports = []
+    grouped = {}
+    for r in rows:
+        key = (r['reg_no'], r['assessment_name'])
+        if key not in grouped:
+            grouped[key] = {
+                'reg_no': r['reg_no'],
+                'full_name': r['full_name'],
+                'class_id': r['class_id'],
+                'stream_id': r['stream_id'],
+                'class_name': r['class_name'],
+                'stream_name': r['stream_name'],
+                'year_id': r['year_id'],
+                'term_id': r['term_id'],
+                'year_name': r['year_name'],
+                'term_name': r['term_name'],
+                'assessment_name': r['assessment_name'],
                 'marks': {},
                 'grades': {},
-                'weights': {}
+                'weights': {},
+                'total_class_size': r['total_class_size']
             }
-        student_map[reg_no]['marks'][row['subject_name']] = row['Mark'] if row['Mark'] is not None else float('nan')
-        student_map[reg_no]['grades'][row['subject_name']] = row['grade_letter'] or ''
-        student_map[reg_no]['weights'][row['subject_name']] = row['weight'] or 0
+        grp = grouped[key]
+        grp['marks'][r['subject_name']] = r['Mark'] if r['Mark'] is not None else np.nan
+        grp['grades'][r['subject_name']] = r['grade_letter'] or ''
+        grp['weights'][r['subject_name']] = r['weight'] or 0
 
-    # Compute totals, averages, and aggregates
-    reports = []
-    for student in student_map.values():
-        marks = np.array([student['marks'].get(sub, float('nan')) for sub in subject_names], dtype=np.float64)
-        weights = [student['weights'].get(sub, 0) for sub in subject_names]
+    # Compute totals, averages, aggregates, division
+    for grp in grouped.values():
+        marks = np.array([grp['marks'].get(s, np.nan) for s in subject_names], dtype=float)
+        weights = [grp['weights'].get(s, 0) for s in subject_names]
 
-        total_score = np.nansum(marks)
-        count = np.count_nonzero(~np.isnan(marks))
-        average_score = round(total_score / count, 2) if count else 0
-        aggregate = sum(weights)
+        total_score = float(np.nansum(marks))
+        count = int(np.count_nonzero(~np.isnan(marks)))
+        avg_score = round(total_score / count, 2) if count else 0.0
+        agg = sum(weights)
 
-        # Determine division
         cursor.execute("""
-            SELECT division_name FROM division
-            WHERE %s BETWEEN min_score AND max_score
-            LIMIT 1
-        """, (aggregate,))
-        division_row = cursor.fetchone()
-        division_name = division_row['division_name'] if division_row else 'N/A'
+          SELECT division_name
+          FROM division
+          WHERE %s BETWEEN min_score AND max_score
+          LIMIT 1
+        """, (agg,))
+        div_row = cursor.fetchone()
+        division = div_row['division_name'] if div_row else 'N/A'
 
-        student['total_score'] = total_score
-        student['average_score'] = average_score
-        student['aggregate'] = aggregate
-        student['division'] = division_name
-        reports.append(student)
+        grp.update({
+            'total_score': total_score,
+            'average_score': avg_score,
+            'aggregate': agg,
+            'division': division
+        })
+        reports.append(grp)
 
-    # Assign positions
-    for student in reports:
-        reg_no = student['reg_no']
-        stream_id = student['stream_id']
-        class_id = student['class_id']
-        term_id = student['term_id']
-        year_id = student['year_id']
-
-        # Stream position
-        cursor.execute("""
-            SELECT p.reg_no, AVG(s.Mark) AS avg
-            FROM scores s
-            JOIN pupils p ON s.reg_no = p.reg_no
-            WHERE p.stream_id = %s AND s.term_id = %s AND s.year_id = %s
-            GROUP BY p.reg_no ORDER BY avg DESC
-        """, (stream_id, term_id, year_id))
-        stream_ranks = cursor.fetchall()
-        student['stream_position'] = next((i + 1 for i, r in enumerate(stream_ranks) if r['reg_no'] == reg_no), None)
-
-        # Class position
-        cursor.execute("""
-            SELECT p.reg_no, AVG(s.Mark) AS avg
-            FROM scores s
-            JOIN pupils p ON s.reg_no = p.reg_no
-            WHERE p.class_id = %s AND s.term_id = %s AND s.year_id = %s
-            GROUP BY p.reg_no ORDER BY avg DESC
-        """, (class_id, term_id, year_id))
-        class_ranks = cursor.fetchall()
-        student['class_position'] = next((i + 1 for i, r in enumerate(class_ranks) if r['reg_no'] == reg_no), None)
+    # Sort and assign class positions within same class and assessment
+    reports.sort(key=lambda x: (-x['average_score'], x['reg_no']))
+    for idx, rpt in enumerate(reports):
+        rpt['class_position'] = idx + 1
 
     cursor.close()
-    connection.close()
+    conn.close()
 
     return render_template('reports/vd_reports.html',
         reports=reports,
@@ -1529,7 +1552,6 @@ def vd_reports():
         selected_class_id=class_id,
         selected_study_year_id=year_id,
         selected_term_id=term_id,
-        selected_assessment_name=assessment_name,
+        selected_assessment_name=assessment_name_list,
         segment='reports'
-    )   
-
+    )
