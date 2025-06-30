@@ -76,6 +76,7 @@ def pupils():
 
     # Get query parameters from form submission
     reg_no = request.args.get('reg_no', '').strip()
+    index_number = request.args.get('index_number', '').strip()
     emis_number = request.args.get('emis_number', '').strip()
     name = request.args.get('name', '').strip()
     class_id = request.args.get('class_name', '').strip()
@@ -88,7 +89,7 @@ def pupils():
 
     # Determine if any filters are applied
     filters_applied = any([
-        reg_no, emis_number, name, class_id, stream_id,
+        reg_no, index_number, emis_number, name, class_id, stream_id,
         study_year_id, term_id, residential_status,
         nin_number, home_district
     ])
@@ -105,6 +106,7 @@ def pupils():
 
     if filters_applied:
         add_filter("p.reg_no", "reg_no", reg_no, use_like=True)
+        add_filter("p.index_number", "index_number", index_number, use_like=True)
         add_filter("p.emis_number", "emis_number", emis_number, use_like=True)
         add_filter("p.nin_number", "nin_number", nin_number, use_like=True)
         add_filter("p.home_district", "home_district", home_district, use_like=True)
@@ -126,6 +128,7 @@ def pupils():
             SELECT 
                 p.pupil_id,
                 p.reg_no,
+                p.index_number,
                 p.emis_number,
                 TRIM(CONCAT(p.first_name, ' ', COALESCE(p.other_name, ''), ' ', p.last_name)) AS full_name,
                 p.gender,
@@ -164,6 +167,7 @@ def pupils():
         study_years=study_years,
         filters={
             'reg_no': reg_no,
+            'index_number': index_number,
             'emis_number': emis_number,
             'name': name,
             'class_name': class_id,
@@ -175,6 +179,7 @@ def pupils():
             'home_district': home_district
         }
     )
+
 
 
 
@@ -288,7 +293,7 @@ def edit_pupil(pupil_id):
     if request.method == 'POST':
         # Gather all form inputs
         form_fields = [
-            'first_name', 'other_name', 'last_name', 'nin_number', 'emis_number',
+            'first_name', 'other_name', 'last_name', 'index_number','nin_number', 'emis_number',
             'date_of_birth', 'gender', 'study_year', 'admission_date',
             'district', 'address', 'emergency_contact', 'medical_info',
             'special_needs', 'attendance_record', 'academic_performance',
@@ -320,7 +325,7 @@ def edit_pupil(pupil_id):
             update_query = '''
                 UPDATE pupils
                 SET first_name = %s, other_name = %s, last_name = %s,
-                    nin_number = %s, emis_number = %s, date_of_birth = %s,
+                    index_number=%s, nin_number = %s, emis_number = %s, date_of_birth = %s,
                     gender = %s, year_id = %s, admission_date = %s,
                     home_district = %s, address = %s, emergency_contact = %s,
                     medical_info = %s, special_needs = %s, attendance_record = %s,
@@ -331,7 +336,7 @@ def edit_pupil(pupil_id):
 
             cursor.execute(update_query, (
                 form_data['first_name'], form_data['other_name'], form_data['last_name'],
-                form_data['nin_number'], form_data['emis_number'], form_data['date_of_birth'],
+                form_data['index_number'], form_data['nin_number'], form_data['emis_number'], form_data['date_of_birth'],
                 form_data['gender'], form_data['study_year'],
                 form_data['admission_date'], form_data['district'], form_data['address'],
                 form_data['emergency_contact'], form_data['medical_info'],
