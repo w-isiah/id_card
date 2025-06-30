@@ -12,7 +12,6 @@
   <link rel="stylesheet" href="/static/assets/css/mine.css">
 
   <style>
-    /* Hide elements (like filters) only in the print view */
     .no-print {
       display: block;
     }
@@ -31,7 +30,6 @@
       }
     }
 
-    /* Basic colors and styles */
     .dark-maroon {
       background-color: #800000 !important;
       color: #fff !important;
@@ -64,15 +62,34 @@
       color: #444;
     }
 
-    .form-info {
+    .form-info-wrapper {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
       margin: 20px auto;
       width: 90%;
+    }
+
+    .form-info {
       font-weight: bold;
       color: #800000;
+      flex: 1;
     }
 
     .form-info span {
       color: black;
+    }
+
+    .student-photo {
+      margin-left: 20px;
+    }
+
+    .student-photo img {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 2px solid #800000;
     }
 
     table {
@@ -98,7 +115,6 @@
 {% block content %}
 <div class="content-wrapper">
 
-  <!-- Page Title -->
   <section class="content-header dark-maroon no-print">
     <div class="container-fluid">
       <h1>Printable Scores Report</h1>
@@ -106,7 +122,7 @@
   </section>
 
   <section class="content container-fluid">
-    <!-- Filter Form -->
+
     <div class="card no-print">
       <div class="card-header dark-maroon">
         <h3 class="card-title">Filter Report</h3>
@@ -183,7 +199,6 @@
       </form>
     </div>
 
-    <!-- Pupil Selector -->
     <div class="card no-print">
       <div class="card-header dark-maroon">
         <h3 class="card-title">Select Pupil</h3>
@@ -202,7 +217,6 @@
       </div>
     </div>
 
-    <!-- Report Output -->
     <div class="card">
       <div class="card-header dark-maroon">
         <h3 class="card-title">Report</h3>
@@ -214,6 +228,7 @@
         <p>Select a pupil to view the report.</p>
       </div>
     </div>
+
   </section>
 </div>
 {% endblock %}
@@ -252,10 +267,18 @@
             <div class="contact">TEL: 0772‑848153 / 0782‑957781</div>
           </div>
         </div>
-        <div class="form-info">
-          <p>PUPIL’S NAME: <span>${st.full_name}</span></p>
-          <p>CLASS: <span>${st.class_name || 'N/A'}</span> STREAM: <span>${st.stream_name || 'N/A'}</span></p>
-          <p>NUMBER OF PUPILS IN THE CLASS: <span>${st.total_class_size || 'N/A'}</span></p>
+
+        <div class="form-info-wrapper">
+          <div class="form-info">
+            <p>PUPIL’S NAME: <span>${st.full_name}</span></p>
+            <p>CLASS: <span>${st.class_name || 'N/A'}</span> STREAM: <span>${st.stream_name || 'N/A'}</span></p>
+            <p>NUMBER OF PUPILS IN THE CLASS: <span>${st.total_class_size || 'N/A'}</span></p>
+          </div>
+          <div class="student-photo">
+            ${st.image 
+              ? `<img src="/static/uploads/${st.image}" class="img-thumbnail rounded-circle">`
+              : `<span class="text-muted">No Image</span>`}
+          </div>
         </div>`;
 
       reps.sort((a, b) => a.assessment_name.localeCompare(b.assessment_name));

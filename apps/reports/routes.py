@@ -1447,6 +1447,7 @@ def vd_reports():
       s.reg_no, p.stream_id, p.class_id,
       CONCAT_WS(' ', p.first_name, p.other_name, p.last_name) AS full_name,
       c.class_name,
+      p.image as image,
       st.stream_name,
       y.year_name, y.year_id,
       t.term_name, t.term_id,
@@ -1489,6 +1490,7 @@ def vd_reports():
         if key not in grouped:
             grouped[key] = {
                 'reg_no': r['reg_no'],
+                'image': r['image'],
                 'full_name': r['full_name'],
                 'class_id': r['class_id'],
                 'stream_id': r['stream_id'],

@@ -62,178 +62,196 @@
   </div>
 
   <!-- Flash Messages -->
-<!-- Flash Messages -->
+  <!-- Flash Messages -->
   {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <div class="alert-container" id="flashMessageContainer">
-        {% for category, message in messages %}
-          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-            <i class="fas fa-{{ 
-              'check-circle' if category == 'success' 
-              else 'exclamation-circle' if category == 'warning' 
-              else 'times-circle' if category == 'danger' 
-              else 'info-circle' }}"></i>
-            <span>{{ message }}</span>
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
-        {% endfor %}
+  {% if messages %}
+  <div class="alert-container" id="flashMessageContainer">
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+      <i class="fas fa-{{ 
+        'check-circle' if category == 'success' 
+        else 'exclamation-circle' if category == 'warning' 
+        else 'times-circle' if category == 'danger' 
+        else 'info-circle' }}"></i>
+        <span>{{ message }}</span>
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
       </div>
+      {% endfor %}
+    </div>
     {% endif %}
-  {% endwith %}
+    {% endwith %}
 
-  
+    
 
-  <section class="content">
-    <div class="container-fluid">
-      <div class="row">
+    <section class="content">
+      <div class="container-fluid">
+        <div class="row">
 
-      
+          
 
-<!-- Inventory Section -->
-<div class="col-lg-3 col-6">
-  <div class="small-box bg-warning">
-    <div class="inner">
-      <h5>Inventory</h5>
-      <p>Manage Assets</p>
-    </div>
-    <div class="icon">
-      <i class="fas fa-boxes"></i>
-    </div>
-    <a href="/inventory_index" class="small-box-footer">
-      More Info <i class="fas fa-arrow-circle-right"></i>
-    </a>
-  </div>
-</div>
-
-
-
-{% if session['role'] == 'admin' or session['role'] == 'Head_ICT' %}
-  <!-- User Accounts Section (Visible to Admin and Head_ICT Only) -->
-  <div class="col-lg-3 col-6">
-    <div class="small-box bg-primary">
-      <div class="inner">
-        <h5>User Accounts</h5>
-        <p>Manage Users</p>
-      </div>
-      <div class="icon">
-        <i class="fas fa-user-cog"></i>
-      </div>
-      <a href="/manage_users" class="small-box-footer">
-        More Info <i class="fas fa-arrow-circle-right"></i>
-      </a>
-    </div>
-  </div>
-{% endif %}
-
-
-
-
-
-
-{% if session['role1'] == 'teacher' %}
-            <!-- Add Marks -->
-
-
-
-        <!-- Results Review -->
-        <div class="col-lg-3 col-6">
-          <div class="small-box bg-info">
-            <div class="inner">
-              <h5>Results Review</h5>
-              <p>Delete Marks</p>
+          <!-- Inventory Section -->
+          <div class="col-lg-3 col-6">
+            <div class="small-box bg-warning">
+              <div class="inner">
+                <h5>Inventory</h5>
+                <p>Manage Assets</p>
+              </div>
+              <div class="icon">
+                <i class="fas fa-boxes"></i>
+              </div>
+              <a href="/inventory_index" class="small-box-footer">
+                More Info <i class="fas fa-arrow-circle-right"></i>
+              </a>
             </div>
-            <div class="icon"><i class="fas fa-search"></i></div>
-            <a href="{{ url_for('reports_blueprint.reports') }}" class="small-box-footer">
-              View More <i class="fas fa-arrow-circle-right"></i>
-            </a>
           </div>
-        </div>
+
+
+
+          {% if session['role'] == 'admin' or session['role'] == 'Head_ICT' %}
+          <!-- User Accounts Section (Visible to Admin and Head_ICT Only) -->
+          <div class="col-lg-3 col-6">
+            <div class="small-box bg-primary">
+              <div class="inner">
+                <h5>User Accounts</h5>
+                <p>Manage Users</p>
+              </div>
+              <div class="icon">
+                <i class="fas fa-user-cog"></i>
+              </div>
+              <a href="/manage_users" class="small-box-footer">
+                More Info <i class="fas fa-arrow-circle-right"></i>
+              </a>
+            </div>
+          </div>
+          {% endif %}
+
+
+
+
+
+
+          {% if session['role1'] == 'teacher' %}
+          <!-- Add Marks -->
+
+
+
+          <!-- Results Review -->
+          <div class="col-lg-3 col-6">
+            <div class="small-box bg-info">
+              <div class="inner">
+                <h5>Results Review</h5>
+                <p>Delete Marks</p>
+              </div>
+              <div class="icon"><i class="fas fa-search"></i></div>
+              <a href="{{ url_for('reports_blueprint.reports') }}" class="small-box-footer">
+                View More <i class="fas fa-arrow-circle-right"></i>
+              </a>
+            </div>
+          </div>
 
           <!-- Add Marks -->
-  <div class="col-lg-3 col-6">
-    <div class="small-box bg-warning">
-      <div class="inner">
-        <h5>Add Marks</h5>
-        <p>Insert Scores</p>
-      </div>
-      <div class="icon"><i class="fas fa-plus-circle"></i></div>
-      <a href="/teacher_add_marks" class="small-box-footer">
-        More Info <i class="fas fa-angle-double-right"></i>
-      </a>
-    </div>
-  </div>
-
-        <!-- Uncomment if Pupils section is needed -->
-        
-        <div class="col-lg-3 col-6">
-          <div class="small-box bg-success">
-            <div class="inner">
-              <h5>Pupils</h5>
-              <p>List of Students</p>
+          <div class="col-lg-3 col-6">
+            <div class="small-box bg-warning">
+              <div class="inner">
+                <h5>Add Marks</h5>
+                <p>Insert Scores</p>
+              </div>
+              <div class="icon"><i class="fas fa-plus-circle"></i></div>
+              <a href="/teacher_add_marks" class="small-box-footer">
+                More Info <i class="fas fa-angle-double-right"></i>
+              </a>
             </div>
-            <div class="icon"><i class="fas fa-user-graduate"></i></div>
-            <a href="/pupils" class="small-box-footer">More Info <i class="fas fa-arrow-circle-right"></i></a>
+          </div>
+
+
+          <!-- Results & Update -->
+          <div class="col-lg-3 col-6">
+            <div class="small-box bg-success">
+              <div class="inner">
+                <h5>VD Reports</h5>
+                <p>Mini Reports</p>
+              </div>
+              <div class="icon"><i class="fas fa-edit"></i></div>
+              <a href="/vd_reports" class="small-box-footer">
+                More Info <i class="fas fa-angle-double-right"></i>
+              </a>
+            </div>
+          </div>
+
+
+          
+
+          <!-- Uncomment if Pupils section is needed -->
+          
+          <div class="col-lg-3 col-6">
+            <div class="small-box bg-success">
+              <div class="inner">
+                <h5>Pupils</h5>
+                <p>List of Students</p>
+              </div>
+              <div class="icon"><i class="fas fa-user-graduate"></i></div>
+              <a href="/pupils" class="small-box-footer">More Info <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+          </div>
+
+
+          
+          {% endif %}
+          
+
+
+
+
+
+
+          
+
+          
+
+
+
+        </div>
+
+        <div class="card">
+          <div class="card-header border-transparent">
+            <h3 class="card-title">Some List</h3>
+            <div class="card-tools">
+              <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i></button>
+              <button type="button" class="btn btn-tool" data-card-widget="remove"><i class="fas fa-times"></i></button>
+            </div>
+          </div>
+
+          <div class="card-body p-0">
+
+
+
           </div>
         </div>
+      </div>
+    </section>
+  </div>
+  {% endblock content %}
 
+  {% block javascripts %}
+  <script src="/static/assets/plugins/jquery/jquery.min.js"></script>
+  <script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="/static/assets/js/adminlte.js"></script>
+  <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/responsive/2.3.0/js/dataTables.responsive.min.js"></script>
 
-        
-{% endif %}
-  
-
-
-
-
-
-
+  <script>
+    $(document).ready(function() {
      
 
-  
 
 
 
-    </div>
-
-    <div class="card">
-      <div class="card-header border-transparent">
-        <h3 class="card-title">Some List</h3>
-        <div class="card-tools">
-          <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i></button>
-          <button type="button" class="btn btn-tool" data-card-widget="remove"><i class="fas fa-times"></i></button>
-        </div>
-      </div>
-
-      <div class="card-body p-0">
-
-
-
-      </div>
-    </div>
-  </div>
-</section>
-</div>
-{% endblock content %}
-
-{% block javascripts %}
-<script src="/static/assets/plugins/jquery/jquery.min.js"></script>
-<script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="/static/assets/js/adminlte.js"></script>
-<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/responsive/2.3.0/js/dataTables.responsive.min.js"></script>
-
-<script>
-  $(document).ready(function() {
- 
-
-
-
-
-  const $flash = $('#flashMessageContainer');
-    if ($flash.length) {
-      $flash.fadeIn(400).delay(3500).fadeOut(600);
-    }
+      const $flash = $('#flashMessageContainer');
+      if ($flash.length) {
+        $flash.fadeIn(400).delay(3500).fadeOut(600);
+      }
 
   // Copy SKU to clipboard
   function copyToClipboard(sku) {

@@ -59,44 +59,44 @@
         else 'exclamation-triangle' if category == 'warning' 
         else 'times-circle' if category == 'danger' 
         else 'info-circle' }}"></i>
-      <span>{{ message }}</span>
-      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-        <span aria-hidden="true">&times;</span>
-      </button>
-    </div>
-    {% endfor %}
-  </div>
-  {% endif %}
-  {% endwith %}
-
-  <!-- Main Content -->
-  <section class="content">
-    <div class="container-fluid">
-     <div class="row">
-
- 
-
-  <!-- Sections -->
-  <div class="col-lg-3 col-6">
-    <div class="small-box bg-info">
-      <div class="inner">
-        <h5>Sections</h5>
-        <p>Detailed Grouping</p>
+        <span>{{ message }}</span>
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
       </div>
-      <div class="icon">
-        <i class="fas fa-layer-group"></i>
-      </div>
-      <a href="/cat_head_sub_categories" class="small-box-footer">
-        More Info <i class="fas fa-arrow-circle-right"></i>
-      </a>
+      {% endfor %}
     </div>
-  </div>
+    {% endif %}
+    {% endwith %}
+
+    <!-- Main Content -->
+    <section class="content">
+      <div class="container-fluid">
+       <div class="row">
+
+         
+
+        <!-- Sections -->
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-info">
+            <div class="inner">
+              <h5>Sections</h5>
+              <p>Detailed Grouping</p>
+            </div>
+            <div class="icon">
+              <i class="fas fa-layer-group"></i>
+            </div>
+            <a href="/cat_head_sub_categories" class="small-box-footer">
+              More Info <i class="fas fa-arrow-circle-right"></i>
+            </a>
+          </div>
+        </div>
 
 
-      
-{% if session['role1'] == 'teacher' %}
-            <!-- Add Marks -->
- 
+        
+        {% if session['role1'] == 'teacher' %}
+        <!-- Add Marks -->
+        
 
 
 
@@ -114,19 +114,32 @@
           </div>
         </div>
 
-          <!-- Add Marks -->
-  <div class="col-lg-3 col-6">
-    <div class="small-box bg-warning">
-      <div class="inner">
-        <h5>Add Marks</h5>
-        <p>Insert Scores</p>
-      </div>
-      <div class="icon"><i class="fas fa-plus-circle"></i></div>
-      <a href="/teacher_add_marks" class="small-box-footer">
-        More Info <i class="fas fa-angle-double-right"></i>
-      </a>
-    </div>
-  </div>
+        <!-- Add Marks -->
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-warning">
+            <div class="inner">
+              <h5>Add Marks</h5>
+              <p>Insert Scores</p>
+            </div>
+            <div class="icon"><i class="fas fa-plus-circle"></i></div>
+            <a href="/teacher_add_marks" class="small-box-footer">
+              More Info <i class="fas fa-angle-double-right"></i>
+            </a>
+          </div>
+        </div>
+        <!-- Results & Update -->
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-success">
+            <div class="inner">
+              <h5>VD Reports</h5>
+              <p>Mini Reports</p>
+            </div>
+            <div class="icon"><i class="fas fa-edit"></i></div>
+            <a href="/vd_reports" class="small-box-footer">
+              More Info <i class="fas fa-angle-double-right"></i>
+            </a>
+          </div>
+        </div>
 
         <!-- Uncomment if Pupils section is needed -->
         
@@ -145,111 +158,111 @@
 
         
 
-{% endif %}
-     
-  
+        {% endif %}
+        
+        
 
-  <!-- Items -->
-  <div class="col-lg-3 col-6">
-    <div class="small-box bg-success">
-      <div class="inner">
-        <h5>Items</h5>
-        <p>Product Catalog</p>
-      </div>
-      <div class="icon">
-        <i class="fas fa-box-open"></i>
-      </div>
-      <a href="/dep_head_products" class="small-box-footer">
-        More Info <i class="fas fa-arrow-circle-right"></i>
-      </a>
-    </div>
-  </div>
-
-
-    <!-- Items -->
-  <div class="col-lg-3 col-6">
-    <div class="small-box bg-success">
-      <div class="inner">
-        <h5>Add Items</h5>
-        <p>Items</p>
-      </div>
-      <div class="icon">
-        <i class="fas fa-box-open"></i>
-      </div>
-      <a href="/cat_head_add_product" class="small-box-footer">
-        More Info <i class="fas fa-arrow-circle-right"></i>
-      </a>
-    </div>
-  </div>
+        <!-- Items -->
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-success">
+            <div class="inner">
+              <h5>Items</h5>
+              <p>Product Catalog</p>
+            </div>
+            <div class="icon">
+              <i class="fas fa-box-open"></i>
+            </div>
+            <a href="/dep_head_products" class="small-box-footer">
+              More Info <i class="fas fa-arrow-circle-right"></i>
+            </a>
+          </div>
+        </div>
 
 
+        <!-- Items -->
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-success">
+            <div class="inner">
+              <h5>Add Items</h5>
+              <p>Items</p>
+            </div>
+            <div class="icon">
+              <i class="fas fa-box-open"></i>
+            </div>
+            <a href="/cat_head_add_product" class="small-box-footer">
+              More Info <i class="fas fa-arrow-circle-right"></i>
+            </a>
+          </div>
+        </div>
 
 
-  <!-- Stock Receivers -->
-  <div class="col-lg-3 col-6">
-    <div class="small-box bg-secondary">
-      <div class="inner">
-        <h5>Stock Receivers</h5>
-        <p>Manage Intake</p>
-      </div>
-      <div class="icon">
-        <i class="fas fa-truck-loading"></i>
-      </div>
-      <a href="/customers" class="small-box-footer">
-        More Info <i class="fas fa-arrow-circle-right"></i>
-      </a>
-    </div>
-  </div>
 
-  <!-- Restock -->
-  <div class="col-lg-3 col-6">
-    <div class="small-box bg-gradient-success">
-      <div class="inner">
-        <h5>Restock</h5>
-        <p>Receive Products</p>
-      </div>
-      <div class="icon">
-        <i class="fas fa-cart-plus"></i>
-      </div>
-      <a href="/dep_restock" class="small-box-footer">
-        More Info <i class="fas fa-arrow-circle-right"></i>
-      </a>
-    </div>
-  </div>
 
-  <!-- Stock Out -->
-  <div class="col-lg-3 col-6">
-    <div class="small-box bg-danger">
-      <div class="inner">
-        <h5>Stock Out</h5>
-        <p>Deduct Products</p>
-      </div>
-      <div class="icon">
-        <i class="fas fa-cart-arrow-down"></i>
-      </div>
-      <a href="/dep_sales" class="small-box-footer">
-        More Info <i class="fas fa-arrow-circle-right"></i>
-      </a>
-    </div>
-  </div>
+        <!-- Stock Receivers -->
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-secondary">
+            <div class="inner">
+              <h5>Stock Receivers</h5>
+              <p>Manage Intake</p>
+            </div>
+            <div class="icon">
+              <i class="fas fa-truck-loading"></i>
+            </div>
+            <a href="/customers" class="small-box-footer">
+              More Info <i class="fas fa-arrow-circle-right"></i>
+            </a>
+          </div>
+        </div>
 
-  <!-- Out of Stock -->
-  <div class="col-lg-3 col-6">
-    <div class="small-box bg-warning">
-      <div class="inner">
-        <h5>Out of Stock</h5>
-        <p>Track Quantity</p>
-      </div>
-      <div class="icon">
-        <i class="fas fa-exclamation-circle"></i>
-      </div>
-      <a href="/dep_sales_view" class="small-box-footer">
-        More Info <i class="fas fa-arrow-circle-right"></i>
-      </a>
-    </div>
-  </div>
+        <!-- Restock -->
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-gradient-success">
+            <div class="inner">
+              <h5>Restock</h5>
+              <p>Receive Products</p>
+            </div>
+            <div class="icon">
+              <i class="fas fa-cart-plus"></i>
+            </div>
+            <a href="/dep_restock" class="small-box-footer">
+              More Info <i class="fas fa-arrow-circle-right"></i>
+            </a>
+          </div>
+        </div>
 
-</div>
+        <!-- Stock Out -->
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-danger">
+            <div class="inner">
+              <h5>Stock Out</h5>
+              <p>Deduct Products</p>
+            </div>
+            <div class="icon">
+              <i class="fas fa-cart-arrow-down"></i>
+            </div>
+            <a href="/dep_sales" class="small-box-footer">
+              More Info <i class="fas fa-arrow-circle-right"></i>
+            </a>
+          </div>
+        </div>
+
+        <!-- Out of Stock -->
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-warning">
+            <div class="inner">
+              <h5>Out of Stock</h5>
+              <p>Track Quantity</p>
+            </div>
+            <div class="icon">
+              <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <a href="/dep_sales_view" class="small-box-footer">
+              More Info <i class="fas fa-arrow-circle-right"></i>
+            </a>
+          </div>
+        </div>
+
+      </div>
 
 
       <!-- Placeholder List -->
