@@ -187,22 +187,26 @@
           <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
           
           <div class="card-body">
+            {% if session['role'] == 'admin' %}
             <div class="form-group mb-3">
               <label for="deletion_notes" class="mb-1">Notes for deletion <span class="text-danger">*</span></label>
               <textarea name="deletion_notes" id="deletion_notes" class="form-control" rows="2" placeholder="Add reason or notes for deleting selected scores..." required></textarea>
             </div>
 
+ 
             <button type="submit" class="btn btn-danger btn-sm mb-3" onclick="return confirm('Are you sure you want to delete selected marks?')">
               <i class="fas fa-trash-alt"></i> Delete Selected
-            </button>
+            </button>   
+             {% endif %}
 
             <div class="table-responsive p-0" style="max-height: 400px;">
               <table id="reportTable" class="stripe row-border order-column" style="width:100%">
                 <thead>
                   <tr>
                     <th><input type="checkbox" id="selectAll" /></th>
-                    <th>Reg No</th>
+                   
                     <th>Full Name</th>
+                     <th>Reg No</th>
                     <th>Year</th>
                     <th>Term</th>
                     <th>Stream</th>
@@ -215,8 +219,9 @@
                   {% for report in reports %}
                   <tr>
                     <td><input type="checkbox" name="score_ids" value="{{ report.score_id }}" /></td>
-                    <td>{{ report.reg_no }}</td>
                     <td>{{ report.full_name }}</td>
+                    <td>{{ report.reg_no }}</td>
+                    
                     <td>{{ report.year_name }}</td>
                     <td>{{ report.term_name }}</td>
                     <td>{{ report.stream_name }}</td>
@@ -268,7 +273,7 @@
       $('#reportTable').DataTable({
       fixedColumns: {
         left: 2,
-        right: 1
+        
       },
       paging: false,
       scrollCollapse: true,

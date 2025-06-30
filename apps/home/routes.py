@@ -56,6 +56,8 @@ def index():
 
                 elif user['role'] == 'other':
                     return render_template('home/other_user_index.html', segment='index')
+                elif user['role'] == 'dos':
+                    return render_template('home/dos_index.html', segment='index')
 
                 # If no matching role found, prompt to log in again
                 flash('User not found. Please log in again.', 'error')

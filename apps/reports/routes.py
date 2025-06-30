@@ -94,7 +94,7 @@ def reports():
     query = """
     SELECT 
         p.reg_no,
-        TRIM(CONCAT(p.first_name, ' ', COALESCE(p.other_name, ''), ' ', p.last_name)) AS full_name,
+        TRIM(CONCAT(p.last_name, ' ', COALESCE(p.other_name, ''), ' ', p.first_name)) AS full_name,
         t.term_name,
         a.assessment_name,
         sub.subject_name,
