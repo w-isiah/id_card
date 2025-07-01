@@ -39,57 +39,57 @@ def allowed_file(filename):
 def subject_assign():
     """
     Loads the Subject Assignment interface:
-    - Dropdown data (study years, streams, teachers, subjects)
-    - List teachers with their assigned subjects
+    - Populates dropdowns: study years, streams, teachers, subjects
+    - Lists teachers and their subject assignments
     - Supports filtering by study year, stream, subject, and user
     """
 
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
-    # Dropdown data
-    cursor.execute('SELECT year_id, year_name FROM study_year ORDER BY year_name')
-    study_years = cursor.fetchall()
+    # Load dropdown options
+    def fetch_dropdown(query):
+        cursor.execute(query)
+        return cursor.fetchall()
 
-    cursor.execute('SELECT stream_id, stream_name FROM stream ORDER BY stream_name')
-    streams = cursor.fetchall()
-
-    cursor.execute("""
+    study_years = fetch_dropdown('SELECT year_id, year_name FROM study_year ORDER BY year_name')
+    streams = fetch_dropdown('SELECT stream_id, stream_name FROM stream ORDER BY stream_name')
+    subjects = fetch_dropdown('SELECT subject_id, subject_name FROM subjects ORDER BY subject_name')
+    users = fetch_dropdown("""
         SELECT id AS user_id, CONCAT(first_name, ' ', last_name) AS full_name
         FROM users
-        WHERE role = 'teacher'
+        WHERE role = 'teacher' OR role1 = 'teacher'
         ORDER BY full_name
     """)
-    users = cursor.fetchall()
 
-    cursor.execute('SELECT subject_id, subject_name FROM subjects ORDER BY subject_name')
-    subjects = cursor.fetchall()
+    # Capture filter parameters
+    filters = {
+        'study_year': request.args.get('study_year', ''),
+        'stream': request.args.get('stream', ''),
+        'user_id': request.args.get('user_id', ''),
+        'subject_id': request.args.get('subject_id', '')
+    }
 
-    # Filters
-    filter_study_year = request.args.get('study_year', '')
-    filter_stream = request.args.get('stream', '')
-    filter_user_id = request.args.get('user_id', '')
-    filter_subject_id = request.args.get('subject_id', '')
+    # Build WHERE clause
+    where_clauses = ["(u.role = 'teacher' OR u.role1 = 'teacher')"]
+    sql_params = []
 
-    filters = ["u.role = 'teacher'"]  # enforce only teachers
-    params = []
+    if filters['study_year']:
+        where_clauses.append("sa.year_id = %s")
+        sql_params.append(filters['study_year'])
+    if filters['stream']:
+        where_clauses.append("sa.stream_id = %s")
+        sql_params.append(filters['stream'])
+    if filters['user_id']:
+        where_clauses.append("u.id = %s")
+        sql_params.append(filters['user_id'])
+    if filters['subject_id']:
+        where_clauses.append("sa.subject_id = %s")
+        sql_params.append(filters['subject_id'])
 
-    if filter_study_year:
-        filters.append("sa.year_id = %s")
-        params.append(filter_study_year)
-    if filter_stream:
-        filters.append("sa.stream_id = %s")
-        params.append(filter_stream)
-    if filter_user_id:
-        filters.append("u.id = %s")
-        params.append(filter_user_id)
-    if filter_subject_id:
-        filters.append("sa.subject_id = %s")
-        params.append(filter_subject_id)
+    where_sql = " AND " + " AND ".join(where_clauses)
 
-    filter_sql = " AND " + " AND ".join(filters)
-
-    # Query to get each teacher and their assigned subjects (if any)
+    # Main query: teachers and their assigned subjects
     assignment_query = f"""
         SELECT
             u.id AS user_id,
@@ -100,7 +100,8 @@ def subject_assign():
                     s.subject_name,
                     st.stream_name,
                     sy.year_name
-                ) ORDER BY sy.year_name, st.stream_name, s.subject_name
+                )
+                ORDER BY sy.year_name, st.stream_name, s.subject_name
                 SEPARATOR '; '
             ) AS assigned_subjects
         FROM users u
@@ -108,12 +109,12 @@ def subject_assign():
         LEFT JOIN subjects s ON sa.subject_id = s.subject_id
         LEFT JOIN stream st ON sa.stream_id = st.stream_id
         LEFT JOIN study_year sy ON sa.year_id = sy.year_id
-        WHERE 1=1 {filter_sql}
-        GROUP BY u.id, u.first_name, u.last_name
+        WHERE 1=1 {where_sql}
+        GROUP BY u.id
         ORDER BY u.first_name, u.last_name
     """
 
-    cursor.execute(assignment_query, tuple(params))
+    cursor.execute(assignment_query, tuple(sql_params))
     user_assignments = cursor.fetchall()
 
     cursor.close()
@@ -127,12 +128,7 @@ def subject_assign():
         users=users,
         subjects=subjects,
         user_assignments=user_assignments,
-        filters={
-            'study_year': filter_study_year,
-            'stream': filter_stream,
-            'user_id': filter_user_id,
-            'subject_id': filter_subject_id
-        }
+        filters=filters
     )
 
 

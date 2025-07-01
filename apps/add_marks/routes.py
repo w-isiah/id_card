@@ -82,7 +82,7 @@ def add_marks():
     query = """
         SELECT 
             p.reg_no,
-            TRIM(CONCAT(p.first_name, ' ', COALESCE(p.other_name, ''), ' ', p.last_name)) AS full_name,
+            TRIM(CONCAT(p.last_name, ' ', COALESCE(p.other_name, ''), ' ', p.first_name)) AS full_name,
             p.pupil_id,
             y.year_name,
             t.term_name,

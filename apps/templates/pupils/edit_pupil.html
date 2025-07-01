@@ -99,6 +99,17 @@
                 <form action="{{ url_for('pupils_blueprint.edit_pupil', pupil_id=pupil.pupil_id) }}" method="POST" enctype="multipart/form-data" class="form-horizontal">
                   <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
 
+
+
+ <!-- Last Name -->
+                  <div class="row mb-3">
+                    <label class="col-sm-2 col-form-label">Last Name:</label>
+                    <div class="col-sm-10">
+                      <input type="text" name="last_name" class="form-control" value="{{ pupil.last_name }}" required>
+                    </div>
+                  </div>
+
+
                   <!-- First Name -->
                   <div class="row mb-3">
                     <label class="col-sm-2 col-form-label">First Name:</label>
@@ -107,13 +118,15 @@
                     </div>
                   </div>
 
-                  <!-- Last Name -->
+                   <!-- First Name -->
                   <div class="row mb-3">
-                    <label class="col-sm-2 col-form-label">Last Name:</label>
+                    <label class="col-sm-2 col-form-label">Other Name:</label>
                     <div class="col-sm-10">
-                      <input type="text" name="last_name" class="form-control" value="{{ pupil.last_name }}" required>
+                      <input type="text" name="other_name" class="form-control" value="{{ pupil.other_name }}">
                     </div>
                   </div>
+
+              
 
                   <!-- Date of Birth -->
                   <div class="row mb-3">

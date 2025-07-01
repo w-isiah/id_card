@@ -130,7 +130,7 @@ def pupils():
                 p.reg_no,
                 p.index_number,
                 p.emis_number,
-                TRIM(CONCAT(p.first_name, ' ', COALESCE(p.other_name, ''), ' ', p.last_name)) AS full_name,
+                TRIM(CONCAT(p.last_name, ' ', COALESCE(p.other_name, ''), ' ', p.first_name)) AS full_name,
                 p.gender,
                 p.date_of_birth,
                 p.admission_date,

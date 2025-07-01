@@ -1483,6 +1483,7 @@ def vd_reports():
     subject_names = sorted({r['subject_name'] for r in rows})
 
     # Group by (reg_no, assessment)
+    # Group by (reg_no, assessment)
     reports = []
     grouped = {}
     for r in rows:
@@ -1507,9 +1508,10 @@ def vd_reports():
                 'total_class_size': r['total_class_size']
             }
         grp = grouped[key]
-        grp['marks'][r['subject_name']] = r['Mark'] if r['Mark'] is not None else np.nan
+        grp['marks'][r['subject_name']] = int(r['Mark']) if r['Mark'] is not None else np.nan  # 👈 updated line
         grp['grades'][r['subject_name']] = r['grade_letter'] or ''
         grp['weights'][r['subject_name']] = r['weight'] or 0
+
 
     # Compute totals, averages, aggregates, division
     for grp in grouped.values():
