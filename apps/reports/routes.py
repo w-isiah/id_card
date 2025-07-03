@@ -94,7 +94,7 @@ def reports():
     query = """
     SELECT 
         p.reg_no,
-        TRIM(CONCAT(p.last_name, ' ', COALESCE(p.other_name, ''), ' ', p.first_name)) AS full_name,
+        CONCAT_WS(' ', p.last_name, p.first_name, p.other_name) AS full_name,
         t.term_name,
         a.assessment_name,
         sub.subject_name,
@@ -264,7 +264,7 @@ def report_card(reg_no):
     query = """
         SELECT 
             p.reg_no,
-            CONCAT(p.first_name, ' ', p.other_name, ' ', p.last_name) AS full_name,
+            CONCAT_WS(' ', p.last_name, p.first_name, p.other_name) AS full_name,
             a.assessment_name,
             s.math,
             s.english,
@@ -391,7 +391,7 @@ def term_reports():
     query = """
     SELECT 
         p.reg_no,
-        TRIM(CONCAT(p.first_name, ' ', COALESCE(p.other_name, ''), ' ', p.last_name)) AS full_name,
+        CONCAT_WS(' ', p.last_name, p.first_name, p.other_name) AS full_name,
         t.term_name,
         a.assessment_name,
         sub.subject_name,
@@ -518,7 +518,7 @@ def scores_reports():
     query = """
     SELECT 
         p.reg_no,
-        CONCAT_WS(' ', p.first_name, p.other_name, p.last_name) AS full_name,
+        CONCAT_WS(' ', p.last_name, p.first_name, p.other_name) AS full_name,
         y.year_name,
         t.term_name,
         a.assessment_name,
@@ -653,7 +653,7 @@ def scores_positions_reports_remarks():
     cursor.execute("""
         SELECT 
             p.reg_no, p.stream_id, p.class_id,
-            CONCAT_WS(' ', p.first_name, p.other_name, p.last_name) AS full_name,
+            CONCAT_WS(' ', p.last_name, p.first_name, p.other_name) AS full_name,
             y.year_name, y.year_id,
             t.term_name, t.term_id,
             a.assessment_name,
@@ -837,7 +837,7 @@ def assessment_report():
     query = """
     SELECT 
         p.reg_no,
-        CONCAT_WS(' ', p.first_name, p.other_name, p.last_name) AS full_name,
+        CONCAT_WS(' ', p.last_name, p.first_name, p.other_name) AS full_name,
         y.year_name,
         t.term_name,
         a.assessment_name,
@@ -952,7 +952,7 @@ def term_report_card(reg_no):
 
     # Fetch pupil details
     cursor.execute("""
-        SELECT p.reg_no, CONCAT(p.first_name, ' ', p.other_name, ' ', p.last_name) AS full_name,
+        SELECT p.reg_no, CONCAT_WS(' ', p.last_name, p.first_name, p.other_name) AS full_name,
                p.image, p.gender, p.dorm_id, p.stream_id, p.year_id, p.term_id,
                y.year_name, t.term_name, s.stream_name, c.class_name, c.class_id
         FROM pupils p
@@ -1117,7 +1117,7 @@ def scores_p_reports():
     query = """
     SELECT 
         p.reg_no,
-        CONCAT_WS(' ', p.first_name, p.other_name, p.last_name) AS full_name,
+        CONCAT_WS(' ', p.last_name, p.first_name, p.other_name) AS full_name,
         y.year_name,
         t.term_name,
         a.assessment_name,
@@ -1261,12 +1261,15 @@ def scores_positions_reports():
     terms = cursor.fetchall()
     cursor.execute("SELECT * FROM assessment")
     assessments = cursor.fetchall()
+    cursor.execute("SELECT * FROM stream")
+    streams = cursor.fetchall()
 
     # Get filter parameters
     class_id = request.args.get('class_id', type=int)
     year_id = request.args.get('year_id', type=int)
     term_id = request.args.get('term_id', type=int)
     assessment_name = request.args.get('assessment_name', type=str)
+    stream_id = request.args.get('stream_id', type=int)
 
     if not all([class_id, year_id, term_id, assessment_name]):
         cursor.close()
@@ -1274,6 +1277,7 @@ def scores_positions_reports():
         return render_template('reports/scores_positions_reports.html',
             reports=[], subject_names=[], class_list=class_list,
             study_years=study_years, terms=terms, assessments=assessments,
+            streams=streams, selected_stream_id=stream_id,
             selected_class_id=class_id, selected_study_year_id=year_id,
             selected_term_id=term_id, selected_assessment_name=assessment_name,
             segment='reports'
@@ -1281,32 +1285,41 @@ def scores_positions_reports():
 
     core_subjects = ['MTC', 'ENGLISH', 'SST', 'SCIE']
 
-    # Fetch all pupils in the class (all streams) for position calculation
-    cursor.execute("""
+    # Build SQL query and args
+    sql = """
         SELECT 
             p.reg_no, p.stream_id, p.class_id,
-            CONCAT_WS(' ', p.last_name, p.other_name, p.first_name) AS full_name,
+            CONCAT_WS(' ', p.last_name, p.first_name, p.other_name) AS full_name,
             y.year_name, y.year_id,
             t.term_name, t.term_id,
             a.assessment_name,
             sub.subject_name,
             s.Mark,
             g.grade_letter,
-            g.weight
+            g.weight,
+            st.stream_name
         FROM scores s
         JOIN pupils p ON s.reg_no = p.reg_no
         JOIN assessment a ON s.assessment_id = a.assessment_id
         JOIN terms t ON s.term_id = t.term_id
         JOIN study_year y ON s.year_id = y.year_id
         JOIN subjects sub ON s.subject_id = sub.subject_id
+        JOIN stream st ON p.stream_id = st.stream_id
         LEFT JOIN grades g ON s.Mark BETWEEN g.min_score AND g.max_score
         WHERE p.class_id = %s AND s.year_id = %s AND s.term_id = %s AND a.assessment_name = %s
-    """, (class_id, year_id, term_id, assessment_name))
+    """
+    args = [class_id, year_id, term_id, assessment_name]
+
+    if stream_id:
+        sql += " AND p.stream_id = %s"
+        args.append(stream_id)
+
+    cursor.execute(sql, args)
     rows = cursor.fetchall()
 
     subject_names = sorted({row['subject_name'] for row in rows})
 
-    # Organize all class students by reg_no for position calc
+    # Organize all class students by reg_no
     student_map_all = {}
     for row in rows:
         reg_no = row['reg_no']
@@ -1316,6 +1329,7 @@ def scores_positions_reports():
                 'full_name': row['full_name'],
                 'class_id': row['class_id'],
                 'stream_id': row['stream_id'],
+                'stream_name': row['stream_name'],
                 'year_id': row['year_id'],
                 'term_id': row['term_id'],
                 'year_name': row['year_name'],
@@ -1331,7 +1345,6 @@ def scores_positions_reports():
 
     import numpy as np
 
-    # Compute averages and aggregates for all students in the class (all streams)
     for student in student_map_all.values():
         marks = np.array([student['marks'].get(sub, float('nan')) for sub in core_subjects], dtype=np.float64)
         weights = [student['weights'].get(sub, 0) for sub in core_subjects]
@@ -1341,11 +1354,9 @@ def scores_positions_reports():
         average_score = round(total_score / count, 2) if count else 0.0
         aggregate = sum(weights)
 
-        # Get division
         cursor.execute("""
             SELECT division_name FROM division
-            WHERE %s BETWEEN min_score AND max_score
-            LIMIT 1
+            WHERE %s BETWEEN min_score AND max_score LIMIT 1
         """, (aggregate,))
         division_row = cursor.fetchone()
         division_name = division_row['division_name'] if division_row else 'N/A'
@@ -1355,7 +1366,7 @@ def scores_positions_reports():
         student['aggregate'] = aggregate
         student['division'] = division_name
 
-    # Assign class positions based on average_score with tie handling
+    # Class positions
     sorted_all = sorted(student_map_all.values(), key=lambda x: (-x['average_score'], x['reg_no']))
     prev_score = None
     prev_position = 0
@@ -1365,17 +1376,16 @@ def scores_positions_reports():
         student['class_position'] = prev_position
         prev_score = student['average_score']
 
-    # Filter out only students who will appear in the report (the ones in the rows)
-    # This is to get stream grouping and display only class+stream students
+    # Filter students for stream-level grouping
     reg_nos_in_rows = set(row['reg_no'] for row in rows)
     filtered_students = [student for student in sorted_all if student['reg_no'] in reg_nos_in_rows]
 
-    # Assign stream positions with tie handling
     from collections import defaultdict
     stream_groups = defaultdict(list)
     for student in filtered_students:
         stream_groups[student['stream_id']].append(student)
 
+    # Stream positions
     for group in stream_groups.values():
         group.sort(key=lambda x: (-x['average_score'], x['reg_no']))
         prev_score = None
@@ -1396,13 +1406,14 @@ def scores_positions_reports():
         study_years=study_years,
         terms=terms,
         assessments=assessments,
+        streams=streams,
         selected_class_id=class_id,
         selected_study_year_id=year_id,
         selected_term_id=term_id,
         selected_assessment_name=assessment_name,
+        selected_stream_id=stream_id,
         segment='reports'
     )
-
 
 
 
@@ -1467,7 +1478,7 @@ def vd_reports():
         s.reg_no,
         p.stream_id,
         p.class_id,
-        CONCAT_WS(' ', p.last_name, p.other_name, p.first_name) AS full_name,
+        CONCAT_WS(' ', p.last_name, p.first_name, p.other_name) AS full_name,
         p.image,
         c.class_name,
         st.stream_name,
@@ -1586,7 +1597,7 @@ def vd_reports():
         s.reg_no,
         p.stream_id,
         p.class_id,
-        CONCAT_WS(' ', p.last_name, p.other_name, p.first_name) AS full_name,
+        CONCAT_WS(' ', p.last_name, p.first_name, p.other_name) AS full_name,
         p.image,
         c.class_name,
         st.stream_name,

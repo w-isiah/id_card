@@ -130,7 +130,7 @@ def pupils():
                 p.reg_no,
                 p.index_number,
                 p.emis_number,
-                TRIM(CONCAT(p.last_name, ' ', COALESCE(p.other_name, ''), ' ', p.first_name)) AS full_name,
+                CONCAT_WS(' ', p.last_name, p.first_name, p.other_name) AS full_name,
                 p.gender,
                 p.date_of_birth,
                 p.admission_date,
@@ -150,6 +150,7 @@ def pupils():
             WHERE {" AND ".join(filters)}
             ORDER BY p.last_name
         """
+
 
         cursor.execute(query, params)
         pupils = cursor.fetchall()

@@ -16,7 +16,6 @@
 {% block content %}
 <div class="content-wrapper">
 
-  <!-- Flash Messages -->
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       <div id="flashMessageContainer">
@@ -31,7 +30,6 @@
     {% endif %}
   {% endwith %}
 
-  <!-- Page Header -->
   <section class="content-header">
     <div class="container-fluid">
       <div class="row mb-2">
@@ -48,10 +46,9 @@
     </div>
   </section>
 
-  <!-- Filters and Report -->
   <section class="content">
     <div class="container-fluid">
-      
+
       <!-- Filter Card -->
       <div class="card card-primary card-outline">
         <div class="card-header">
@@ -99,6 +96,17 @@
                   {% endfor %}
                 </select>
               </div>
+
+              <div class="form-group col-md-3">
+                <label for="stream_id">Stream</label>
+                <select name="stream_id" class="form-control select2">
+                  <option value="">-- Select Stream --</option>
+                  {% for stream in streams %}
+                  <option value="{{ stream.stream_id }}" {% if stream.stream_id == selected_stream_id %}selected{% endif %}>{{ stream.stream_name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
             </div>
           </div>
           <div class="card-footer text-right">
@@ -121,7 +129,7 @@
                 <tr>
                   <th>Full Name</th>
                   <th>Reg No</th>
-                  
+                  <th>Stream</th>
                   <th>Year</th>
                   <th>Term</th>
                   <th>Assessment</th>
@@ -145,7 +153,7 @@
                   <tr>
                     <td>{{ student.full_name }}</td>
                     <td>{{ student.reg_no }}</td>
-                    
+                    <td>{{ student.stream_name }}</td>
                     <td>{{ student.year_name }}</td>
                     <td>{{ student.term_name }}</td>
                     <td>{{ student.assessment_name }}</td>
@@ -211,7 +219,6 @@
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.table_to_sheet(table);
 
-      // Header rows for school info
       const headerRows = [
         ["SACRED HEART GIRLS’ PRIMARY SCHOOL KYAMUSANSALA"],
         ["P.O.BOX 1759, MASAKA – UGANDA"],
@@ -221,7 +228,6 @@
 
       const totalColumns = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']).e.c + 1 : table.rows[0].cells.length;
 
-      // Shift existing rows down by headerRows.length
       const range = XLSX.utils.decode_range(ws['!ref']);
       for (let R = range.e.r; R >= 0; --R) {
         for (let C = range.s.c; C <= range.e.c; ++C) {
@@ -234,28 +240,17 @@
         }
       }
 
-      // Add header rows content and merges for centering
       ws['!merges'] = ws['!merges'] || [];
       for (let R = 0; R < headerRows.length; ++R) {
-        // Add the text in first column
         const cellRef = XLSX.utils.encode_cell({ c: 0, r: R });
         ws[cellRef] = { t: 's', v: headerRows[R][0] };
-
-        // Merge across all columns
-        ws['!merges'].push({
-          s: { c: 0, r: R }, // start cell
-          e: { c: totalColumns - 1, r: R } // end cell (last column)
-        });
-
-        // Center alignment style for merged cells (simple style)
-        // Note: SheetJS community edition has limited styling, so this might be limited
+        ws['!merges'].push({ s: { c: 0, r: R }, e: { c: totalColumns - 1, r: R } });
         ws[cellRef].s = {
           alignment: { horizontal: "center", vertical: "center" },
           font: { bold: true }
         };
       }
 
-      // Update the worksheet range to include new header rows
       range.e.r += headerRows.length;
       ws['!ref'] = XLSX.utils.encode_range(range);
 

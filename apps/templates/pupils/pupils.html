@@ -211,9 +211,9 @@
                         {% else %}No image{% endif %}
                       </td>
                       <td>
-                        {% if session['role'] == 'admin' %}
+                        
                         <a href="{{ url_for('pupils_blueprint.edit_pupil', pupil_id=pupil.pupil_id) }}" class="btn btn-sm btn-info">Edit</a>
-                        {% endif %}
+                      
                       </td>
                     </tr>
                     {% endfor %}

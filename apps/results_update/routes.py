@@ -96,7 +96,7 @@ def results_update():
     query = """
     SELECT 
         p.reg_no,
-        TRIM(CONCAT(p.first_name, ' ', COALESCE(p.other_name, ''), ' ', p.last_name)) AS full_name,
+        CONCAT_WS(' ', p.last_name, p.first_name, p.other_name) AS full_name,
         t.term_name,
         a.assessment_name,
         sub.subject_name,
