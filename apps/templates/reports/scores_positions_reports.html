@@ -120,8 +120,9 @@
 <table id="reportTable" class="display nowrap stripe" style="width:100%">
   <thead>
     <tr>
-      <th>Reg No</th>
       <th>Full Name</th>
+      <th>Reg No</th>
+      
       <th>Year</th>
       <th>Term</th>
       <th>Assessment</th>
@@ -143,8 +144,9 @@
   <tbody>
     {% for student in reports %}
       <tr>
-        <td>{{ student.reg_no }}</td>
         <td>{{ student.full_name }}</td>
+        <td>{{ student.reg_no }}</td>
+        
         <td>{{ student.year_name }}</td>
         <td>{{ student.term_name }}</td>
         <td>{{ student.assessment_name }}</td>
@@ -194,8 +196,8 @@
 
     $('#reportTable').DataTable({
       fixedColumns: {
-        left: 2,
-        right: 1
+        left: 1,
+        
       },
       paging: false,
       scrollX: true,

@@ -115,6 +115,7 @@
                       <th>Min Score</th>
                       <th>Max Score</th>
                       <th>Grade Letter</th>
+                      <th>Grade Weight</th>
                       <th>Remark</th>
                       <th>Edit</th>
                       <th>Delete</th>
@@ -126,6 +127,7 @@
                       <td>{{ grade.min_score }}</td>
                       <td>{{ grade.max_score }}</td>
                       <td>{{ grade.grade_letter }}</td>
+                      <td>{{ grade.weight }}</td>
                       <td>{{ grade.remark or '—' }}</td>
                       <td>
                         <a href="/edit_grades/{{ grade.grade_id }}" class="btn btn-sm btn-warning">Edit</a>

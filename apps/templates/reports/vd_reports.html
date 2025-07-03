@@ -266,15 +266,22 @@
     <h1>SACRED HEART GIRLS’ PRIMARY SCHOOL KYAMUSANSALA</h1>
     <div class="contact">P.O.BOX 1759, MASAKA – UGANDA</div>
     <div class="contact">TEL: 0772‑848153 / 0782‑957781</div>
+    <div class="contact">Website: <a href="http://www.shpsk.ac.ug" target="_blank">www.shpsk.ac.ug</a></div>
     </div>
     </div>
 
     <div class="form-info-wrapper">
+    
+
     <div class="form-info">
-    <p>PUPIL’S NAME: <span>${st.full_name}</span></p>
-    <p>CLASS: <span>${st.class_name || 'N/A'}</span> STREAM: <span>${st.stream_name || 'N/A'}</span></p>
-    <p>NUMBER OF PUPILS IN THE CLASS: <span>${st.total_class_size || 'N/A'}</span></p>
-    </div>
+  <p>PUPIL’S NAME: <span>${st.full_name}</span></p>
+  <p>CLASS: <span>${st.class_name || 'N/A'}</span> STREAM: <span>${st.stream_name || 'N/A'}</span></p>
+  <p>CLASS SIZE: <span>${st.total_class_size || 'N/A'}</span></p>
+  <p>STREAM POSITION: <span>${st.stream_position || 'N/A'}</span> of <span>${st.total_stream_size || 'N/A'}</span></p>
+</div>
+
+
+
     <div class="student-photo">
     ${st.image 
       ? `<img src="/static/uploads/${st.image}" class="img-thumbnail student-square-photo">`
@@ -292,11 +299,13 @@
       <th>#</th>
       <th>Assessment</th>
       ${subjectNames.map(s => `<th>${s}</th><th>AGG</th>`).join('')}
-      <th>WT</th>
+      <th>Aggregate</th>
       <th>TTL</th>
       <th>AVG</th>
       <th>DIV</th>
-      <th>POS</th>
+      <th>Stream Pos</th>
+
+      <th>Class POS</th>
       </tr>
       </thead>
       <tbody>
@@ -309,7 +318,10 @@
         <td>${r.total_score || ''}</td>
         <td>${r.average_score || ''}</td>
         <td>${r.division || ''}</td>
-        <td>${r.class_position || ''}</td>
+        <td>${r.stream_position || ''}</td>
+
+        <td>${r.class_position || ''}</td>  <!-- this shows class position -->
+
         </tr>`).join('')}
       </tbody>
       </table>`;

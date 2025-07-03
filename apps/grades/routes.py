@@ -96,31 +96,28 @@ def edit_grades(grade_id):
         max_score = request.form['max_score']
         grade_letter = request.form['grade_letter']
         remark = request.form.get('remark')  # Optional field
+        weight = request.form['weight']
 
         # Validate the input
-        if not min_score or not max_score or not grade_letter:
+        if not min_score or not max_score or not grade_letter or not weight:
             flash("Please fill out all required fields!", "warning")
             return redirect(url_for('grades_blueprint.edit_grades', grade_id=grade_id))
 
-        # Validate that min_score and max_score are numbers
-        if not min_score.isdigit() or not max_score.isdigit():
-            flash("Scores must be valid numbers!", "danger")
+        # Validate that min_score, max_score, and weight are numbers
+        if not min_score.isdigit() or not max_score.isdigit() or not weight.isdigit():
+            flash("Scores and weight must be valid numbers!", "danger")
             return redirect(url_for('grades_blueprint.edit_grades', grade_id=grade_id))
-
-        # Validate grade_letter (it should be a string of 1 or 2 characters)
-        #if not re.match(r'^[A-Za-z]{1,2}$', grade_letter):
-        #    flash("Grade letter must be a valid 1 or 2 character string!", "danger")
-        #   return redirect(url_for('grades_blueprint.edit_grades', grade_id=grade_id))
 
         try:
             # Convert to integers
             min_score = int(min_score)
             max_score = int(max_score)
+            weight = int(weight)
 
             connection = get_db_connection()
             cursor = connection.cursor()
 
-            # Check if the grade already exists with the same grade_letter (excluding the current grade_id)
+            # Check if the grade already exists with the same grade_letter (excluding current grade)
             cursor.execute("""
                 SELECT * FROM grades 
                 WHERE grade_letter = %s AND grade_id != %s
@@ -134,9 +131,9 @@ def edit_grades(grade_id):
             # Update the grade details in the database
             cursor.execute("""
                 UPDATE grades
-                SET min_score = %s, max_score = %s, grade_letter = %s, remark = %s
+                SET min_score = %s, max_score = %s, grade_letter = %s, remark = %s, weight = %s
                 WHERE grade_id = %s
-            """, (min_score, max_score, grade_letter, remark, grade_id))
+            """, (min_score, max_score, grade_letter, remark, weight, grade_id))
             connection.commit()
 
             flash("Grade updated successfully!", "success")
@@ -165,6 +162,9 @@ def edit_grades(grade_id):
         else:
             flash("Grade not found.", "danger")
             return redirect(url_for('grades_blueprint.grades'))
+
+
+
 
 
 
