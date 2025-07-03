@@ -116,60 +116,55 @@
         <div class="card-body">
           <div class="table-responsive">
 
+            <table id="reportTable" class="display nowrap stripe" style="width:100%">
+              <thead>
+                <tr>
+                  <th>Full Name</th>
+                  <th>Reg No</th>
+                  
+                  <th>Year</th>
+                  <th>Term</th>
+                  <th>Assessment</th>
 
-<table id="reportTable" class="display nowrap stripe" style="width:100%">
-  <thead>
-    <tr>
-      <th>Full Name</th>
-      <th>Reg No</th>
-      
-      <th>Year</th>
-      <th>Term</th>
-      <th>Assessment</th>
+                  {% for subject in subject_names %}
+                    <th>{{ subject }} (Mark)</th>
+                    <th>{{ subject }} (Grade)</th>
+                  {% endfor %}
 
-      {% for subject in subject_names %}
-        <th>{{ subject }} (Mark)</th>
-        <th>{{ subject }} (Grade)</th>
-      {% endfor %}
+                  <th>Total Score</th>
+                  <th>Average Score</th>
+                  <th>Aggregate</th>
+                  <th>Division</th>
+                  <th>Stream Position</th>
+                  <th>Class Position</th>
+                </tr>
+              </thead>
 
-      <th>Total Score</th>
-      <th>Average Score</th>
-      <th>Aggregate</th>
-      <th>Division</th>
-      <th>Stream Position</th>
-      <th>Class Position</th>
-    </tr>
-  </thead>
+              <tbody>
+                {% for student in reports %}
+                  <tr>
+                    <td>{{ student.full_name }}</td>
+                    <td>{{ student.reg_no }}</td>
+                    
+                    <td>{{ student.year_name }}</td>
+                    <td>{{ student.term_name }}</td>
+                    <td>{{ student.assessment_name }}</td>
 
-  <tbody>
-    {% for student in reports %}
-      <tr>
-        <td>{{ student.full_name }}</td>
-        <td>{{ student.reg_no }}</td>
-        
-        <td>{{ student.year_name }}</td>
-        <td>{{ student.term_name }}</td>
-        <td>{{ student.assessment_name }}</td>
+                    {% for subject in subject_names %}
+                      <td>{{ student.marks[subject] if student.marks[subject] is not none else 'N/A' }}</td>
+                      <td>{{ student.grades[subject] if student.grades[subject] else 'N/A' }}</td>
+                    {% endfor %}
 
-        {% for subject in subject_names %}
-          <td>{{ student.marks[subject] if student.marks[subject] is not none else 'N/A' }}</td>
-          <td>{{ student.grades[subject] if student.grades[subject] else 'N/A' }}</td>
-        {% endfor %}
-
-        <td>{{ student.total_score }}</td>
-        <td>{{ student.average_score }}</td>
-        <td>{{ student.aggregate }}</td>
-        <td>{{ student.division }}</td>
-        <td>{{ student.stream_position }}</td>
-        <td>{{ student.class_position }}</td>
-      </tr>
-    {% endfor %}
-  </tbody>
-</table>
-
-
-
-
+                    <td>{{ student.total_score }}</td>
+                    <td>{{ student.average_score }}</td>
+                    <td>{{ student.aggregate }}</td>
+                    <td>{{ student.division }}</td>
+                    <td>{{ student.stream_position }}</td>
+                    <td>{{ student.class_position }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
 
           </div>
         </div>
@@ -197,7 +192,6 @@
     $('#reportTable').DataTable({
       fixedColumns: {
         left: 1,
-        
       },
       paging: false,
       scrollX: true,
@@ -216,6 +210,55 @@
       const table = document.getElementById('reportTable');
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.table_to_sheet(table);
+
+      // Header rows for school info
+      const headerRows = [
+        ["SACRED HEART GIRLS’ PRIMARY SCHOOL KYAMUSANSALA"],
+        ["P.O.BOX 1759, MASAKA – UGANDA"],
+        ["TEL: 0772‑848153 / 0782‑957781"],
+        ["Website: www.shpsk.ac.ug"]
+      ];
+
+      const totalColumns = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']).e.c + 1 : table.rows[0].cells.length;
+
+      // Shift existing rows down by headerRows.length
+      const range = XLSX.utils.decode_range(ws['!ref']);
+      for (let R = range.e.r; R >= 0; --R) {
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+          const oldCellRef = XLSX.utils.encode_cell({ c: C, r: R });
+          const newCellRef = XLSX.utils.encode_cell({ c: C, r: R + headerRows.length });
+          if (ws[oldCellRef]) {
+            ws[newCellRef] = ws[oldCellRef];
+            delete ws[oldCellRef];
+          }
+        }
+      }
+
+      // Add header rows content and merges for centering
+      ws['!merges'] = ws['!merges'] || [];
+      for (let R = 0; R < headerRows.length; ++R) {
+        // Add the text in first column
+        const cellRef = XLSX.utils.encode_cell({ c: 0, r: R });
+        ws[cellRef] = { t: 's', v: headerRows[R][0] };
+
+        // Merge across all columns
+        ws['!merges'].push({
+          s: { c: 0, r: R }, // start cell
+          e: { c: totalColumns - 1, r: R } // end cell (last column)
+        });
+
+        // Center alignment style for merged cells (simple style)
+        // Note: SheetJS community edition has limited styling, so this might be limited
+        ws[cellRef].s = {
+          alignment: { horizontal: "center", vertical: "center" },
+          font: { bold: true }
+        };
+      }
+
+      // Update the worksheet range to include new header rows
+      range.e.r += headerRows.length;
+      ws['!ref'] = XLSX.utils.encode_range(range);
+
       XLSX.utils.book_append_sheet(wb, ws, 'Assessment');
       XLSX.writeFile(wb, 'assessment_report.xlsx');
     });
