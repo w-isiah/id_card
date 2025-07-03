@@ -192,8 +192,9 @@
               <table id="reportTable" class="table table-striped table-hover nowrap" style="width:100%">
                 <thead>
                   <tr>
-                    <th>Reg No</th>
+                    
                     <th>Full Name</th>
+                    <th>Reg No</th>
                     <th>Year</th>
                     <th>Term</th>
                     <th>Stream</th>
@@ -207,8 +208,9 @@
                 <tbody>
                   {% for report in results_update %}
                   <tr>
-                    <td>{{ report.reg_no }}</td>
+                   
                     <td>{{ report.full_name }}</td>
+                     <td>{{ report.reg_no }}</td>
                     <td>{{ report.year_name }}</td>
                     <td>{{ report.term_name }}</td>
                     <td>{{ report.stream_name }}</td>
@@ -290,7 +292,7 @@
 
     // Initialize DataTable with fixed columns and scrolling
     $('#reportTable').DataTable({
-      fixedColumns: { left: 2, right: 1 },
+      fixedColumns: { left: 1,},
       paging: false,
       scrollX: true,
       scrollY: '300px',
