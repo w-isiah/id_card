@@ -1,22 +1,16 @@
 {% extends "layouts/base.html" %}
 
 {% block title %}Dashboard{% endblock %}
-
 {% block body_class %}sidebar-mini{% endblock %}
 
 {% block stylesheets %}
-<!-- Fonts & Icons -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
 <link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
-<link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
-
-<!-- Theme & Plugins -->
-<link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
 <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.3.0/css/responsive.dataTables.min.css">
+<link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
 <link rel="stylesheet" href="/static/assets/css/mine.css">
 
-<!-- Custom Styles -->
 <style>
   .alert-container {
     position: fixed;
@@ -27,18 +21,13 @@
     width: 80%;
     display: none;
   }
-
   .alert {
     opacity: 1;
     transition: opacity 1s ease-out;
     margin-bottom: 10px;
   }
-
-  .alert-dismissible {
-    padding-right: 30px;
-  }
 </style>
-{% endblock stylesheets %}
+{% endblock %}
 
 {% block content %}
 <div class="content-wrapper">
@@ -55,14 +44,6 @@
             <li class="breadcrumb-item"><a href="/index">Home</a></li>
             <li class="breadcrumb-item active">Dashboard</li>
           </ol>
-        </div>
-      </div>
-
-      <!-- Notification Box -->
-      <div id="notification" class="notification" style="display: none;">
-        <div class="notification-content">
-          <span id="notification-message"></span>
-          <button id="close-notification" class="close-btn">X</button>
         </div>
       </div>
     </div>
@@ -85,316 +66,191 @@
   {% endwith %}
 
   <!-- Main Content -->
-<section class="content">
-  <div class="container-fluid">
+  <section class="content">
+    <div class="container-fluid">
+      <div class="row">
 
-
-    <!-- Card Section -->
-    <div class="card">
-      <div class="card-header border-transparent">
-        <h3 class="card-title">Some List</h3>
-        <div class="card-tools">
-          <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i></button>
-          <button type="button" class="btn btn-tool" data-card-widget="remove"><i class="fas fa-times"></i></button>
-        </div>
-      </div>
-
-      <div class="card-body p-3">
-        <div class="row">
-
-<!-- Dashboard Shortcuts using AdminLTE -->
-
-<div class="row">
-  <!-- Results Upload -->
-  <div class="col-lg-3 col-6">
-    <div class="small-box bg-primary">
-      <div class="inner">
-        <h5>Results Upload</h5>
-        <p>Marks Upload</p>
-      </div>
-      <div class="icon"><i class="fas fa-upload"></i></div>
-      <a href="{{ url_for('results_blueprint.pupload_excel') }}" class="small-box-footer">
-        View More <i class="fas fa-arrow-circle-right"></i>
-      </a>
-    </div>
-  </div>
-
-
-
-            <!-- Results Review -->
-          <div class="col-lg-3 col-6">
-            <div class="small-box bg-info">
-              <div class="inner">
-                <h5>Results Review</h5>
-                <p>Delete Marks</p>
-              </div>
-              <div class="icon"><i class="fas fa-search"></i></div>
-              <a href="{{ url_for('reports_blueprint.reports') }}" class="small-box-footer">
-                View More <i class="fas fa-arrow-circle-right"></i>
-              </a>
+        <!-- Results Upload -->
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-primary">
+            <div class="inner">
+              <h5>Results Upload</h5>
+              <p>Marks Upload</p>
             </div>
+            <div class="icon"><i class="fas fa-upload"></i></div>
+            <a href="{{ url_for('results_blueprint.pupload_excel') }}" class="small-box-footer">
+              View More <i class="fas fa-arrow-circle-right"></i>
+            </a>
           </div>
+        </div>
 
-
-          
-
-  <!-- Results & Update -->
-  <div class="col-lg-3 col-6">
-    <div class="small-box bg-success">
-      <div class="inner">
-        <h5>Results & Update</h5>
-        <p>Edit Marks</p>
-      </div>
-      <div class="icon"><i class="fas fa-edit"></i></div>
-      <a href="/results_update" class="small-box-footer">
-        More Info <i class="fas fa-angle-double-right"></i>
-      </a>
-    </div>
-  </div>
-
-    <!-- Results & Update -->
-  <div class="col-lg-3 col-6">
-    <div class="small-box bg-success">
-      <div class="inner">
-        <h5>VD Reports</h5>
-        <p>P4 To P7</p>
-      </div>
-      <div class="icon"><i class="fas fa-edit"></i></div>
-      <a href="/vd_reports" class="small-box-footer">
-        More Info <i class="fas fa-angle-double-right"></i>
-      </a>
-    </div>
-  </div>
-
-
-     <!-- Results & Update -->
-  <div class="col-lg-3 col-6">
-    <div class="small-box bg-success">
-      <div class="inner">
-        <h5>VD Reports</h5>
-        <p>P1 To P3</p>
-      </div>
-      <div class="icon"><i class="fas fa-edit"></i></div>
-      <a href="/vd_reports_3" class="small-box-footer">
-        More Info <i class="fas fa-angle-double-right"></i>
-      </a>
-    </div>
-  </div>
-
-
-
-  <!-- Add Marks -->
-  <div class="col-lg-3 col-6">
-    <div class="small-box bg-warning">
-      <div class="inner">
-        <h5>Add Marks</h5>
-        <p>Insert Scores</p>
-      </div>
-      <div class="icon"><i class="fas fa-plus-circle"></i></div>
-      <a href="/add_marks" class="small-box-footer">
-        More Info <i class="fas fa-angle-double-right"></i>
-      </a>
-    </div>
-  </div>
-
-  <!-- Results Review
-  <div class="col-lg-3 col-6">
-    <div class="small-box bg-info">
-      <div class="inner">
-        <h5>Results Review</h5>
-        <p>Delete Marks</p>
-      </div>
-      <div class="icon"><i class="fas fa-search"></i></div>
-      <a href="{{ url_for('reports_blueprint.reports') }}" class="small-box-footer">
-        View More <i class="fas fa-arrow-circle-right"></i>
-      </a>
-    </div>
-  </div> -->
-
-  <!-- Scores Reports 
-  <div class="col-lg-3 col-6">
-    <div class="small-box bg-purple">
-      <div class="inner">
-        <h5>Scores Reports</h5>
-        <p>Total Score, Average</p>
-      </div>
-      <div class="icon"><i class="fas fa-chart-line"></i></div>
-      <a href="{{ url_for('reports_blueprint.scores_reports') }}" class="small-box-footer">
-        View More <i class="fas fa-arrow-circle-right"></i>
-      </a>
-    </div>
-  </div> -->
-
-  <!-- End of Term Reports 
-  <div class="col-lg-3 col-6">
-    <div class="small-box bg-orange">
-      <div class="inner">
-        <h5>End of Term Reports</h5>
-        <p>Term Summary</p>
-      </div>
-      <div class="icon"><i class="fas fa-file-signature"></i></div>
-      <a href="{{ url_for('reports_blueprint.scores_reports') }}" class="small-box-footer">
-        View More <i class="fas fa-arrow-circle-right"></i>
-      </a>
-    </div>
-  </div> --> 
-
-  <!-- Stream Position Scores -->
-  <div class="col-lg-3 col-6">
-    <div class="small-box bg-lightblue">
-      <div class="inner">
-        <h5>Stream Positions</h5>
-        <p>P4 To P7</p>
-      </div>
-      <div class="icon"><i class="fas fa-signal"></i></div>
-      <a href="{{ url_for('reports_blueprint.scores_positions_reports') }}" class="small-box-footer">
-        View More <i class="fas fa-arrow-circle-right"></i>
-      </a>
-    </div>
-  </div>
-
-
-
-   <!-- Stream Position Scores -->
-  <div class="col-lg-3 col-6">
-    <div class="small-box bg-lightblue">
-      <div class="inner">
-        <h5>Stream Positions</h5>
-        <p>P1 To P3</p>
-      </div>
-      <div class="icon"><i class="fas fa-signal"></i></div>
-      <a href="{{ url_for('reports_blueprint.scores_positions_reports_3') }}" class="small-box-footer">
-        View More <i class="fas fa-arrow-circle-right"></i>
-      </a>
-    </div>
-  </div>
-
-
-
-
-
-  
-
-<!-- Stream Position Scores -
-<div class="col-lg-3 col-6">
-  <div class="small-box bg-lime">
-    <div class="inner text-dark">
-      <h5>Stream Positions</h5>
-      <p>Scores, Positions, Remarks</p>
-    </div>
-    <div class="icon text-white">
-      <i class="fas fa-signal"></i>
-    </div>
-    <a href="{{ url_for('reports_blueprint.scores_positions_reports_remarks') }}" class="small-box-footer text-white">
-      View More <i class="fas fa-arrow-circle-right"></i>
-    </a>
-  </div>
-</div> -->
-
-
-  <!-- Grades -->
-  <div class="col-lg-3 col-6">
-    <div class="small-box bg-teal">
-      <div class="inner">
-        <h5>Grades</h5>
-        <p>Grades Overview</p>
-      </div>
-      <div class="icon"><i class="fas fa-graduation-cap"></i></div>
-      <a href="{{ url_for('grades_blueprint.grades') }}" class="small-box-footer">
-        View More <i class="fas fa-arrow-circle-right"></i>
-      </a>
-    </div>
-  </div>
-
-  <!-- Term Assessments 
-  <div class="col-lg-3 col-6">
-    <div class="small-box bg-lime">
-      <div class="inner">
-        <h5>Term Assessment</h5>
-        <p>Assessment Data</p>
-      </div>
-      <div class="icon"><i class="fas fa-chart-bar"></i></div>
-      <a href="/term_reports" class="small-box-footer">
-        View More <i class="fas fa-arrow-circle-right"></i>
-      </a>
-    </div>
-  </div> -->
-
-  <!-- Assessment Reports 
-  <div class="col-lg-3 col-6">
-    <div class="small-box bg-maroon">
-      <div class="inner">
-        <h5>Assessment Reports</h5>
-        <p>Term Assessments</p>
-      </div>
-      <div class="icon"><i class="fas fa-file-alt"></i></div>
-      <a href="/assessment_report" class="small-box-footer">
-        View More <i class="fas fa-arrow-circle-right"></i>
-      </a>
-    </div>
-  </div> --> 
-
-
-    <!-- Assessments -->
-      <div class="col-lg-3 col-6">
-        <div class="small-box bg-lightblue">
-          <div class="inner">
-            <h5>Assessments</h5>
-            <p>Assessments Information</p>
+        <!-- Results Review -->
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-info">
+            <div class="inner">
+              <h5>Results Review</h5>
+              <p>Delete Marks</p>
+            </div>
+            <div class="icon"><i class="fas fa-eye"></i></div>
+            <a href="{{ url_for('reports_blueprint.reports') }}" class="small-box-footer">
+              View More <i class="fas fa-arrow-circle-right"></i>
+            </a>
           </div>
-          <div class="icon"><i class="fas fa-file-alt"></i></div>
-          <a href="/assessment" class="small-box-footer">More Info <i class="fas fa-angle-double-right"></i></a>
         </div>
-      </div>
-</div>  
 
-
-
-
-      
-
-
-
-
+        <!-- Edit Marks -->
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-success">
+            <div class="inner">
+              <h5>Results & Update</h5>
+              <p>Edit Marks</p>
+            </div>
+            <div class="icon"><i class="fas fa-pen-to-square"></i></div>
+            <a href="/results_update" class="small-box-footer">
+              More Info <i class="fas fa-angle-double-right"></i>
+            </a>
+          </div>
         </div>
+
+        <!-- Add Marks -->
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-warning">
+            <div class="inner">
+              <h5>Add Marks</h5>
+              <p>Insert Scores</p>
+            </div>
+            <div class="icon"><i class="fas fa-clipboard-list"></i></div>
+            <a href="/add_marks" class="small-box-footer">
+              More Info <i class="fas fa-angle-double-right"></i>
+            </a>
+          </div>
+        </div>
+
+        <!-- VD Reports -->
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-teal">
+            <div class="inner">
+              <h5>VD Reports</h5>
+              <p>P4 To P7</p>
+            </div>
+            <div class="icon"><i class="fas fa-file-lines"></i></div>
+            <a href="/vd_reports" class="small-box-footer">
+              More Info <i class="fas fa-angle-double-right"></i>
+            </a>
+          </div>
+        </div>
+
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-teal">
+            <div class="inner">
+              <h5>VD Reports</h5>
+              <p>P1 To P2</p>
+            </div>
+            <div class="icon"><i class="fas fa-file-lines"></i></div>
+            <a href="/vd_reports_2" class="small-box-footer">
+              More Info <i class="fas fa-angle-double-right"></i>
+            </a>
+          </div>
+        </div>
+
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-teal">
+            <div class="inner">
+              <h5>VD Reports</h5>
+              <p>P3</p>
+            </div>
+            <div class="icon"><i class="fas fa-file-lines"></i></div>
+            <a href="/vd_reports_3" class="small-box-footer">
+              More Info <i class="fas fa-angle-double-right"></i>
+            </a>
+          </div>
+        </div>
+
+        <!-- Stream Positions -->
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-lightblue">
+            <div class="inner">
+              <h5>Stream Positions</h5>
+              <p>P4 To P7</p>
+            </div>
+            <div class="icon"><i class="fas fa-ranking-star"></i></div>
+            <a href="{{ url_for('reports_blueprint.scores_positions_reports') }}" class="small-box-footer">
+              View More <i class="fas fa-arrow-circle-right"></i>
+            </a>
+          </div>
+        </div>
+
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-lightblue">
+            <div class="inner">
+              <h5>Stream Positions</h5>
+              <p>P1 To P2</p>
+            </div>
+            <div class="icon"><i class="fas fa-ranking-star"></i></div>
+            <a href="{{ url_for('reports_blueprint.scores_positions_reports_2') }}" class="small-box-footer">
+              View More <i class="fas fa-arrow-circle-right"></i>
+            </a>
+          </div>
+        </div>
+
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-lightblue">
+            <div class="inner">
+              <h5>Stream Positions</h5>
+              <p>P3</p>
+            </div>
+            <div class="icon"><i class="fas fa-ranking-star"></i></div>
+            <a href="{{ url_for('reports_blueprint.scores_positions_reports_3') }}" class="small-box-footer">
+              View More <i class="fas fa-arrow-circle-right"></i>
+            </a>
+          </div>
+        </div>
+
+        <!-- Grades -->
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-maroon">
+            <div class="inner">
+              <h5>Grades</h5>
+              <p>Grades Overview</p>
+            </div>
+            <div class="icon"><i class="fas fa-graduation-cap"></i></div>
+            <a href="{{ url_for('grades_blueprint.grades') }}" class="small-box-footer">
+              View More <i class="fas fa-arrow-circle-right"></i>
+            </a>
+          </div>
+        </div>
+
+        <!-- Assessments -->
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-indigo">
+            <div class="inner">
+              <h5>Assessments</h5>
+              <p>Assessments Information</p>
+            </div>
+            <div class="icon"><i class="fas fa-tasks"></i></div>
+            <a href="/assessment" class="small-box-footer">
+              More Info <i class="fas fa-angle-double-right"></i>
+            </a>
+          </div>
+        </div>
+
       </div>
     </div>
-  </div>
-</section>
-
-
+  </section>
 </div>
-{% endblock content %}
+{% endblock %}
 
 {% block javascripts %}
-<!-- Core Scripts -->
 <script src="/static/assets/plugins/jquery/jquery.min.js"></script>
 <script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="/static/assets/js/adminlte.js"></script>
-
-<!-- DataTables -->
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/responsive/2.3.0/js/dataTables.responsive.min.js"></script>
-
-<!-- Custom Scripts -->
 <script>
   $(document).ready(function() {
-    $('#lowStockTable').DataTable({
-      paging: true,
-      searching: true,
-      ordering: true,
-      responsive: true
-    });
-
     if ($('#flashMessageContainer').length) {
       $('#flashMessageContainer').fadeIn(500).delay(3000).fadeOut(1000);
     }
   });
-
-  function showNotification(message) {
-    $('#notification-message').text(message);
-    $('#notification').fadeIn();
-    setTimeout(() => $('#notification').fadeOut(), 7000);
-  }
 </script>
-{% endblock javascripts %}
+{% endblock %}
