@@ -12,28 +12,15 @@
 <link rel="stylesheet" href="/static/assets/css/mine.css">
 
 <style>
-  .no-print {
-    display: block;
-  }
+  .no-print { display: block; }
   @media print {
-    .no-print {
-      display: none !important;
-    }
-    body {
-      background: white;
-    }
-    .content-wrapper, .card {
-      box-shadow: none !important;
-    }
-    .content-wrapper {
-      padding: 0;
-    }
+    .no-print { display: none !important; }
+    body { background: white; }
+    .content-wrapper, .card { box-shadow: none !important; }
+    .content-wrapper { padding: 0; }
   }
 
-  .dark-maroon {
-    background-color: #800000 !important;
-    color: #fff !important;
-  }
+  .dark-maroon { background-color: #800000 !important; color: #fff !important; }
 
   .print-header {
     display: flex;
@@ -76,57 +63,49 @@
     flex: 1;
   }
 
-  .form-info span {
-    color: black;
+  .form-info span { color: black; }
+
+  .student-photo img.student-square-photo {
+    width: 130px;
+    height: 130px;
+    object-fit: contain;
+    border: 2px solid #800000;
+    border-radius: 5px;
+    background-color: white;
   }
 
-
-.student-photo img.student-square-photo {
-  width: 130px;
-  height: 130px;
-  object-fit: contain;           /* Ensures the whole image fits inside */
-  border: 2px solid #800000;
-  border-radius: 5px;
-  background-color: white;       /* Optional: fill space around image */
-}
-
-
-
-
-
   th {
-
     background-color: #800000;
     color: white;
   }
 
+  table {
+    width: 90%;
+    margin: 20px auto;
+    border-collapse: collapse;
+    font-size: 20px;
+    line-height: 1.5;
+  }
 
+  th, td {
+    border: 1px solid black;
+    padding: 10px;
+    text-align: center;
+  }
 
-table {
-  width: 80%;
-  border-collapse: collapse;
-  margin-top: 20px;
-  font-size: 20px; /* Increase font size */
-  line-height: 1.5;
-}
+  table th:first-child,
+  table td:first-child {
+    background-color: #800000;
+    color: white;
+    font-weight: bold;
+  }
 
-th, td {
-  border: 1px solid black;
-  padding: 10px; /* Increase padding for more space */
-  text-align: center;
-}
-
-
-/* Apply style to ONLY the first column */
-table th:first-child,
-table td:first-child {
-  background-color: #800000;
-  color: white;
-  font-weight: bold;
-}
-
-
-
+  .print-datetime {
+    text-align: right;
+    margin: 10px 40px 0 0;
+    font-size: 14px;
+    font-style: italic;
+  }
 </style>
 {% endblock %}
 
@@ -140,7 +119,6 @@ table td:first-child {
   </section>
 
   <section class="content container-fluid">
-
     <div class="card no-print">
       <div class="card-header dark-maroon">
         <h3 class="card-title">Filter Report</h3>
@@ -153,9 +131,7 @@ table td:first-child {
               <select id="class_id" name="class_id" class="form-control select2" required>
                 <option value="">-- Select Class --</option>
                 {% for c in class_list %}
-                <option value="{{ c.class_id }}" {% if c.class_id == selected_class_id %}selected{% endif %}>
-                  {{ c.class_name }}
-                </option>
+                  <option value="{{ c.class_id }}" {% if c.class_id == selected_class_id %}selected{% endif %}>{{ c.class_name }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -165,9 +141,7 @@ table td:first-child {
               <select id="stream_id" name="stream_id" class="form-control select2">
                 <option value="">-- Select Stream --</option>
                 {% for s in streams %}
-                <option value="{{ s.stream_id }}" {% if s.stream_id == selected_stream_id %}selected{% endif %}>
-                  {{ s.stream_name }}
-                </option>
+                  <option value="{{ s.stream_id }}" {% if s.stream_id == selected_stream_id %}selected{% endif %}>{{ s.stream_name }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -177,9 +151,7 @@ table td:first-child {
               <select id="year_id" name="year_id" class="form-control select2" required>
                 <option value="">-- Select Year --</option>
                 {% for y in study_years %}
-                <option value="{{ y.year_id }}" {% if y.year_id == selected_study_year_id %}selected{% endif %}>
-                  {{ y.year_name }}
-                </option>
+                  <option value="{{ y.year_id }}" {% if y.year_id == selected_study_year_id %}selected{% endif %}>{{ y.year_name }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -189,9 +161,7 @@ table td:first-child {
               <select id="term_id" name="term_id" class="form-control select2" required>
                 <option value="">-- Select Term --</option>
                 {% for t in terms %}
-                <option value="{{ t.term_id }}" {% if t.term_id == selected_term_id %}selected{% endif %}>
-                  {{ t.term_name }}
-                </option>
+                  <option value="{{ t.term_id }}" {% if t.term_id == selected_term_id %}selected{% endif %}>{{ t.term_name }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -200,54 +170,48 @@ table td:first-child {
               <label for="assessment_name">Assessments (Multiple)</label>
               <select id="assessment_name" name="assessment_name" class="form-control select2" multiple required>
                 {% for a in assessments %}
-                <option value="{{ a.assessment_name }}"
-                {% if selected_assessment_name and a.assessment_name in selected_assessment_name %}selected{% endif %}>
-                {{ a.assessment_name }}
-              </option>
-              {% endfor %}
-            </select>
+                  <option value="{{ a.assessment_name }}" {% if selected_assessment_name and a.assessment_name in selected_assessment_name %}selected{% endif %}>{{ a.assessment_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
           </div>
         </div>
+        <div class="card-footer text-right">
+          <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Filter</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card no-print">
+      <div class="card-header dark-maroon">
+        <h3 class="card-title">Select Pupil</h3>
       </div>
-      <div class="card-footer text-right">
-        <button type="submit" class="btn btn-primary">
-          <i class="fas fa-search"></i> Filter
+      <div class="card-body">
+        <select id="studentSelect" class="form-control select2">
+          <option value="">-- Select Pupil --</option>
+          {% set seen = [] %}
+          {% for student in reports %}
+            {% if student.reg_no not in seen %}
+              <option value="{{ student.reg_no }}">{{ student.full_name }}</option>
+              {% set _ = seen.append(student.reg_no) %}
+            {% endif %}
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header dark-maroon">
+        <h3 class="card-title">Report</h3>
+        <button class="btn btn-secondary float-right no-print" onclick="window.print()">
+          <i class="fas fa-print"></i> Print
         </button>
       </div>
-    </form>
-  </div>
-
-  <div class="card no-print">
-    <div class="card-header dark-maroon">
-      <h3 class="card-title">Select Pupil</h3>
+      <div class="card-body" id="printableReportContainer" style="overflow-x:auto;">
+        <p>Select a pupil to view the report.</p>
+      </div>
     </div>
-    <div class="card-body">
-      <select id="studentSelect" class="form-control select2">
-        <option value="">-- Select Pupil --</option>
-        {% set seen = [] %}
-        {% for student in reports %}
-        {% if student.reg_no not in seen %}
-        <option value="{{ student.reg_no }}">{{ student.full_name }}</option>
-        {% set _ = seen.append(student.reg_no) %}
-        {% endif %}
-        {% endfor %}
-      </select>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-header dark-maroon">
-      <h3 class="card-title">Report</h3>
-      <button class="btn btn-secondary float-right no-print" onclick="window.print()">
-        <i class="fas fa-print"></i> Print
-      </button>
-    </div>
-    <div class="card-body" id="printableReportContainer" style="overflow-x:auto;">
-      <p>Select a pupil to view the report.</p>
-    </div>
-  </div>
-
-</section>
+  </section>
 </div>
 {% endblock %}
 
@@ -269,6 +233,7 @@ table td:first-child {
       container.innerHTML = '<p>Please select a pupil to view the report.</p>';
       return;
     }
+
     const reps = allReports.filter(r => r.reg_no === regNo);
     if (reps.length === 0) {
       container.innerHTML = '<p>No report data available for this pupil.</p>';
@@ -276,98 +241,79 @@ table td:first-child {
     }
 
     const st = reps[0];
-    const header = `
-    <div class="print-header">
-    <img src="${badgeImage}" alt="School Badge" onerror="this.src='{{ url_for('static', filename='assets/img/badge_image.jpg') }}'">
-    <div class="print-header-text">
-    <h1>SACRED HEART GIRLS’ PRIMARY SCHOOL KYAMUSANSALA</h1>
-    <div class="contact">P.O.BOX 1759, MASAKA – UGANDA</div>
-    <div class="contact">TEL: 0772‑848153 / 0782‑957781</div>
-    <div class="contact">Home Page: <a href="http://www.shpsk.ac.ug" target="_blank">www.shpsk.ac.ug</a></div>
-    </div>
-    </div>
-
-    <div class="form-info-wrapper">
-    
-
-    <div class="form-info">
-  <p>PUPIL’S NAME: <span>${st.full_name}</span></p>
-  <p>CLASS: <span>${st.class_name || 'N/A'}</span> STREAM: <span>${st.stream_name || 'N/A'}</span></p>
-  <p>CLASS SIZE: <span>${st.total_class_size || 'N/A'}</span></p>
-  <p>STREAM Size :<span>${st.total_stream_size || 'N/A'}</span></p>
-</div>
-
-
-
-    <div class="student-photo">
-    ${st.image 
-      ? `<img src="/static/uploads/${st.image}" class="img-thumbnail student-square-photo">`
-      : `<span class="text-muted">No Image</span>`}
-      </div>
-
+    const now = new Date();
+    const printedAt = `
+      <div class="print-datetime">
+        Printed on: ${now.toLocaleDateString()} at ${now.toLocaleTimeString()}
       </div>`;
 
-      reps.sort((a, b) => a.assessment_name.localeCompare(b.assessment_name));
+    const header = `
+      <div class="print-header">
+        <img src="${badgeImage}" alt="School Badge" onerror="this.src='{{ url_for('static', filename='assets/img/badge_image.jpg') }}'">
+        <div class="print-header-text">
+          <h1>SACRED HEART GIRLS’ PRIMARY SCHOOL KYAMUSANSALA</h1>
+          <div class="contact">P.O.BOX 1759, MASAKA – UGANDA</div>
+          <div class="contact">TEL: 0772‑848153 / 0782‑957781</div>
+          <div class="contact">Home Page: <a href="http://www.shpsk.ac.ug" target="_blank">www.shpsk.ac.ug</a></div>
+        </div>
+      </div>
 
-      const table = `
-  <table>
-    <thead>
-      <tr>
-        <th>Subject</th>
-        ${reps.map(r => `<th colspan="2">${r.assessment_name}</th>`).join('')}
-      </tr>
-      <tr>
-        <th></th>
-        ${reps.map(() => `<th>Mark</th><th>Grade</th>`).join('')}
-      </tr>
-    </thead>
-    <tbody>
-      ${subjectNames.map(subject => `
-        <tr>
-          <td>${subject}</td>
-          ${reps.map(r => `
-            <td>${r.marks?.[subject] || ''}</td>
-            <td>${r.grades?.[subject] || ''}</td>
+      <div class="form-info-wrapper">
+        <div class="form-info">
+          <p>PUPIL’S NAME: <span>${st.full_name}</span></p>
+          <p>CLASS: <span>${st.class_name || 'N/A'}</span> STREAM: <span>${st.stream_name || 'N/A'}</span></p>
+          <p>CLASS SIZE: <span>${st.total_class_size || 'N/A'}</span></p>
+          <p>STREAM SIZE: <span>${st.total_stream_size || 'N/A'}</span></p>
+        </div>
+        <div class="student-photo">
+          ${st.image ? `<img src="/static/uploads/${st.image}" class="img-thumbnail student-square-photo">` : `<span class="text-muted">No Image</span>`}
+        </div>
+      </div>
+    `;
+
+    reps.sort((a, b) => a.assessment_name.localeCompare(b.assessment_name));
+
+    const table = `
+      <table>
+        <thead>
+          <tr>
+            <th>Subject</th>
+            ${reps.map(r => `<th colspan="2">${r.assessment_name}</th>`).join('')}
+          </tr>
+          <tr>
+            <th></th>
+            ${reps.map(() => `<th>Mark</th><th>Grade</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${subjectNames.map(subject => `
+            <tr>
+              <td>${subject}</td>
+              ${reps.map(r => `
+                <td>${r.marks?.[subject] || ''}</td>
+                <td>${r.grades?.[subject] || ''}</td>
+              `).join('')}
+            </tr>
           `).join('')}
-        </tr>
-      `).join('')}
-      <tr><td colspan="${reps.length * 2 + 1}"><strong>Summary</strong></td></tr>
-      <tr>
-        <td>Aggregate</td>
-        ${reps.map(r => `<td colspan="2">${r.aggregate || ''}</td>`).join('')}
-      </tr>
-      <tr>
-        <td>Total</td>
-        ${reps.map(r => `<td colspan="2">${r.total_score || ''}</td>`).join('')}
-      </tr>
-      <tr>
-        <td>Average</td>
-        ${reps.map(r => `<td colspan="2">${r.average_score || ''}</td>`).join('')}
-      </tr>
-      <tr>
-        <td>Division</td>
-        ${reps.map(r => `<td colspan="2">${r.division || ''}</td>`).join('')}
-      </tr>
-      <tr>
-        <td>Stream Position</td>
-        ${reps.map(r => `<td colspan="2">${r.stream_position || ''}</td>`).join('')}
-      </tr>
-      <tr>
-        <td>Class Position</td>
-        ${reps.map(r => `<td colspan="2">${r.class_position || ''}</td>`).join('')}
-      </tr>
-    </tbody>
-  </table>`;
+          <tr><td colspan="${reps.length * 2 + 1}"><strong>Summary</strong></td></tr>
+          <tr><td>Aggregates</td>${reps.map(r => `<td colspan="2">${r.aggregate || ''}</td>`).join('')}</tr>
+          <tr><td>Total</td>${reps.map(r => `<td colspan="2">${r.total_score || ''}</td>`).join('')}</tr>
+          <tr><td>Average</td>${reps.map(r => `<td colspan="2">${r.average_score || ''}</td>`).join('')}</tr>
+          <tr><td>Division</td>${reps.map(r => `<td colspan="2">${r.division || ''}</td>`).join('')}</tr>
+          <tr><td>Stream Position</td>${reps.map(r => `<td colspan="2">${r.stream_position || ''}</td>`).join('')}</tr>
+          <tr><td>Class Position</td>${reps.map(r => `<td colspan="2">${r.class_position || ''}</td>`).join('')}</tr>
+        </tbody>
+      </table>
+    `;
 
+    container.innerHTML = header + printedAt + table;
+  }
 
-      container.innerHTML = header + table;
-    }
-
-    $(function() {
-      $('.select2').select2();
-      $('#studentSelect').on('change', function() {
-        renderStudentReport(this.value);
-      });
+  $(function () {
+    $('.select2').select2();
+    $('#studentSelect').on('change', function () {
+      renderStudentReport(this.value);
     });
-  </script>
-  {% endblock %}
+  });
+</script>
+{% endblock %}
