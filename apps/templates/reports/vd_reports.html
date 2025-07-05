@@ -93,23 +93,40 @@
 
 
 
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-    font-size: 14px;
-  }
-
-  th, td {
-    border: 1px solid black;
-    padding: 5px;
-    text-align: center;
-  }
 
   th {
+
     background-color: #800000;
     color: white;
   }
+
+
+
+table {
+  width: 80%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  font-size: 20px; /* Increase font size */
+  line-height: 1.5;
+}
+
+th, td {
+  border: 1px solid black;
+  padding: 10px; /* Increase padding for more space */
+  text-align: center;
+}
+
+
+/* Apply style to ONLY the first column */
+table th:first-child,
+table td:first-child {
+  background-color: #800000;
+  color: white;
+  font-weight: bold;
+}
+
+
+
 </style>
 {% endblock %}
 
@@ -266,7 +283,7 @@
     <h1>SACRED HEART GIRLS’ PRIMARY SCHOOL KYAMUSANSALA</h1>
     <div class="contact">P.O.BOX 1759, MASAKA – UGANDA</div>
     <div class="contact">TEL: 0772‑848153 / 0782‑957781</div>
-    <div class="contact">Website: <a href="http://www.shpsk.ac.ug" target="_blank">www.shpsk.ac.ug</a></div>
+    <div class="contact">Home Page: <a href="http://www.shpsk.ac.ug" target="_blank">www.shpsk.ac.ug</a></div>
     </div>
     </div>
 
@@ -293,38 +310,55 @@
       reps.sort((a, b) => a.assessment_name.localeCompare(b.assessment_name));
 
       const table = `
-      <table>
-      <thead>
+  <table>
+    <thead>
       <tr>
-      <th>#</th>
-      <th>Assessment</th>
-      ${subjectNames.map(s => `<th>${s}</th><th>AGG</th>`).join('')}
-      <th>Aggregates</th>
-      <th>TTL</th>
-      <th>AVG</th>
-      <th>DIV</th>
-      <th>Stream Pos</th>
-
-      <th>Class POS</th>
+        <th>Subject</th>
+        ${reps.map(r => `<th colspan="2">${r.assessment_name}</th>`).join('')}
       </tr>
-      </thead>
-      <tbody>
-      ${reps.map((r, i) => `
+      <tr>
+        <th></th>
+        ${reps.map(() => `<th>Mark</th><th>Grade</th>`).join('')}
+      </tr>
+    </thead>
+    <tbody>
+      ${subjectNames.map(subject => `
         <tr>
-        <td>${i + 1}</td>
-        <td>${r.assessment_name}</td>
-        ${subjectNames.map(sub => `<td>${r.marks[sub] || ''}</td><td>${r.grades[sub] || ''}</td>`).join('')}
-        <td>${r.aggregate || ''}</td>
-        <td>${r.total_score || ''}</td>
-        <td>${r.average_score || ''}</td>
-        <td>${r.division || ''}</td>
-        <td>${r.stream_position || ''}</td>
+          <td>${subject}</td>
+          ${reps.map(r => `
+            <td>${r.marks?.[subject] || ''}</td>
+            <td>${r.grades?.[subject] || ''}</td>
+          `).join('')}
+        </tr>
+      `).join('')}
+      <tr><td colspan="${reps.length * 2 + 1}"><strong>Summary</strong></td></tr>
+      <tr>
+        <td>Aggregate</td>
+        ${reps.map(r => `<td colspan="2">${r.aggregate || ''}</td>`).join('')}
+      </tr>
+      <tr>
+        <td>Total</td>
+        ${reps.map(r => `<td colspan="2">${r.total_score || ''}</td>`).join('')}
+      </tr>
+      <tr>
+        <td>Average</td>
+        ${reps.map(r => `<td colspan="2">${r.average_score || ''}</td>`).join('')}
+      </tr>
+      <tr>
+        <td>Division</td>
+        ${reps.map(r => `<td colspan="2">${r.division || ''}</td>`).join('')}
+      </tr>
+      <tr>
+        <td>Stream Position</td>
+        ${reps.map(r => `<td colspan="2">${r.stream_position || ''}</td>`).join('')}
+      </tr>
+      <tr>
+        <td>Class Position</td>
+        ${reps.map(r => `<td colspan="2">${r.class_position || ''}</td>`).join('')}
+      </tr>
+    </tbody>
+  </table>`;
 
-        <td>${r.class_position || ''}</td>  <!-- this shows class position -->
-
-        </tr>`).join('')}
-      </tbody>
-      </table>`;
 
       container.innerHTML = header + table;
     }
