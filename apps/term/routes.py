@@ -170,9 +170,10 @@ def edit_term(term_id):
         ends_on = request.form.get('ends_on')
         year_id = request.form.get('year_id')
         status = request.form.get('status')
+        print('term:',term_name,'Start:',start_on,'End:',ends_on,'Year: ',year_id,'Status:',status)
 
         # Validation
-        if not term_name or not start_on or not ends_on or not year_id or status is None:
+        if not term_name or not start_on or not ends_on or not year_id  is None:
             flash("Please fill out all required fields!", "warning")
             return redirect(url_for('term_blueprint.edit_term', term_id=term_id))
 

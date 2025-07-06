@@ -2238,7 +2238,9 @@ def scores_positions_reports_3():
             segment='reports'
         )
 
-    core_subjects = ['MTC', 'ENGLISH', 'LITERACY 1A', 'LITERACY 1B','COMPUTER', 'R.E','READING','LUGANDA']
+    core_subjects =sorted( ['MTC', 'ENGLISH', 'LITERACY 1A', 'LITERACY 1B', 'COMPUTER', 'R.E', 'LUGANDA'])
+
+
 
     # Fetch scores and related data
     sql = """

@@ -42,6 +42,11 @@
     font-size: 1.2rem;
     line-height: 1;
   }
+
+  /* Add some red color for invalid inputs */
+  .is-invalid {
+    border-color: red;
+  }
 </style>
 {% endblock stylesheets %}
 
@@ -79,7 +84,7 @@
         <div class="col-sm-6">
           <ol class="breadcrumb float-sm-right">
             <li class="breadcrumb-item"><a href="/index">Home</a></li>
-            <li class="breadcrumb-item"><a href="/term">Terms</a></li>
+            <li class="breadcrumb-item"><a href="/terms">Terms</a></li>
             <li class="breadcrumb-item active">Edit Term</li>
           </ol>
         </div>
@@ -99,7 +104,7 @@
             </div>
 
             <div class="card-body">
-              <form action="{{ url_for('term_blueprint.edit_term', term_id=term.term_id) }}" method="POST" class="form-horizontal">
+              <form action="{{ url_for('term_blueprint.edit_term', term_id=term.term_id) }}" method="POST" class="form-horizontal" id="editTermForm">
                 <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
 
                 <!-- Term Name -->
@@ -107,6 +112,7 @@
                   <label for="term_name" class="col-sm-2 col-form-label">Term Name:</label>
                   <div class="col-sm-10">
                     <input type="text" name="term_name" class="form-control" value="{{ term.term_name }}" maxlength="20" required>
+                    <div class="invalid-feedback">Term name is required!</div>
                   </div>
                 </div>
 
@@ -115,6 +121,7 @@
                   <label for="start_on" class="col-sm-2 col-form-label">Start Date:</label>
                   <div class="col-sm-10">
                     <input type="date" name="start_on" class="form-control" value="{{ term.start_on | string }}" required>
+                    <div class="invalid-feedback">Start date is required!</div>
                   </div>
                 </div>
 
@@ -123,10 +130,11 @@
                   <label for="ends_on" class="col-sm-2 col-form-label">End Date:</label>
                   <div class="col-sm-10">
                     <input type="date" name="ends_on" class="form-control" value="{{ term.ends_on | string }}" required>
+                    <div class="invalid-feedback">End date is required!</div>
                   </div>
                 </div>
 
-                <!-- Year -->
+                <!-- Academic Year -->
                 <div class="row mb-3">
                   <label for="year_id" class="col-sm-2 col-form-label">Academic Year:</label>
                   <div class="col-sm-10">
@@ -136,14 +144,19 @@
                         <option value="{{ year.year_id }}" {% if year.year_id == term.year_id %}selected{% endif %}>{{ year.year_name }}</option>
                       {% endfor %}
                     </select>
+                    <div class="invalid-feedback">Academic year is required!</div>
                   </div>
                 </div>
 
-                <!-- Status -->
+                <!-- Status (Active/Inactive) -->
                 <div class="row mb-3">
-                  <label for="status" class="col-sm-2 col-form-label">Active:</label>
+                  <label for="status" class="col-sm-2 col-form-label">Status:</label>
                   <div class="col-sm-10">
-                    <input type="checkbox" name="status" value="1" {% if term.status %}checked{% endif %}>
+                    <select name="status" class="form-control" required>
+                      <option value="active" {% if term.status == 'active' %}selected{% endif %}>Active</option>
+                      <option value="inactive" {% if term.status == 'inactive' %}selected{% endif %}>Inactive</option>
+                    </select>
+                    <div class="invalid-feedback">Status is required!</div>
                   </div>
                 </div>
 
@@ -177,6 +190,26 @@
     if ($flash.length) {
       $flash.fadeIn(400).delay(3500).fadeOut(600);
     }
+
+    // Form Validation: Check required fields
+    $('#editTermForm').submit(function (e) {
+      let isValid = true;
+
+      // Loop through all the required fields
+      $('input[required], select[required]').each(function() {
+        if (!this.value) {
+          $(this).addClass('is-invalid');
+          isValid = false;
+        } else {
+          $(this).removeClass('is-invalid');
+        }
+      });
+
+      // Prevent form submission if there are invalid fields
+      if (!isValid) {
+        e.preventDefault();
+      }
+    });
   });
 </script>
 {% endblock javascripts %}
