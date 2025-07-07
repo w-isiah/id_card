@@ -1655,6 +1655,211 @@ def vd_reports():
 
 
 
+
+@blueprint.route('/vd_reports_2', methods=['GET'])
+def vd_reports_2():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # Load dropdown data
+    cursor.execute("SELECT * FROM classes WHERE class_id IN (28,27)")
+    class_list = cursor.fetchall()
+    cursor.execute("SELECT * FROM study_year")
+    study_years = cursor.fetchall()
+    cursor.execute("SELECT * FROM terms")
+    terms = cursor.fetchall()
+    cursor.execute("SELECT * FROM assessment")
+    assessments = cursor.fetchall()
+    cursor.execute("SELECT * FROM stream")
+    streams = cursor.fetchall()
+
+    # Read filters
+    class_id = request.args.get('class_id', type=int)
+    stream_id = request.args.get('stream_id', type=int)
+    year_id = request.args.get('year_id', type=int)
+    term_id = request.args.get('term_id', type=int)
+    assessment_name_list = request.args.getlist('assessment_name')
+
+    if not all([class_id, stream_id, year_id, term_id, assessment_name_list]):
+        cursor.close()
+        conn.close()
+        return render_template('reports/vd_reports_2.html',
+            reports=[], subject_names=[],
+            class_list=class_list, study_years=study_years,
+            terms=terms, assessments=assessments, streams=streams,
+            selected_class_id=class_id,
+            selected_stream_id=stream_id,
+            selected_study_year_id=year_id,
+            selected_term_id=term_id,
+            selected_assessment_name=assessment_name_list,
+            segment='reports')
+
+    placeholders = ','.join(['%s'] * len(assessment_name_list))
+    # Subjects used for calculation
+    total_avg_subjects = sorted(['MTC', 'ENGLISH', 'LITERACY 1A', 'LITERACY 1B','COMPUTER', 'R.E','READING','LUGANDA'])  # for total and average
+    aggregate_subjects = sorted(['MTC', 'ENGLISH', 'LITERACY 1A', 'LITERACY 1B'])  # for aggregate and division
+
+    class_query = f"""
+        SELECT s.reg_no, p.stream_id, p.class_id, p.index_number,
+               CONCAT_WS(' ', p.last_name, p.first_name, p.other_name) AS full_name,
+               p.image, c.class_name, st.stream_name,
+               y.year_name, y.year_id, t.term_name, t.term_id,
+               a.assessment_name, sub.subject_name, s.Mark,
+               g.grade_letter, g.weight,
+               class_counts.total_class_size, stream_counts.total_stream_size
+        FROM scores s
+        JOIN pupils p USING (reg_no)
+        JOIN classes c ON p.class_id = c.class_id
+        JOIN stream st ON p.stream_id = st.stream_id
+        JOIN study_year y ON s.year_id = y.year_id
+        JOIN terms t ON s.term_id = t.term_id
+        JOIN assessment a ON s.assessment_id = a.assessment_id
+        JOIN subjects sub ON s.subject_id = sub.subject_id
+        LEFT JOIN grades g ON s.Mark BETWEEN g.min_score AND g.max_score
+        JOIN (SELECT class_id, COUNT(*) AS total_class_size FROM pupils GROUP BY class_id) class_counts
+          ON class_counts.class_id = p.class_id
+        JOIN (SELECT class_id, stream_id, COUNT(*) AS total_stream_size FROM pupils GROUP BY class_id, stream_id) stream_counts
+          ON stream_counts.class_id = p.class_id AND stream_counts.stream_id = p.stream_id
+        WHERE p.class_id = %s AND s.year_id = %s AND s.term_id = %s
+          AND a.assessment_name IN ({placeholders})
+        ORDER BY p.first_name, p.last_name, p.other_name
+    """
+    class_params = [class_id, year_id, term_id] + assessment_name_list
+    cursor.execute(class_query, class_params)
+    class_rows = cursor.fetchall()
+
+    class_grouped = {}
+    subject_names = set()
+    subject_rankings = defaultdict(lambda: defaultdict(list))
+
+    for row in class_rows:
+        key = (row['reg_no'], row['assessment_name'])
+        subject_names.add(row['subject_name'])
+
+        subject_rankings[row['assessment_name']][row['subject_name']].append({
+            'reg_no': row['reg_no'],
+            'Mark': int(row['Mark']) if row['Mark'] is not None else None
+        })
+
+        if key not in class_grouped:
+            class_grouped[key] = {
+                'reg_no': row['reg_no'], 'index_number': row['index_number'],
+                'full_name': row['full_name'], 'image': row['image'],
+                'class_id': row['class_id'], 'stream_id': row['stream_id'],
+                'class_name': row['class_name'], 'stream_name': row['stream_name'],
+                'year_id': row['year_id'], 'term_id': row['term_id'],
+                'year_name': row['year_name'], 'term_name': row['term_name'],
+                'assessment_name': row['assessment_name'],
+                'marks': {}, 'grades': {}, 'weights': {},
+                'total_class_size': row['total_class_size'],
+                'total_stream_size': row['total_stream_size']
+            }
+
+        student = class_grouped[key]
+        student['marks'][row['subject_name']] = int(row['Mark']) if row['Mark'] is not None else None
+        student['grades'][row['subject_name']] = row['grade_letter'] or ''
+        student['weights'][row['subject_name']] = row['weight'] or 0
+
+    # Compute subject ranks
+    subject_ranks = defaultdict(lambda: defaultdict(dict))
+    for assessment, subjects in subject_rankings.items():
+        for subject, entries in subjects.items():
+            entries.sort(key=lambda x: -x['Mark'] if x['Mark'] is not None else float('-inf'))
+            prev_mark, prev_rank = None, 0
+            for idx, entry in enumerate(entries):
+                if entry['Mark'] != prev_mark:
+                    prev_rank = idx + 1
+                subject_ranks[assessment][subject][entry['reg_no']] = prev_rank
+                prev_mark = entry['Mark']
+
+    for student in class_grouped.values():
+        # Total & average from total_avg_subjects
+        total_marks = [student['marks'].get(sub) for sub in total_avg_subjects if student['marks'].get(sub) is not None]
+        total_score = sum(total_marks)
+        avg_score = round(total_score / len(total_marks), 2) if total_marks else 0
+
+        # Aggregate & Division from aggregate_subjects
+        core_marks = [student['marks'].get(sub) for sub in aggregate_subjects]
+        if any(mark is None for mark in core_marks):
+            agg = 'X'
+            division = 'X'
+        else:
+            core_weights = [student['weights'].get(sub, 0) for sub in aggregate_subjects]
+            agg = sum(core_weights)
+            cursor.execute("SELECT division_name FROM division WHERE %s BETWEEN min_score AND max_score LIMIT 1", (agg,))
+            div_row = cursor.fetchone()
+            division = div_row['division_name'] if div_row else 'N/A'
+
+        # Subject ranks
+        ranks = {}
+        for subject in subject_names:
+            rank = subject_ranks[student['assessment_name']][subject].get(student['reg_no'])
+            ranks[subject] = rank
+
+        student.update({
+            'total_score': total_score,
+            'average_score': avg_score,
+            'aggregate': agg,
+            'division': division,
+            'subject_ranks': ranks
+        })
+
+    # Class positions
+    assessment_groups_class = defaultdict(list)
+    for student in class_grouped.values():
+        assessment_groups_class[student['assessment_name']].append(student)
+
+    for group in assessment_groups_class.values():
+        group.sort(key=lambda x: -x['average_score'] if isinstance(x['average_score'], (int, float)) else float('-inf'))
+        prev_score, prev_position = None, 0
+        for idx, rpt in enumerate(group):
+            if rpt['average_score'] != prev_score:
+                prev_position = idx + 1
+            rpt['class_position'] = prev_position
+            prev_score = rpt['average_score']
+
+    # Stream positions
+    assessment_groups_stream = defaultdict(list)
+    for rpt in class_grouped.values():
+        assessment_groups_stream[rpt['assessment_name']].append(rpt)
+
+    for group in assessment_groups_stream.values():
+        streams_group = defaultdict(list)
+        for rpt in group:
+            streams_group[rpt['stream_id']].append(rpt)
+        for sgroup in streams_group.values():
+            sgroup.sort(key=lambda x: -x['average_score'] if isinstance(x['average_score'], (int, float)) else float('-inf'))
+            prev_score, prev_position = None, 0
+            for idx, rpt in enumerate(sgroup):
+                if rpt['average_score'] != prev_score:
+                    prev_position = idx + 1
+                rpt['stream_position'] = prev_position
+                prev_score = rpt['average_score']
+
+    cursor.close()
+    conn.close()
+
+    return render_template('reports/vd_reports_2.html',
+        reports=list(class_grouped.values()),
+        subject_names=sorted(subject_names),
+        class_list=class_list, study_years=study_years,
+        terms=terms, assessments=assessments, streams=streams,
+        selected_class_id=class_id,
+        selected_stream_id=stream_id,
+        selected_study_year_id=year_id,
+        selected_term_id=term_id,
+        selected_assessment_name=assessment_name_list,
+        segment='reports')
+
+
+
+
+
+
+
+
+
+
 @blueprint.route('/scores_positions_reports_2', methods=['GET'])
 def scores_positions_reports_2():
     connection = get_db_connection()
@@ -1699,9 +1904,11 @@ def scores_positions_reports_2():
             segment='reports'
         )
 
-    core_subjects = ['MTC', 'ENGLISH', 'LITERACY 1A', 'LITERACY 1B','COMPUTER', 'R.E','READING','READING','LUGANDA']
+    # Define subject groups
+    total_avg_subjects = sorted(['MTC', 'ENGLISH', 'LITERACY 1A', 'LITERACY 1B', 'COMPUTER', 'R.E', 'READING','LUGANDA'])  # total & average
+    aggregate_subjects = sorted(['MTC', 'ENGLISH', 'LITERACY 1A', 'LITERACY 1B'])  # aggregate & division
 
-    # Fetch scores and related data
+    # Fetch scores
     sql = """
         SELECT 
             p.reg_no, p.stream_id, p.class_id,
@@ -1735,7 +1942,7 @@ def scores_positions_reports_2():
 
     subject_names = sorted({row['subject_name'] for row in rows})
 
-    # Build student data map
+    # Build student map
     student_map = {}
     for row in rows:
         reg_no = row['reg_no']
@@ -1761,21 +1968,18 @@ def scores_positions_reports_2():
 
     # Calculate totals, averages, aggregate, division
     for student in student_map.values():
-        core_marks = [student['marks'].get(sub) for sub in core_subjects]
+        # --- Total & Average ---
+        total_marks = [student['marks'].get(sub) for sub in total_avg_subjects if student['marks'].get(sub) is not None]
+        total_score = sum(total_marks)
+        avg_score = round(total_score / len(total_marks), 2) if total_marks else 0
 
-        # Replace missing marks with zero for total and average calculation
-        marks_values = [m if m is not None else 0 for m in core_marks]
-        total_score = sum(marks_values)
-
-        # Average is always divided by total number of core subjects (4)
-        avg_score = round(total_score / len(core_subjects), 2)
-
-        incomplete = any(m is None for m in core_marks)
-        if incomplete:
+        # --- Aggregate & Division ---
+        core_marks = [student['marks'].get(sub) for sub in aggregate_subjects]
+        if any(mark is None for mark in core_marks):
             aggregate = 'X'
             division = 'X'
         else:
-            aggregate = sum(student['weights'].get(sub, 0) for sub in core_subjects)
+            aggregate = sum(student['weights'].get(sub, 0) for sub in aggregate_subjects)
             cursor.execute("""
                 SELECT division_name FROM division
                 WHERE %s BETWEEN min_score AND max_score LIMIT 1
@@ -1792,13 +1996,11 @@ def scores_positions_reports_2():
 
     students = list(student_map.values())
 
+    # Positioning
     def assign_positions(student_list, pos_key):
-        # Sort students: aggregate 'X' last, others by descending average_score
         student_list.sort(key=lambda s: (float('inf') if s['aggregate'] == 'X' else -s['average_score'], s['reg_no']))
-        prev_score = None
-        prev_position = 0
+        prev_score, prev_position = None, 0
         for idx, student in enumerate(student_list, start=1):
-            # Assign numeric position regardless of 'X' aggregate
             if student['aggregate'] == 'X':
                 student[pos_key] = idx
             else:
@@ -1807,10 +2009,8 @@ def scores_positions_reports_2():
                 student[pos_key] = prev_position
                 prev_score = student['average_score']
 
-    # Assign class positions
     assign_positions(students, 'class_position')
 
-    # Assign stream positions
     from collections import defaultdict
     stream_groups = defaultdict(list)
     for student in students:
@@ -1839,182 +2039,6 @@ def scores_positions_reports_2():
         segment='reports'
     )
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-@blueprint.route('/vd_reports_2', methods=['GET'])
-def vd_reports_2():
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-
-    # Load dropdown data
-    cursor.execute("SELECT * FROM classes WHERE class_id IN (28,27)")
-    class_list = cursor.fetchall()
-    cursor.execute("SELECT * FROM study_year")
-    study_years = cursor.fetchall()
-    cursor.execute("SELECT * FROM terms")
-    terms = cursor.fetchall()
-    cursor.execute("SELECT * FROM assessment")
-    assessments = cursor.fetchall()
-    cursor.execute("SELECT * FROM stream")
-    streams = cursor.fetchall()
-
-    # Read filters
-    class_id = request.args.get('class_id', type=int)
-    stream_id = request.args.get('stream_id', type=int)
-    year_id = request.args.get('year_id', type=int)
-    term_id = request.args.get('term_id', type=int)
-    assessment_name_list = request.args.getlist('assessment_name')
-
-    if not all([class_id, stream_id, year_id, term_id, assessment_name_list]):
-        cursor.close()
-        conn.close()
-        return render_template('reports/vd_reports_2.html',
-            reports=[], subject_names=[],
-            class_list=class_list, study_years=study_years,
-            terms=terms, assessments=assessments, streams=streams,
-            selected_class_id=class_id,
-            selected_stream_id=stream_id,
-            selected_study_year_id=year_id,
-            selected_term_id=term_id,
-            selected_assessment_name=assessment_name_list,
-            segment='reports')
-
-    placeholders = ','.join(['%s'] * len(assessment_name_list))
-    core_subjects = ['MTC', 'ENGLISH', 'LITERACY 1A', 'LITERACY 1B','COMPUTER', 'R.E','READING','READING','LUGANDA']
-
-    class_query = f"""
-        SELECT s.reg_no, p.stream_id, p.class_id,p.index_number,
-               CONCAT_WS(' ', p.last_name, p.first_name, p.other_name) AS full_name,
-               p.image, c.class_name, st.stream_name,
-               y.year_name, y.year_id, t.term_name, t.term_id,
-               a.assessment_name, sub.subject_name, s.Mark,
-               g.grade_letter, g.weight,
-               class_counts.total_class_size, stream_counts.total_stream_size
-        FROM scores s
-        JOIN pupils p USING (reg_no)
-        JOIN classes c ON p.class_id = c.class_id
-        JOIN stream st ON p.stream_id = st.stream_id
-        JOIN study_year y ON s.year_id = y.year_id
-        JOIN terms t ON s.term_id = t.term_id
-        JOIN assessment a ON s.assessment_id = a.assessment_id
-        JOIN subjects sub ON s.subject_id = sub.subject_id
-        LEFT JOIN grades g ON s.Mark BETWEEN g.min_score AND g.max_score
-        JOIN (SELECT class_id, COUNT(*) AS total_class_size FROM pupils GROUP BY class_id) class_counts
-          ON class_counts.class_id = p.class_id
-        JOIN (SELECT class_id, stream_id, COUNT(*) AS total_stream_size FROM pupils GROUP BY class_id, stream_id) stream_counts
-          ON stream_counts.class_id = p.class_id AND stream_counts.stream_id = p.stream_id
-        WHERE p.class_id = %s AND s.year_id = %s AND s.term_id = %s
-          AND a.assessment_name IN ({placeholders})
-        ORDER BY p.first_name, p.last_name, p.other_name
-    """
-
-    class_params = [class_id, year_id, term_id] + assessment_name_list
-    cursor.execute(class_query, class_params)
-    class_rows = cursor.fetchall()
-
-    from collections import defaultdict
-    class_grouped = {}
-    subject_names = set()
-    for row in class_rows:
-        key = (row['reg_no'], row['assessment_name'])
-        subject_names.add(row['subject_name'])
-        if key not in class_grouped:
-            class_grouped[key] = {
-                'reg_no': row['reg_no'], 'index_number':row['index_number'],'full_name': row['full_name'], 'image': row['image'],
-                'class_id': row['class_id'], 'stream_id': row['stream_id'],
-                'class_name': row['class_name'], 'stream_name': row['stream_name'],
-                'year_id': row['year_id'], 'term_id': row['term_id'],
-                'year_name': row['year_name'], 'term_name': row['term_name'],
-                'assessment_name': row['assessment_name'],
-                'marks': {}, 'grades': {}, 'weights': {},
-                'total_class_size': row['total_class_size'], 'total_stream_size': row['total_stream_size']
-            }
-        student = class_grouped[key]
-        student['marks'][row['subject_name']] = int(row['Mark']) if row['Mark'] is not None else None
-        student['grades'][row['subject_name']] = row['grade_letter'] or ''
-        student['weights'][row['subject_name']] = row['weight'] or 0
-
-    # Calculate scores, averages, and divisions
-    for student in class_grouped.values():
-        marks = [student['marks'].get(sub) for sub in core_subjects]
-        total_score = sum(mark for mark in marks if mark is not None)
-        count = len(core_subjects)
-        avg_score = round(total_score / count, 2)
-
-        if any(mark is None for mark in marks):
-            division = 'X'
-            agg = 'X'
-        else:
-            weights = [student['weights'].get(sub, 0) for sub in core_subjects]
-            agg = sum(weights)
-            cursor.execute("SELECT division_name FROM division WHERE %s BETWEEN min_score AND max_score LIMIT 1", (agg,))
-            div_row = cursor.fetchone()
-            division = div_row['division_name'] if div_row else 'N/A'
-
-        student.update({'total_score': total_score,
-                        'average_score': avg_score,
-                        'aggregate': agg,
-                        'division': division})
-
-    # Assign class positions (include division 'X')
-    assessment_groups_class = defaultdict(list)
-    for student in class_grouped.values():
-        assessment_groups_class[student['assessment_name']].append(student)
-
-    for group in assessment_groups_class.values():
-        # Sort by average_score descending, treat None or 'X' division as lowest rank
-        group.sort(key=lambda x: -x['average_score'] if isinstance(x['average_score'], (int, float)) else float('-inf'))
-        prev_score, prev_position = None, 0
-        for idx, rpt in enumerate(group):
-            if rpt['average_score'] != prev_score:
-                prev_position = idx + 1
-            rpt['class_position'] = prev_position
-            prev_score = rpt['average_score']
-
-    # Assign stream positions (include division 'X')
-    assessment_groups_stream = defaultdict(list)
-    for rpt in class_grouped.values():
-        assessment_groups_stream[rpt['assessment_name']].append(rpt)
-
-    for group in assessment_groups_stream.values():
-        streams_group = defaultdict(list)
-        for rpt in group:
-            streams_group[rpt['stream_id']].append(rpt)
-        for sgroup in streams_group.values():
-            sgroup.sort(key=lambda x: -x['average_score'] if isinstance(x['average_score'], (int, float)) else float('-inf'))
-            prev_score, prev_position = None, 0
-            for idx, rpt in enumerate(sgroup):
-                if rpt['average_score'] != prev_score:
-                    prev_position = idx + 1
-                rpt['stream_position'] = prev_position
-                prev_score = rpt['average_score']
-
-    cursor.close()
-    conn.close()
-
-    return render_template('reports/vd_reports_2.html',
-        reports=list(class_grouped.values()), subject_names=sorted(subject_names),
-        class_list=class_list, study_years=study_years,
-        terms=terms, assessments=assessments, streams=streams,
-        selected_class_id=class_id,
-        selected_stream_id=stream_id,
-        selected_study_year_id=year_id,
-        selected_term_id=term_id,
-        selected_assessment_name=assessment_name_list,
-        segment='reports')
 
 
 
@@ -2062,10 +2086,12 @@ def vd_reports_3():
             segment='reports')
 
     placeholders = ','.join(['%s'] * len(assessment_name_list))
-    core_subjects = ['MTC', 'ENGLISH', 'LITERACY 1A', 'LITERACY 1B','COMPUTER', 'R.E','READING','LUGANDA']
+    # Subjects used for calculation
+    total_avg_subjects = sorted(['MTC', 'ENGLISH', 'LITERACY 1A', 'LITERACY 1B', 'COMPUTER', 'R.E', 'LUGANDA'])  # for total and average
+    aggregate_subjects = sorted(['MTC', 'ENGLISH', 'LITERACY 1A', 'LITERACY 1B'])  # for aggregate and division
 
     class_query = f"""
-        SELECT s.reg_no, p.stream_id, p.class_id,p.index_number,
+        SELECT s.reg_no, p.stream_id, p.class_id, p.index_number,
                CONCAT_WS(' ', p.last_name, p.first_name, p.other_name) AS full_name,
                p.image, c.class_name, st.stream_name,
                y.year_name, y.year_id, t.term_name, t.term_id,
@@ -2089,62 +2115,92 @@ def vd_reports_3():
           AND a.assessment_name IN ({placeholders})
         ORDER BY p.first_name, p.last_name, p.other_name
     """
-
     class_params = [class_id, year_id, term_id] + assessment_name_list
     cursor.execute(class_query, class_params)
     class_rows = cursor.fetchall()
 
-    from collections import defaultdict
     class_grouped = {}
     subject_names = set()
+    subject_rankings = defaultdict(lambda: defaultdict(list))
+
     for row in class_rows:
         key = (row['reg_no'], row['assessment_name'])
         subject_names.add(row['subject_name'])
+
+        subject_rankings[row['assessment_name']][row['subject_name']].append({
+            'reg_no': row['reg_no'],
+            'Mark': int(row['Mark']) if row['Mark'] is not None else None
+        })
+
         if key not in class_grouped:
             class_grouped[key] = {
-                'reg_no': row['reg_no'], 'index_number':row['index_number'],'full_name': row['full_name'], 'image': row['image'],
+                'reg_no': row['reg_no'], 'index_number': row['index_number'],
+                'full_name': row['full_name'], 'image': row['image'],
                 'class_id': row['class_id'], 'stream_id': row['stream_id'],
                 'class_name': row['class_name'], 'stream_name': row['stream_name'],
                 'year_id': row['year_id'], 'term_id': row['term_id'],
                 'year_name': row['year_name'], 'term_name': row['term_name'],
                 'assessment_name': row['assessment_name'],
                 'marks': {}, 'grades': {}, 'weights': {},
-                'total_class_size': row['total_class_size'], 'total_stream_size': row['total_stream_size']
+                'total_class_size': row['total_class_size'],
+                'total_stream_size': row['total_stream_size']
             }
+
         student = class_grouped[key]
         student['marks'][row['subject_name']] = int(row['Mark']) if row['Mark'] is not None else None
         student['grades'][row['subject_name']] = row['grade_letter'] or ''
         student['weights'][row['subject_name']] = row['weight'] or 0
 
-    # Calculate scores, averages, and divisions
-    for student in class_grouped.values():
-        marks = [student['marks'].get(sub) for sub in core_subjects]
-        total_score = sum(mark for mark in marks if mark is not None)
-        count = len(core_subjects)
-        avg_score = round(total_score / count, 2)
+    # Compute subject ranks
+    subject_ranks = defaultdict(lambda: defaultdict(dict))
+    for assessment, subjects in subject_rankings.items():
+        for subject, entries in subjects.items():
+            entries.sort(key=lambda x: -x['Mark'] if x['Mark'] is not None else float('-inf'))
+            prev_mark, prev_rank = None, 0
+            for idx, entry in enumerate(entries):
+                if entry['Mark'] != prev_mark:
+                    prev_rank = idx + 1
+                subject_ranks[assessment][subject][entry['reg_no']] = prev_rank
+                prev_mark = entry['Mark']
 
-        if any(mark is None for mark in marks):
-            division = 'X'
+    for student in class_grouped.values():
+        # Total & average from total_avg_subjects
+        total_marks = [student['marks'].get(sub) for sub in total_avg_subjects if student['marks'].get(sub) is not None]
+        total_score = sum(total_marks)
+        avg_score = round(total_score / len(total_marks), 2) if total_marks else 0
+
+        # Aggregate & Division from aggregate_subjects
+        core_marks = [student['marks'].get(sub) for sub in aggregate_subjects]
+        if any(mark is None for mark in core_marks):
             agg = 'X'
+            division = 'X'
         else:
-            weights = [student['weights'].get(sub, 0) for sub in core_subjects]
-            agg = sum(weights)
+            core_weights = [student['weights'].get(sub, 0) for sub in aggregate_subjects]
+            agg = sum(core_weights)
             cursor.execute("SELECT division_name FROM division WHERE %s BETWEEN min_score AND max_score LIMIT 1", (agg,))
             div_row = cursor.fetchone()
             division = div_row['division_name'] if div_row else 'N/A'
 
-        student.update({'total_score': total_score,
-                        'average_score': avg_score,
-                        'aggregate': agg,
-                        'division': division})
+        # Subject ranks
+        ranks = {}
+        for subject in subject_names:
+            rank = subject_ranks[student['assessment_name']][subject].get(student['reg_no'])
+            ranks[subject] = rank
 
-    # Assign class positions (include division 'X')
+        student.update({
+            'total_score': total_score,
+            'average_score': avg_score,
+            'aggregate': agg,
+            'division': division,
+            'subject_ranks': ranks
+        })
+
+    # Class positions
     assessment_groups_class = defaultdict(list)
     for student in class_grouped.values():
         assessment_groups_class[student['assessment_name']].append(student)
 
     for group in assessment_groups_class.values():
-        # Sort by average_score descending, treat None or 'X' division as lowest rank
         group.sort(key=lambda x: -x['average_score'] if isinstance(x['average_score'], (int, float)) else float('-inf'))
         prev_score, prev_position = None, 0
         for idx, rpt in enumerate(group):
@@ -2153,7 +2209,7 @@ def vd_reports_3():
             rpt['class_position'] = prev_position
             prev_score = rpt['average_score']
 
-    # Assign stream positions (include division 'X')
+    # Stream positions
     assessment_groups_stream = defaultdict(list)
     for rpt in class_grouped.values():
         assessment_groups_stream[rpt['assessment_name']].append(rpt)
@@ -2175,7 +2231,8 @@ def vd_reports_3():
     conn.close()
 
     return render_template('reports/vd_reports_3.html',
-        reports=list(class_grouped.values()), subject_names=sorted(subject_names),
+        reports=list(class_grouped.values()),
+        subject_names=sorted(subject_names),
         class_list=class_list, study_years=study_years,
         terms=terms, assessments=assessments, streams=streams,
         selected_class_id=class_id,
@@ -2238,11 +2295,11 @@ def scores_positions_reports_3():
             segment='reports'
         )
 
-    core_subjects =sorted( ['MTC', 'ENGLISH', 'LITERACY 1A', 'LITERACY 1B', 'COMPUTER', 'R.E', 'LUGANDA'])
+    # Define subject groups
+    total_avg_subjects = sorted(['MTC', 'ENGLISH', 'LITERACY 1A', 'LITERACY 1B', 'COMPUTER', 'R.E', 'LUGANDA'])  # total & average
+    aggregate_subjects = sorted(['MTC', 'ENGLISH', 'LITERACY 1A', 'LITERACY 1B'])  # aggregate & division
 
-
-
-    # Fetch scores and related data
+    # Fetch scores
     sql = """
         SELECT 
             p.reg_no, p.stream_id, p.class_id,
@@ -2276,7 +2333,7 @@ def scores_positions_reports_3():
 
     subject_names = sorted({row['subject_name'] for row in rows})
 
-    # Build student data map
+    # Build student map
     student_map = {}
     for row in rows:
         reg_no = row['reg_no']
@@ -2302,21 +2359,18 @@ def scores_positions_reports_3():
 
     # Calculate totals, averages, aggregate, division
     for student in student_map.values():
-        core_marks = [student['marks'].get(sub) for sub in core_subjects]
+        # --- Total & Average ---
+        total_marks = [student['marks'].get(sub) for sub in total_avg_subjects if student['marks'].get(sub) is not None]
+        total_score = sum(total_marks)
+        avg_score = round(total_score / len(total_marks), 2) if total_marks else 0
 
-        # Replace missing marks with zero for total and average calculation
-        marks_values = [m if m is not None else 0 for m in core_marks]
-        total_score = sum(marks_values)
-
-        # Average is always divided by total number of core subjects (4)
-        avg_score = round(total_score / len(core_subjects), 2)
-
-        incomplete = any(m is None for m in core_marks)
-        if incomplete:
+        # --- Aggregate & Division ---
+        core_marks = [student['marks'].get(sub) for sub in aggregate_subjects]
+        if any(mark is None for mark in core_marks):
             aggregate = 'X'
             division = 'X'
         else:
-            aggregate = sum(student['weights'].get(sub, 0) for sub in core_subjects)
+            aggregate = sum(student['weights'].get(sub, 0) for sub in aggregate_subjects)
             cursor.execute("""
                 SELECT division_name FROM division
                 WHERE %s BETWEEN min_score AND max_score LIMIT 1
@@ -2333,13 +2387,11 @@ def scores_positions_reports_3():
 
     students = list(student_map.values())
 
+    # Positioning
     def assign_positions(student_list, pos_key):
-        # Sort students: aggregate 'X' last, others by descending average_score
         student_list.sort(key=lambda s: (float('inf') if s['aggregate'] == 'X' else -s['average_score'], s['reg_no']))
-        prev_score = None
-        prev_position = 0
+        prev_score, prev_position = None, 0
         for idx, student in enumerate(student_list, start=1):
-            # Assign numeric position regardless of 'X' aggregate
             if student['aggregate'] == 'X':
                 student[pos_key] = idx
             else:
@@ -2348,10 +2400,8 @@ def scores_positions_reports_3():
                 student[pos_key] = prev_position
                 prev_score = student['average_score']
 
-    # Assign class positions
     assign_positions(students, 'class_position')
 
-    # Assign stream positions
     from collections import defaultdict
     stream_groups = defaultdict(list)
     for student in students:
