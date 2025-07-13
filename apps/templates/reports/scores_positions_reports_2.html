@@ -21,7 +21,7 @@
       <div id="flashMessageContainer" class="mx-3 mt-3">
         {% for category, message in messages %}
           <div class="alert alert-{{ category }} alert-dismissible fade show">
-            <i class="fas fa-{{ 
+            <i class="fas fa-{{
                 'check-circle' if category == 'success' else
                 'exclamation-circle' if category == 'warning' else
                 'times-circle' if category == 'danger' else
@@ -60,7 +60,7 @@
         <div class="card-header">
           <h3 class="card-title">Filter Report</h3>
         </div>
-        <form method="GET" action="{{ url_for('reports_blueprint.scores_positions_reports') }}">
+        <form method="GET" action="{{ url_for('reports_blueprint.scores_positions_reports_2') }}">
           <div class="card-body">
             <div class="form-row">
 

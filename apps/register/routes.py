@@ -151,21 +151,17 @@ def r_pupils():
 
 @blueprint.route('/register_pupil', methods=['POST'])
 def register_pupil():
-
-
-    #student_ids = request.form.getlist('student_ids')  # List of selected student IDs
     assigned_by = session['id']  # Current user's ID from session
 
-
     selected_pupil_ids = request.form.getlist('pupil_ids')
-    #print(selected_pupil_ids)
-    term_id = request.form.get('term')  # Correct key from form
+    term_id = request.form.get('term')
+    class_id = request.form.get('class_name')  # Get class from form
     flash_messages = []
 
     if not selected_pupil_ids:
         flash('No pupils were selected.', 'warning')
         return redirect(url_for('register_blueprint.r_pupils'))
-    
+
     if not term_id:
         flash('No term was selected.', 'warning')
         return redirect(url_for('register_blueprint.r_pupils'))
@@ -175,44 +171,52 @@ def register_pupil():
 
     try:
         for pupil_id in selected_pupil_ids:
-            # Get current term_id for the pupil
-            cursor.execute("SELECT term_id FROM pupils WHERE pupil_id = %s", (pupil_id,))
+            # Fetch current pupil data
+            cursor.execute("SELECT term_id, class_id FROM pupils WHERE pupil_id = %s", (pupil_id,))
             result = cursor.fetchone()
 
             if not result:
                 flash_messages.append(f'Pupil {pupil_id} not found in the database, skipping.')
                 continue
 
-            current_term_id = result['term_id']
+            updates = []
+            params = []
 
-            if str(current_term_id) == str(term_id):
-                flash_messages.append(f'Pupil {pupil_id} is already assigned to the selected term.')
-                continue
+            # Check if term needs update
+            if str(result['term_id']) != str(term_id):
+                updates.append("term_id = %s")
+                params.append(term_id)
 
-            # Perform the update if needed
-            cursor.execute("""
-                UPDATE pupils SET term_id = %s WHERE pupil_id = %s
-            """, (term_id, pupil_id))
+            # Check if class_name was provided and needs update
+            if class_id and str(result['class_id']) != str(class_id):
+                updates.append("class_id = %s")
+                params.append(class_id)
+
+            if updates:
+                update_query = f"UPDATE pupils SET {', '.join(updates)} WHERE pupil_id = %s"
+                params.append(pupil_id)
+                cursor.execute(update_query, tuple(params))
+            else:
+                flash_messages.append(f'Pupil {pupil_id} already has the selected term and class.')
 
         connection.commit()
 
-        # Flash messages from processing
         for message in flash_messages:
             flash(message, 'warning' if 'already' in message or 'skipping' in message else 'success')
 
-        # Flash overall success if applicable
         if not flash_messages or all('already' not in msg and 'skipping' not in msg for msg in flash_messages):
-            flash(f'{len(selected_pupil_ids)} pupil(s) assigned to term successfully.', 'success')
+            flash(f'{len(selected_pupil_ids)} pupil(s) updated successfully.', 'success')
 
     except Exception as e:
         connection.rollback()
-        flash(f'Error while assigning pupils to term: {str(e)}', 'danger')
+        flash(f'Error while updating pupils: {str(e)}', 'danger')
 
     finally:
         cursor.close()
         connection.close()
 
     return redirect(url_for('register_blueprint.r_pupils'))
+
 
 
 
