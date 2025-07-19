@@ -1,4 +1,4 @@
-from apps.reports import blueprint
+from apps.grade_analysis import blueprint
 from flask import render_template, request, redirect, url_for, flash, session
 import mysql.connector
 from werkzeug.utils import secure_filename
@@ -16,9 +16,9 @@ import numpy as np
 
 
 
-@blueprint.route('/reports', methods=['GET'])
-def reports():
-    """Fetches pupil marks per subject for a given assessment and renders the reports page,
+@blueprint.route('/grade_analysis', methods=['GET'])
+def grade_analysis():
+    """Fetches pupil marks per subject for a given assessment and renders the grade_analysis page,
        including pupils without marks for the chosen assessment."""
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
@@ -70,8 +70,8 @@ def reports():
         cursor.close()
         connection.close()
         return render_template(
-            'reports/reports.html',
-            reports=[],
+            'grade_analysis/grade_analysis.html',
+            grade_analysis=[],
             class_list=class_list,
             study_years=study_years,
             terms=terms,
@@ -87,7 +87,7 @@ def reports():
             selected_stream_id=None,
             selected_pupil_name=None,
             entered_reg_no=None,
-            segment='reports'
+            segment='grade_analysis'
         )
 
     # Construct the query
@@ -140,14 +140,14 @@ def reports():
     query += " ORDER BY p.last_name, p.first_name, p.other_name"
 
     cursor.execute(query)
-    reports = cursor.fetchall()
+    grade_analysis = cursor.fetchall()
 
     cursor.close()
     connection.close()
 
     return render_template(
-        'reports/reports.html',
-        reports=reports,
+        'grade_analysis/grade_analysis.html',
+        grade_analysis=grade_analysis,
         class_list=class_list,
         study_years=study_years,
         terms=terms,
@@ -163,7 +163,7 @@ def reports():
         selected_stream_id=stream_id,
         selected_pupil_name=pupil_name,
         entered_reg_no=reg_no,
-        segment='reports'
+        segment='grade_analysis'
     )
 
 
@@ -196,7 +196,7 @@ def delete_scores():
 
     if not score_ids:
         flash('No scores selected for deletion.', 'warning')
-        return redirect(url_for('reports_blueprint.reports'))
+        return redirect(url_for('grade_analysis_blueprint.grade_analysis'))
 
     try:
         connection = get_db_connection()
@@ -240,7 +240,7 @@ def delete_scores():
         if connection:
             connection.close()
 
-    return redirect(url_for('reports_blueprint.reports'))
+    return redirect(url_for('grade_analysis_blueprint.grade_analysis'))
 
 
 
@@ -321,7 +321,7 @@ def report_card(reg_no):
     overall_average = round(overall_total / overall_count, 2) if overall_count else 0
 
     return render_template(
-        'reports/report_card.html',
+        'grade_analysis/report_card.html',
         student_name=pupil_name,
         assessments=assessments,
         overall_total=overall_total,
@@ -339,8 +339,8 @@ def report_card(reg_no):
 
 
 
-@blueprint.route('/term_reports', methods=['GET'])
-def term_reports():
+@blueprint.route('/term_grade_analysis', methods=['GET'])
+def term_grade_analysis():
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
@@ -372,8 +372,8 @@ def term_reports():
 
     if not any(filters.values()):
         return render_template(
-            'reports/term_reports.html',
-            reports=[],
+            'grade_analysis/term_grade_analysis.html',
+            grade_analysis=[],
             subject_names=[],
             class_list=class_list,
             study_years=study_years,
@@ -384,7 +384,7 @@ def term_reports():
             selected_study_year_id=None,
             selected_term_id=None,
             selected_assessment_name=None,
-            segment='reports'
+            segment='grade_analysis'
         )
 
     # Main query to fetch data with grades
@@ -450,14 +450,14 @@ def term_reports():
         pivoted[key]['grades'][row['subject_name']] = row['grade_letter']
         pivoted[key]['remarks'][row['subject_name']] = row['remark']
 
-    reports = list(pivoted.values())
+    grade_analysis = list(pivoted.values())
 
     cursor.close()
     connection.close()
 
     return render_template(
-        'reports/term_reports.html',
-        reports=reports,
+        'grade_analysis/term_grade_analysis.html',
+        grade_analysis=grade_analysis,
         subject_names=subject_names,
         class_list=class_list,
         study_years=study_years,
@@ -468,7 +468,7 @@ def term_reports():
         selected_study_year_id=year_id,
         selected_term_id=term_id,
         selected_assessment_name=assessment_name,
-        segment='reports'
+        segment='grade_analysis'
     )
 
 
@@ -478,8 +478,8 @@ def term_reports():
 
 
 
-@blueprint.route('/scores_reports', methods=['GET'])
-def scores_reports():
+@blueprint.route('/scores_grade_analysis', methods=['GET'])
+def scores_grade_analysis():
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
@@ -507,11 +507,11 @@ def scores_reports():
     }
 
     if not any(filters.values()):
-        return render_template('reports/scores_reports.html',
-            reports=[], subject_names=[], class_list=class_list,
+        return render_template('grade_analysis/scores_grade_analysis.html',
+            grade_analysis=[], subject_names=[], class_list=class_list,
             study_years=study_years, terms=terms, assessments=assessments,
             selected_class_id=None, selected_study_year_id=None,
-            selected_term_id=None, selected_assessment_name=None, segment='reports'
+            selected_term_id=None, selected_assessment_name=None, segment='grade_analysis'
         )
 
     # Query with filters
@@ -579,7 +579,7 @@ def scores_reports():
         student_map[reg]['remarks'][subject] = row['remark'] or ''
 
     # Calculate total and average using NumPy
-    reports = []
+    grade_analysis = []
     for student in student_map.values():
         marks_array = np.array([
             student['marks'].get(subject, np.nan) for subject in subject_names
@@ -591,15 +591,15 @@ def scores_reports():
 
         student['total_score'] = total
         student['average_score'] = avg
-        reports.append(student)
+        grade_analysis.append(student)
 
-    return render_template('reports/scores_reports.html',
-        reports=reports, subject_names=subject_names,
+    return render_template('grade_analysis/scores_grade_analysis.html',
+        grade_analysis=grade_analysis, subject_names=subject_names,
         class_list=class_list, study_years=study_years,
         terms=terms, assessments=assessments,
         selected_class_id=class_id, selected_study_year_id=year_id,
         selected_term_id=term_id, selected_assessment_name=assessment_name,
-        segment='reports'
+        segment='grade_analysis'
     )
 
 
@@ -619,8 +619,8 @@ def scores_reports():
 
   
 
-@blueprint.route('/scores_positions_reports_remarks', methods=['GET'])
-def scores_positions_reports_remarks():  
+@blueprint.route('/scores_positions_grade_analysis_remarks', methods=['GET'])
+def scores_positions_grade_analysis_remarks():  
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
@@ -641,12 +641,12 @@ def scores_positions_reports_remarks():
     assessment_name = request.args.get('assessment_name', type=str)
 
     if not all([class_id, year_id, term_id, assessment_name]):
-        return render_template('reports/scores_positions_reports_remarks.html',
-            reports=[], subject_names=[], class_list=class_list,
+        return render_template('grade_analysis/scores_positions_grade_analysis_remarks.html',
+            grade_analysis=[], subject_names=[], class_list=class_list,
             study_years=study_years, terms=terms, assessments=assessments,
             selected_class_id=class_id, selected_study_year_id=year_id,
             selected_term_id=term_id, selected_assessment_name=assessment_name,
-            segment='reports'
+            segment='grade_analysis'
         )
 
     # Fetch all scores and grading info
@@ -701,7 +701,7 @@ def scores_positions_reports_remarks():
         student_map[reg_no]['weights'][row['subject_name']] = row['weight'] or 0
 
     # Compute totals, averages, aggregates, and lookup division
-    reports = []
+    grade_analysis = []
     for student in student_map.values():
         marks = np.array([student['marks'].get(sub, float('nan')) for sub in subject_names], dtype=np.float64)
         weights = [student['weights'].get(sub, 0) for sub in subject_names]
@@ -724,10 +724,10 @@ def scores_positions_reports_remarks():
         student['average_score'] = average_score
         student['aggregate'] = aggregate
         student['division'] = division_name
-        reports.append(student)
+        grade_analysis.append(student)
 
     # Rank students by average (stream and class)
-    for student in reports:
+    for student in grade_analysis:
         reg_no = student['reg_no']
         stream_id = student['stream_id']
         class_id = student['class_id']
@@ -759,8 +759,8 @@ def scores_positions_reports_remarks():
     cursor.close()
     connection.close()
 
-    return render_template('reports/scores_positions_reports_remarks.html',
-        reports=reports,
+    return render_template('grade_analysis/scores_positions_grade_analysis_remarks.html',
+        grade_analysis=grade_analysis,
         subject_names=subject_names,
         class_list=class_list,
         study_years=study_years,
@@ -770,7 +770,7 @@ def scores_positions_reports_remarks():
         selected_study_year_id=year_id,
         selected_term_id=term_id,
         selected_assessment_name=assessment_name,
-        segment='reports'
+        segment='grade_analysis'
     )
 
 
@@ -820,8 +820,8 @@ def assessment_report():
 
     # If no filters selected, render empty page
     if not any(filters.values()):
-        return render_template('reports/assessment_report.html',
-            reports=[], pivoted_columns=[],
+        return render_template('grade_analysis/assessment_report.html',
+            grade_analysis=[], pivoted_columns=[],
             class_list=class_list,
             study_years=study_years,
             terms=terms,
@@ -830,7 +830,7 @@ def assessment_report():
             selected_study_year_id=None,
             selected_term_id=None,
             selected_assessment_name=None,
-            segment='reports'
+            segment='grade_analysis'
         )
 
     # Query with filters
@@ -892,7 +892,7 @@ def assessment_report():
         student_map[reg]['marks'][key] = row['Mark']
 
     # Final formatting
-    reports = []
+    grade_analysis = []
     for student in student_map.values():
         total = 0
         count = 0
@@ -903,13 +903,13 @@ def assessment_report():
                 count += 1
         student['total_score'] = total
         student['average_score'] = round(total / count, 2) if count else 0
-        reports.append(student)
+        grade_analysis.append(student)
 
     # Sort and rank
-    reports.sort(key=lambda x: x['average_score'], reverse=True)
+    grade_analysis.sort(key=lambda x: x['average_score'], reverse=True)
     current_rank = 1
     last_avg = None
-    for index, student in enumerate(reports):
+    for index, student in enumerate(grade_analysis):
         if student['average_score'] == last_avg:
             student['position'] = current_rank
         else:
@@ -917,8 +917,8 @@ def assessment_report():
             student['position'] = current_rank
             last_avg = student['average_score']
 
-    return render_template('reports/assessment_report.html',
-        reports=reports,
+    return render_template('grade_analysis/assessment_report.html',
+        grade_analysis=grade_analysis,
         pivoted_columns=pivoted_columns,
         class_list=class_list,
         study_years=study_years,
@@ -928,7 +928,7 @@ def assessment_report():
         selected_study_year_id=year_id,
         selected_term_id=term_id,
         selected_assessment_name=assessment_name,
-        segment='reports'
+        segment='grade_analysis'
     )
 
 
@@ -1059,7 +1059,7 @@ def term_report_card(reg_no):
     cursor.close()
     connection.close()
 
-    return render_template("reports/term_report_card.html",
+    return render_template("grade_analysis/term_report_card.html",
         pupil=pupil,
         subjects=subjects_data,
         assessments=assessment_list,
@@ -1081,8 +1081,8 @@ def term_report_card(reg_no):
 
 
 
-@blueprint.route('/scores_p_reports', methods=['GET'])
-def scores_p_reports():
+@blueprint.route('/scores_p_grade_analysis', methods=['GET'])
+def scores_p_grade_analysis():
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
@@ -1114,11 +1114,11 @@ def scores_p_reports():
 
     # If no filters selected, render empty page
     if not any(filters.values()):
-        return render_template('reports/scores_p_reports.html',
-            reports=[], subject_names=[], class_list=class_list,
+        return render_template('grade_analysis/scores_p_grade_analysis.html',
+            grade_analysis=[], subject_names=[], class_list=class_list,
             study_years=study_years, terms=terms, assessments=assessments,
             selected_class_id=None, selected_study_year_id=None,
-            selected_term_id=None, selected_assessment_name=None, segment='reports'
+            selected_term_id=None, selected_assessment_name=None, segment='grade_analysis'
         )
 
     # Build base SQL query
@@ -1189,7 +1189,7 @@ def scores_p_reports():
         student_map[reg]['remarks'][subject] = row['remark'] or ''
 
     # Calculate totals, averages, and prepare for ranking
-    reports = []
+    grade_analysis = []
     for student in student_map.values():
         marks_array = np.array([
             student['marks'].get(subject, np.nan) for subject in subject_names
@@ -1201,14 +1201,14 @@ def scores_p_reports():
 
         student['total_score'] = total
         student['average_score'] = average
-        reports.append(student)
+        grade_analysis.append(student)
 
     # Sort and assign positions
-    reports.sort(key=lambda x: x['average_score'], reverse=True)
+    grade_analysis.sort(key=lambda x: x['average_score'], reverse=True)
 
     current_position = 1
     last_average = None
-    for index, student in enumerate(reports):
+    for index, student in enumerate(grade_analysis):
         if student['average_score'] == last_average:
             student['position'] = current_position  # same position for tie
         else:
@@ -1217,8 +1217,8 @@ def scores_p_reports():
             last_average = student['average_score']
 
     # Render template with results
-    return render_template('reports/scores_p_reports.html',
-        reports=reports,
+    return render_template('grade_analysis/scores_p_grade_analysis.html',
+        grade_analysis=grade_analysis,
         subject_names=subject_names,
         class_list=class_list,
         study_years=study_years,
@@ -1228,7 +1228,7 @@ def scores_p_reports():
         selected_study_year_id=year_id,
         selected_term_id=term_id,
         selected_assessment_name=assessment_name,
-        segment='reports'
+        segment='grade_analysis'
     )
 
 
@@ -1249,13 +1249,12 @@ def scores_p_reports():
 
 
 
-
-@blueprint.route('/scores_positions_reports', methods=['GET'])
-def scores_positions_reports():
+@blueprint.route('/grade_count_analysis', methods=['GET'])
+def grade_count_analysis():
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
-    # Load dropdown data
+    # Load dropdown data for filters
     cursor.execute("SELECT * FROM classes WHERE class_id IN (4, 30, 31, 32)")
     class_list = cursor.fetchall()
     cursor.execute("SELECT * FROM study_year")
@@ -1267,174 +1266,119 @@ def scores_positions_reports():
     cursor.execute("SELECT * FROM stream")
     streams = cursor.fetchall()
 
-    # Read filters
+    # Read filters from query parameters
     class_id = request.args.get('class_id', type=int)
     year_id = request.args.get('year_id', type=int)
     term_id = request.args.get('term_id', type=int)
     assessment_name = request.args.get('assessment_name', type=str)
     stream_id = request.args.get('stream_id', type=int)
 
+    # Get selected class name
+    selected_class_name = None
+    if class_id:
+        cursor.execute("SELECT class_name FROM classes WHERE class_id = %s", (class_id,))
+        row = cursor.fetchone()
+        selected_class_name = row['class_name'] if row else None
+
+    # Get selected stream name
+    selected_stream_name = None
+    if stream_id:
+        cursor.execute("SELECT stream_name FROM stream WHERE stream_id = %s", (stream_id,))
+        row = cursor.fetchone()
+        selected_stream_name = row['stream_name'] if row else None
+
+    # If any required filters are missing, show only filter form
     if not all([class_id, year_id, term_id, assessment_name]):
         cursor.close()
         connection.close()
         return render_template(
-            'reports/scores_positions_reports.html',
-            reports=[],
+            'grade_analysis/grade_count_analysis.html',
+            grade_counts={},
             subject_names=[],
+            grade_letters=[],
             class_list=class_list,
             study_years=study_years,
             terms=terms,
             assessments=assessments,
             streams=streams,
-            selected_stream_id=stream_id,
             selected_class_id=class_id,
+            selected_class_name=selected_class_name,
             selected_study_year_id=year_id,
             selected_term_id=term_id,
             selected_assessment_name=assessment_name,
-            segment='reports'
+            selected_stream_id=stream_id,
+            selected_stream_name=selected_stream_name,
+            segment='grade_analysis'
         )
 
-    core_subjects = ['MTC', 'ENGLISH', 'SST', 'SCIE']
-
-    # Fetch scores and related data
-    sql = """
-        SELECT 
-            p.reg_no, p.stream_id, p.class_id,
-            CONCAT_WS(' ', p.last_name, p.first_name, p.other_name) AS full_name,
-            y.year_name, y.year_id,
-            t.term_name, t.term_id,
-            a.assessment_name,
-            sub.subject_name,
-            s.Mark,
-            g.grade_letter,
-            g.weight,
-            st.stream_name
+    # Get all relevant subjects for this context
+    subject_query = """
+        SELECT DISTINCT sub.subject_name
         FROM scores s
+        JOIN subjects sub ON s.subject_id = sub.subject_id
         JOIN pupils p ON s.reg_no = p.reg_no
         JOIN assessment a ON s.assessment_id = a.assessment_id
-        JOIN terms t ON s.term_id = t.term_id
-        JOIN study_year y ON s.year_id = y.year_id
+        WHERE p.class_id = %s AND s.year_id = %s AND s.term_id = %s AND a.assessment_name = %s
+    """
+    subject_args = [class_id, year_id, term_id, assessment_name]
+    if stream_id:
+        subject_query += " AND p.stream_id = %s"
+        subject_args.append(stream_id)
+
+    cursor.execute(subject_query, subject_args)
+    subject_names = sorted([row['subject_name'] for row in cursor.fetchall()])
+
+    # Fetch ordered grade letters
+    cursor.execute("SELECT grade_letter FROM grades ORDER BY weight ASC")
+    grade_letters = [row['grade_letter'] for row in cursor.fetchall()]
+
+    # Prepare grade count matrix
+    grade_counts = {subject: {grade: 0 for grade in grade_letters} for subject in subject_names}
+
+    # Fetch scores with matching grades
+    score_query = """
+        SELECT sub.subject_name, g.grade_letter
+        FROM scores s
+        JOIN pupils p ON s.reg_no = p.reg_no
         JOIN subjects sub ON s.subject_id = sub.subject_id
-        JOIN stream st ON p.stream_id = st.stream_id
+        JOIN assessment a ON s.assessment_id = a.assessment_id
         LEFT JOIN grades g ON s.Mark BETWEEN g.min_score AND g.max_score
         WHERE p.class_id = %s AND s.year_id = %s AND s.term_id = %s AND a.assessment_name = %s
     """
-    args = [class_id, year_id, term_id, assessment_name]
-
+    score_args = [class_id, year_id, term_id, assessment_name]
     if stream_id:
-        sql += " AND p.stream_id = %s"
-        args.append(stream_id)
+        score_query += " AND p.stream_id = %s"
+        score_args.append(stream_id)
 
-    cursor.execute(sql, args)
-    rows = cursor.fetchall()
-
-    subject_names = sorted({row['subject_name'] for row in rows})
-
-    # Build student data map
-    student_map = {}
-    for row in rows:
-        reg_no = row['reg_no']
-        if reg_no not in student_map:
-            student_map[reg_no] = {
-                'reg_no': reg_no,
-                'full_name': row['full_name'],
-                'class_id': row['class_id'],
-                'stream_id': row['stream_id'],
-                'stream_name': row['stream_name'],
-                'year_id': row['year_id'],
-                'term_id': row['term_id'],
-                'year_name': row['year_name'],
-                'term_name': row['term_name'],
-                'assessment_name': row['assessment_name'],
-                'marks': {},
-                'grades': {},
-                'weights': {}
-            }
-        student_map[reg_no]['marks'][row['subject_name']] = row['Mark']
-        student_map[reg_no]['grades'][row['subject_name']] = row['grade_letter'] or ''
-        student_map[reg_no]['weights'][row['subject_name']] = row['weight'] or 0
-
-    # Calculate totals, averages, aggregate, division
-    for student in student_map.values():
-        core_marks = [student['marks'].get(sub) for sub in core_subjects]
-
-        # Replace missing marks with zero for total and average calculation
-        marks_values = [m if m is not None else 0 for m in core_marks]
-        total_score = sum(marks_values)
-
-        # Average is always divided by total number of core subjects (4)
-        avg_score = round(total_score / len(core_subjects), 2)
-
-        incomplete = any(m is None for m in core_marks)
-        if incomplete:
-            aggregate = 'X'
-            division = 'X'
-        else:
-            aggregate = sum(student['weights'].get(sub, 0) for sub in core_subjects)
-            cursor.execute("""
-                SELECT division_name FROM division
-                WHERE %s BETWEEN min_score AND max_score LIMIT 1
-            """, (aggregate,))
-            div_row = cursor.fetchone()
-            division = div_row['division_name'] if div_row else 'N/A'
-
-        student.update({
-            'total_score': total_score,
-            'average_score': avg_score,
-            'aggregate': aggregate,
-            'division': division
-        })
-
-    students = list(student_map.values())
-
-    def assign_positions(student_list, pos_key):
-        # Sort students: aggregate 'X' last, others by descending average_score
-        student_list.sort(key=lambda s: (float('inf') if s['aggregate'] == 'X' else -s['average_score'], s['reg_no']))
-        prev_score = None
-        prev_position = 0
-        for idx, student in enumerate(student_list, start=1):
-            # Assign numeric position regardless of 'X' aggregate
-            if student['aggregate'] == 'X':
-                student[pos_key] = idx
-            else:
-                if student['average_score'] != prev_score:
-                    prev_position = idx
-                student[pos_key] = prev_position
-                prev_score = student['average_score']
-
-    # Assign class positions
-    assign_positions(students, 'class_position')
-
-    # Assign stream positions
-    from collections import defaultdict
-    stream_groups = defaultdict(list)
-    for student in students:
-        stream_groups[student['stream_id']].append(student)
-
-    for group in stream_groups.values():
-        assign_positions(group, 'stream_position')
+    cursor.execute(score_query, score_args)
+    for row in cursor.fetchall():
+        subject = row['subject_name']
+        grade = row['grade_letter'] or 'N/A'
+        if subject in grade_counts and grade in grade_counts[subject]:
+            grade_counts[subject][grade] += 1
 
     cursor.close()
     connection.close()
 
     return render_template(
-        'reports/scores_positions_reports.html',
-        reports=students,
+        'grade_analysis/grade_count_analysis.html',
+        grade_counts=grade_counts,
         subject_names=subject_names,
+        grade_letters=grade_letters,
         class_list=class_list,
         study_years=study_years,
         terms=terms,
         assessments=assessments,
         streams=streams,
         selected_class_id=class_id,
+        selected_class_name=selected_class_name,
         selected_study_year_id=year_id,
         selected_term_id=term_id,
         selected_assessment_name=assessment_name,
         selected_stream_id=stream_id,
-        segment='reports'
+        selected_stream_name=selected_stream_name,
+        segment='grade_analysis'
     )
-
-
 
 
 
@@ -1453,8 +1397,8 @@ def scores_positions_reports():
 from collections import defaultdict
 
 
-@blueprint.route('/vd_reports', methods=['GET'])
-def vd_reports():
+@blueprint.route('/vd_grade_analysis', methods=['GET'])
+def vd_grade_analysis():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
@@ -1481,8 +1425,8 @@ def vd_reports():
     if not all([class_id, stream_id, year_id, term_id, assessment_name_list]):
         cursor.close()
         conn.close()
-        return render_template('reports/vd_reports.html',
-            reports=[], subject_names=[],
+        return render_template('grade_analysis/vd_grade_analysis.html',
+            grade_analysis=[], subject_names=[],
             class_list=class_list, study_years=study_years,
             terms=terms, assessments=assessments, streams=streams,
             selected_class_id=class_id,
@@ -1490,7 +1434,7 @@ def vd_reports():
             selected_study_year_id=year_id,
             selected_term_id=term_id,
             selected_assessment_name=assessment_name_list,
-            segment='reports'
+            segment='grade_analysis'
         )
 
     # Get class teacher
@@ -1649,8 +1593,8 @@ def vd_reports():
     cursor.close()
     conn.close()
 
-    return render_template('reports/vd_reports.html',
-        reports=list(grouped.values()),
+    return render_template('grade_analysis/vd_grade_analysis.html',
+        grade_analysis=list(grouped.values()),
         subject_names=sorted(subject_names),
         class_list=class_list, study_years=study_years,
         terms=terms, assessments=assessments, streams=streams,
@@ -1659,7 +1603,7 @@ def vd_reports():
         selected_study_year_id=year_id,
         selected_term_id=term_id,
         selected_assessment_name=assessment_name_list,
-        segment='reports'
+        segment='grade_analysis'
     )
 
 
@@ -1674,8 +1618,8 @@ def vd_reports():
 from collections import defaultdict
 from flask import request, render_template
 
-@blueprint.route('/vd_reports_2', methods=['GET'])
-def vd_reports_2():
+@blueprint.route('/vd_grade_analysis_2', methods=['GET'])
+def vd_grade_analysis_2():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
@@ -1707,8 +1651,8 @@ def vd_reports_2():
         cursor.close()
         conn.close()
         return render_template(
-            'reports/vd_reports_2.html',
-            reports=[],
+            'grade_analysis/vd_grade_analysis_2.html',
+            grade_analysis=[],
             subject_names=[],
             class_list=class_list,
             study_years=study_years,
@@ -1720,7 +1664,7 @@ def vd_reports_2():
             selected_study_year_id=year_id,
             selected_term_id=term_id,
             selected_assessment_name=assessment_name_list,
-            segment='reports'
+            segment='grade_analysis'
         )
 
     # Get class teacher name for the selected stream, year, and term
@@ -1900,8 +1844,8 @@ def vd_reports_2():
 
     # Render the template with all data including the class teacher
     return render_template(
-        'reports/vd_reports_2.html',
-        reports=list(class_grouped.values()),
+        'grade_analysis/vd_grade_analysis_2.html',
+        grade_analysis=list(class_grouped.values()),
         subject_names=sorted(subject_names),
         class_list=class_list,
         study_years=study_years,
@@ -1914,7 +1858,7 @@ def vd_reports_2():
         selected_term_id=term_id,
         selected_assessment_name=assessment_name_list,
         class_teacher=class_teacher,
-        segment='reports'
+        segment='grade_analysis'
     )
 
 
@@ -1925,8 +1869,8 @@ def vd_reports_2():
 
 
 
-@blueprint.route('/scores_positions_reports_2', methods=['GET'])
-def scores_positions_reports_2():
+@blueprint.route('/scores_positions_grade_analysis_2', methods=['GET'])
+def scores_positions_grade_analysis_2():
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
@@ -1953,8 +1897,8 @@ def scores_positions_reports_2():
         cursor.close()
         connection.close()
         return render_template(
-            'reports/scores_positions_reports_2.html',
-            reports=[],
+            'grade_analysis/scores_positions_grade_analysis_2.html',
+            grade_analysis=[],
             subject_names=[],
             class_list=class_list,
             study_years=study_years,
@@ -1966,7 +1910,7 @@ def scores_positions_reports_2():
             selected_study_year_id=year_id,
             selected_term_id=term_id,
             selected_assessment_name=assessment_name,
-            segment='reports'
+            segment='grade_analysis'
         )
 
     # Define subject groups
@@ -2088,8 +2032,8 @@ def scores_positions_reports_2():
     connection.close()
 
     return render_template(
-        'reports/scores_positions_reports_2.html',
-        reports=students,
+        'grade_analysis/scores_positions_grade_analysis_2.html',
+        grade_analysis=students,
         subject_names=subject_names,
         class_list=class_list,
         study_years=study_years,
@@ -2101,7 +2045,7 @@ def scores_positions_reports_2():
         selected_term_id=term_id,
         selected_assessment_name=assessment_name,
         selected_stream_id=stream_id,
-        segment='reports'
+        segment='grade_analysis'
     )
 
 
@@ -2112,8 +2056,8 @@ def scores_positions_reports_2():
 
 
 
-@blueprint.route('/vd_reports_3', methods=['GET'])
-def vd_reports_3():
+@blueprint.route('/vd_grade_analysis_3', methods=['GET'])
+def vd_grade_analysis_3():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
@@ -2139,8 +2083,8 @@ def vd_reports_3():
     if not all([class_id, stream_id, year_id, term_id, assessment_name_list]):
         cursor.close()
         conn.close()
-        return render_template('reports/vd_reports_3.html',
-            reports=[], subject_names=[],
+        return render_template('grade_analysis/vd_grade_analysis_3.html',
+            grade_analysis=[], subject_names=[],
             class_list=class_list, study_years=study_years,
             terms=terms, assessments=assessments, streams=streams,
             selected_class_id=class_id,
@@ -2148,7 +2092,7 @@ def vd_reports_3():
             selected_study_year_id=year_id,
             selected_term_id=term_id,
             selected_assessment_name=assessment_name_list,
-            segment='reports')
+            segment='grade_analysis')
 
     placeholders = ','.join(['%s'] * len(assessment_name_list))
     # Subjects used for calculation
@@ -2295,8 +2239,8 @@ def vd_reports_3():
     cursor.close()
     conn.close()
 
-    return render_template('reports/vd_reports_3.html',
-        reports=list(class_grouped.values()),
+    return render_template('grade_analysis/vd_grade_analysis_3.html',
+        grade_analysis=list(class_grouped.values()),
         subject_names=sorted(subject_names),
         class_list=class_list, study_years=study_years,
         terms=terms, assessments=assessments, streams=streams,
@@ -2305,7 +2249,7 @@ def vd_reports_3():
         selected_study_year_id=year_id,
         selected_term_id=term_id,
         selected_assessment_name=assessment_name_list,
-        segment='reports')
+        segment='grade_analysis')
 
 
 
@@ -2316,8 +2260,8 @@ def vd_reports_3():
 
 
 
-@blueprint.route('/scores_positions_reports_3', methods=['GET'])
-def scores_positions_reports_3():
+@blueprint.route('/scores_positions_grade_analysis_3', methods=['GET'])
+def scores_positions_grade_analysis_3():
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
@@ -2344,8 +2288,8 @@ def scores_positions_reports_3():
         cursor.close()
         connection.close()
         return render_template(
-            'reports/scores_positions_reports_3.html',
-            reports=[],
+            'grade_analysis/scores_positions_grade_analysis_3.html',
+            grade_analysis=[],
             subject_names=[],
             class_list=class_list,
             study_years=study_years,
@@ -2357,7 +2301,7 @@ def scores_positions_reports_3():
             selected_study_year_id=year_id,
             selected_term_id=term_id,
             selected_assessment_name=assessment_name,
-            segment='reports'
+            segment='grade_analysis'
         )
 
     # Define subject groups
@@ -2479,8 +2423,8 @@ def scores_positions_reports_3():
     connection.close()
 
     return render_template(
-        'reports/scores_positions_reports_3.html',
-        reports=students,
+        'grade_analysis/scores_positions_grade_analysis_3.html',
+        grade_analysis=students,
         subject_names=subject_names,
         class_list=class_list,
         study_years=study_years,
@@ -2492,5 +2436,5 @@ def scores_positions_reports_3():
         selected_term_id=term_id,
         selected_assessment_name=assessment_name,
         selected_stream_id=stream_id,
-        segment='reports'
+        segment='grade_analysis'
     )
