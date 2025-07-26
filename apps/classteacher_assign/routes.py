@@ -58,7 +58,6 @@ def classteacher_assign():
     users = fetch_dropdown("""
         SELECT id AS user_id, CONCAT(first_name, ' ', last_name) AS full_name
         FROM users
-        WHERE role = 'teacher' OR role1 = 'teacher'
         ORDER BY full_name
     """)
 

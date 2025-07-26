@@ -121,26 +121,25 @@ def ppr_promote():
 
 
 
+from datetime import datetime
+import pytz
 
 
-
+def get_kampala_time():
+    kampala = pytz.timezone("Africa/Kampala")
+    return datetime.now(kampala)
 
 @blueprint.route('/promote_pupil', methods=['POST'])
 def promote_pupil():
-
-
-    #student_ids = request.form.getlist('student_ids')  # List of selected student IDs
-    assigned_by = session['id']  # Current user's ID from session
-
-
+    assigned_by = session.get('id')
     selected_pupil_ids = request.form.getlist('pupil_ids')
-    term_id = request.form.get('term')  # Correct key from form
+    term_id = request.form.get('term')
     flash_messages = []
 
     if not selected_pupil_ids:
         flash('No pupils were selected.', 'warning')
         return redirect(url_for('promote_blueprint.pr_promote'))
-    
+
     if not term_id:
         flash('No term was selected.', 'warning')
         return redirect(url_for('promote_blueprint.pr_promote'))
@@ -150,8 +149,8 @@ def promote_pupil():
 
     try:
         for pupil_id in selected_pupil_ids:
-            # Get current term_id for the pupil
-            cursor.execute("SELECT term_id FROM pupils WHERE pupil_id = %s", (pupil_id,))
+            # Get current pupil details
+            cursor.execute("SELECT term_id, class_id, stream_id, year_id FROM pupils WHERE pupil_id = %s", (pupil_id,))
             result = cursor.fetchone()
 
             if not result:
@@ -164,24 +163,39 @@ def promote_pupil():
                 flash_messages.append(f'Pupil {pupil_id} is already assigned to the selected term.')
                 continue
 
-            # Perform the update if needed
+            # Perform the update
+            cursor.execute("UPDATE pupils SET term_id = %s WHERE pupil_id = %s", (term_id, pupil_id))
+
+            # Log to enrollment_history
             cursor.execute("""
-                UPDATE pupils SET term_id = %s WHERE pupil_id = %s
-            """, (term_id, pupil_id))
+                INSERT INTO enrollment_history (
+                    pupil_id, class_id, stream_id, term_id, year_id,
+                    action_type, registered_by, notes, timestamp
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                pupil_id,
+                result['class_id'],
+                result['stream_id'],
+                term_id,
+                result['year_id'],
+                'promote',
+                assigned_by,
+                'Promoted to new term',
+                get_kampala_time()
+            ))
 
         connection.commit()
 
-        # Flash messages from processing
+        # Flash all warning/success messages
         for message in flash_messages:
             flash(message, 'warning' if 'already' in message or 'skipping' in message else 'success')
 
-        # Flash overall success if applicable
         if not flash_messages or all('already' not in msg and 'skipping' not in msg for msg in flash_messages):
-            flash(f'{len(selected_pupil_ids)} pupil(s) assigned to term successfully.', 'success')
+            flash(f'{len(selected_pupil_ids)} pupil(s) promoted successfully.', 'success')
 
     except Exception as e:
         connection.rollback()
-        flash(f'Error while assigning pupils to term: {str(e)}', 'danger')
+        flash(f'Error while promoting pupils: {str(e)}', 'danger')
 
     finally:
         cursor.close()

@@ -36,49 +36,67 @@ def route_default():
 
 
 
+
+import uuid
 @blueprint.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
+        username = request.form.get('username')
+        password = request.form.get('password')
 
         try:
-            with get_db_connection() as connection:
-                with connection.cursor(dictionary=True) as cursor:
+            with get_db_connection() as conn:
+                with conn.cursor(dictionary=True) as cursor:
                     cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
                     user = cursor.fetchone()
 
-                    if user:
-                        if user['password'] == password:  # Change this to hash check in production
-                            current_time = get_kampala_time()
-
-                            cursor.execute(
-                                "INSERT INTO user_activity (user_id, login_time) VALUES (%s, %s)",
-                                (user['id'], current_time)
-                            )
-                            cursor.execute("UPDATE users SET is_online = 1 WHERE id = %s", (user['id'],))
-                            connection.commit()
-
-                            session.update({
-                                'loggedin': True,
-                                'id': user['id'],
-                                'username': user['username'],
-                                'profile_image': user.get('profile_image'),
-                                'first_name': user.get('first_name'),
-                                'role': user.get('role'),
-                                'role1': user.get('role1'),
-                                'last_activity': current_time
-                            })
-
-                            # Session expires when browser is closed
-                            session.permanent = False
-
-                            flash('Login successful!', 'success')
-                            return redirect(url_for('home_blueprint.index'))
-                        else:
-                            flash('Incorrect password.', 'danger')
-                    else:
+                    if not user:
                         flash('Username not found.', 'danger')
+                        return render_template('accounts/login.html')
+
+                    # ⚠️ Use password hashing in production!
+                    if user['password'] != password:
+                        flash('Incorrect password.', 'danger')
+                        return render_template('accounts/login.html')
+
+                    # Record login time
+                    login_time = get_kampala_time()
+                    cursor.execute(
+                        "INSERT INTO user_activity (user_id, login_time) VALUES (%s, %s)",
+                        (user['id'], login_time)
+                    )
+                    cursor.execute(
+                        "UPDATE users SET is_online = 1 WHERE id = %s",
+                        (user['id'],)
+                    )
+
+                    # Generate and store session token
+                    session_token = str(uuid.uuid4())
+                    session['token'] = session_token
+                    cursor.execute(
+                        "UPDATE users SET session_token = %s WHERE id = %s",
+                        (session_token, user['id'])
+                    )
+
+                    # Commit changes
+                    conn.commit()
+
+                    # Set session values
+                    session.update({
+                        'loggedin': True,
+                        'id': user['id'],
+                        'username': user['username'],
+                        'profile_image': user.get('profile_image'),
+                        'first_name': user.get('first_name'),
+                        'role': user.get('role'),
+                        'role1': user.get('role1'),
+                        'last_activity': login_time
+                    })
+
+                    session.permanent = False  # Session ends with browser close
+
+                    flash('Login successful!', 'success')
+                    return redirect(url_for('home_blueprint.index'))
 
         except Exception as e:
             flash(f"An error occurred: {str(e)}", 'danger')
@@ -86,10 +104,61 @@ def login():
     return render_template('accounts/login.html')
 
 
+@blueprint.before_app_request
+def check_token_validity():
+    if 'loggedin' in session:
+        user_id = session.get('id')
+        token = session.get('token')
+
+        with get_db_connection() as connection:
+            with connection.cursor(dictionary=True) as cursor:
+                cursor.execute("SELECT session_token FROM users WHERE id = %s", (user_id,))
+                result = cursor.fetchone()
+
+                if result and token != result['session_token']:
+                    session.clear()
+                    flash('You were logged out by an administrator.', 'info')
+                    return redirect(url_for('authentication_blueprint.login'))
 
 
 
+import uuid
 
+@login_required
+@blueprint.route('/force_logout/<int:user_id>')
+def force_logout(user_id):
+    role = session.get('role')
+    if role not in ['admin', 'super_admin']:
+        flash("You do not have permission to force logout users.", "warning")
+        return redirect(url_for('authentication_blueprint.login'))
+
+    try:
+        with get_db_connection() as connection:
+            with connection.cursor(dictionary=True) as cursor:
+                current_time = get_kampala_time().replace(tzinfo=None)
+
+                # Update user activity and is_online
+                cursor.execute("""
+                    UPDATE user_activity
+                    SET logout_time = %s
+                    WHERE user_id = %s AND logout_time IS NULL
+                    ORDER BY login_time DESC
+                    LIMIT 1
+                """, (current_time, user_id))
+
+                cursor.execute("UPDATE users SET is_online = 0 WHERE id = %s", (user_id,))
+
+                # Invalidate session by changing token
+                new_token = str(uuid.uuid4())
+                cursor.execute("UPDATE users SET session_token = %s WHERE id = %s", (new_token, user_id))
+
+                connection.commit()
+
+        flash("User has been signed out successfully.", "success")
+    except Exception as e:
+        flash(f"Error during forced logout: {str(e)}", "danger")
+
+    return redirect(url_for('authentication_blueprint.manage_users'))
 
 
 
@@ -201,40 +270,18 @@ def logout():
 
 
 
-@login_required
-@blueprint.route('/force_logout/<int:user_id>')
-def force_logout(user_id):
-    role = session.get('role')
-    if role not in ['admin', 'super_admin']:
-        flash("You do not have permission to force logout users.", "warning")
-        return redirect(url_for('authentication_blueprint.login'))
 
-    try:
-        with get_db_connection() as connection:
-            with connection.cursor(dictionary=True) as cursor:
-                current_time = get_kampala_time().replace(tzinfo=None)
-
-                # Update only the most recent active session
-                cursor.execute("""
-                    UPDATE user_activity
-                    SET logout_time = %s
-                    WHERE user_id = %s AND logout_time IS NULL
-                    ORDER BY login_time DESC
-                    LIMIT 1
-                """, (current_time, user_id))
-
-                cursor.execute("UPDATE users SET is_online = 0 WHERE id = %s", (user_id,))
-                connection.commit()
-
-        flash("User has been signed out successfully.", "success")
-    except Exception as e:
-        flash(f"Error during forced logout: {str(e)}", "danger")
-
-    return redirect(url_for('authentication_blueprint.manage_users'))
 
 
 
     
+
+
+
+
+
+
+
 
 
 
@@ -244,8 +291,7 @@ def force_logout(user_id):
 @blueprint.route('/manage_users')
 def manage_users():
     role = session.get('role')
-    
-    # Define exclusions based on the current user's role
+
     excluded_roles_map = {
         'admin': ['admin', 'super_admin'],
         'inventory_manager': ['admin', 'inventory_manager', 'super_admin', 'class_teacher'],
@@ -262,15 +308,30 @@ def manage_users():
         with get_db_connection() as connection:
             with connection.cursor(dictionary=True) as cursor:
                 placeholders = ','.join(['%s'] * len(excluded_roles))
-                query = f"SELECT * FROM users WHERE role NOT IN ({placeholders})"
+                query = f"""
+                    SELECT
+                        id,
+                        username,
+                        role,
+                        name_sf,
+                        is_online,
+                        CONCAT_WS(' ', last_name, first_name, other_name) AS full_name,
+                        profile_image
+                    FROM users
+                    WHERE role NOT IN ({placeholders})
+                    ORDER BY username ASC
+                """
                 cursor.execute(query, tuple(excluded_roles))
                 users = cursor.fetchall()
-    except Exception as e:
-        logger.error(f"Error fetching users: {e}")
+
+    except Exception:
         flash("Error fetching user data.", "danger")
         return redirect(url_for('home_blueprint.index'))
 
     return render_template('accounts/manage_users.html', users=users, num=len(users))
+
+
+
 
 
 
@@ -395,6 +456,7 @@ def edit_user(id):
                     first_name = request.form.get('first_name')
                     last_name = request.form.get('last_name')
                     other_name = request.form.get('other_name')
+                    name_sf = request.form.get('name_sf')  # New field added
                     password = request.form.get('password')
                     role = request.form.get('role')
                     role1 = request.form.get('role1') or None
@@ -413,14 +475,15 @@ def edit_user(id):
                     if not profile_image_path:
                         profile_image_path = user['profile_image']
 
-                    # Update user in DB
+                    # Update user in DB including name_sf
                     cursor.execute('''
                         UPDATE users
                         SET username = %s, first_name = %s, last_name = %s, other_name = %s,
+                            name_sf = %s,
                             password = %s, role = %s, role1 = %s, profile_image = %s
                         WHERE id = %s
                     ''', (
-                        username, first_name, last_name, other_name,
+                        username, first_name, last_name, other_name, name_sf,
                         password, role, role1, profile_image_path, id
                     ))
                     connection.commit()

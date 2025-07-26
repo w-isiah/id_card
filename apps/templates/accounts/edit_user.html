@@ -94,11 +94,19 @@
                 </div>
               </div>
 
+              <!-- Name SF -->
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="name_sf">Name SF</label>
+                  <input type="text" class="form-control" name="name_sf" id="name_sf" value="{{ user.name_sf }}">
+                </div>
+              </div>
+
               <!-- Password -->
               <div class="col-md-6">
                 <div class="form-group">
                   <label for="password">Password <small class="text-muted">(leave blank to keep current)</small></label>
-                  <input type="password" class="form-control" name="password" id="password" placeholder="{{ user.password}}">
+                  <input type="password" class="form-control" name="password" id="password" placeholder="********">
                 </div>
               </div>
 
@@ -128,11 +136,8 @@
                   <label for="role1">Additional Role (role1)</label>
                   <select class="form-control select2bs4" name="role1" id="role1">
                     <option value="" disabled selected>Select additional role</option>
-                
                     <option value="teacher" {% if user.role1 == 'teacher' %}selected{% endif %}>Teacher</option>
-                    <option value="None" {% if user.role1 == 'teacher' %}selected{% endif %}>None</option>
-
-                    
+                    <option value="None" {% if user.role1 == 'None' or not user.role1 %}selected{% endif %}>None</option>
                   </select>
                 </div>
               </div>

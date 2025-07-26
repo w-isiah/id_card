@@ -29,13 +29,23 @@ def allowed_file(filename):
 
 
 
+
+
+
+
+
+
+
+
+
+
 @blueprint.route('/r_pupils')
 def r_pupils():
-    """Fetch and filter pupils by Reg No, Name, Class, Study Year, Term, and Stream."""
+    """Filter pupils by Reg No, Name, Class, Study Year, Term, and Stream."""
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
-    # Fetch data for dropdowns
+    # Load dropdowns
     cursor.execute('SELECT year_id, year_name AS study_year FROM study_year ORDER BY year_name')
     study_years = cursor.fetchall()
 
@@ -45,76 +55,72 @@ def r_pupils():
     cursor.execute('SELECT term_id, term_name FROM terms ORDER BY term_name')
     terms = cursor.fetchall()
 
-    
     cursor.execute('''
-    SELECT 
-        s.stream_id,
-        s.stream_name,
-        c.class_id,
-        c.class_name
-    FROM stream s
-    JOIN classes c ON s.class_id = c.class_id
-    ORDER BY s.stream_name
+        SELECT 
+            s.stream_id,
+            s.stream_name,
+            c.class_id,
+            c.class_name
+        FROM stream s
+        JOIN classes c ON s.class_id = c.class_id
+        ORDER BY s.stream_name
     ''')
-    streams = cursor.fetchall() 
+    streams = cursor.fetchall()
 
     # Get filter values from request
     reg_no = request.args.get('reg_no', '').strip()
     name = request.args.get('name', '').strip()
     class_id = request.args.get('class_name', '').strip()
+    stream_id = request.args.get('stream', '').strip()
     study_year_id = request.args.get('study_year', '').strip()
     term_id = request.args.get('term', '').strip()
-    stream_id = request.args.get('stream', '').strip()
 
-    # Build filters
-    filters = []
-    params = {}
+    # Determine if any filters are applied
+    filters_applied = any([reg_no, name, class_id, stream_id, study_year_id, term_id])
 
-    if reg_no:
-        filters.append("p.reg_no LIKE %(reg_no)s")
-        params['reg_no'] = f"%{reg_no}%"
-
-    if name:
-        filters.append("(p.first_name LIKE %(name)s OR p.last_name LIKE %(name)s)")
-        params['name'] = f"%{name}%"
-
-    if class_id:
-        filters.append("p.class_id = %(class_id)s")
-        params['class_id'] = class_id
-
-    if study_year_id:
-        filters.append("p.year_id = %(study_year_id)s")
-        params['study_year_id'] = study_year_id
-
-    if term_id:
-        filters.append("p.term_id = %(term_id)s")
-        params['term_id'] = term_id
-
-    if stream_id:
-        filters.append("p.stream_id = %(stream_id)s")
-        params['stream_id'] = stream_id
-
-    # Fetch filtered pupil data
     pupils = []
-    if filters:
+    params = {}
+    filters = []
+
+    def add_filter(column, param, value, use_like=False):
+        if value:
+            clause = f"{column} LIKE %({param})s" if use_like else f"{column} = %({param})s"
+            filters.append(clause)
+            params[param] = f"%{value}%" if use_like else value
+
+    if filters_applied:
+        add_filter("p.reg_no", "reg_no", reg_no, use_like=True)
+        add_filter("p.class_id", "class_id", class_id)
+        add_filter("p.stream_id", "stream_id", stream_id)
+        add_filter("p.year_id", "study_year_id", study_year_id)
+        add_filter("p.term_id", "term_id", term_id)
+
+        if name:
+            filters.append("""(
+                p.first_name LIKE %(name)s OR 
+                p.last_name LIKE %(name)s OR 
+                p.other_name LIKE %(name)s
+            )""")
+            params['name'] = f"%{name}%"
+
         query = f'''
             SELECT 
                 p.pupil_id,
                 p.reg_no,
-                CONCAT(p.first_name, ' ', p.last_name) AS full_name,
+                CONCAT_WS(' ', p.first_name, p.last_name, p.other_name) AS full_name,
                 p.gender,
                 p.image,
                 p.date_of_birth,
                 sy.year_name AS study_year,
                 c.class_name,
-                t.term_name,
-                s.stream_name
+                COALESCE(t.term_name, 'None') AS term_name,
+                COALESCE(s.stream_name, 'None') AS stream_name
             FROM pupils p
-            JOIN study_year sy ON p.year_id = sy.year_id
-            JOIN classes c ON p.class_id = c.class_id
-            JOIN terms t ON p.term_id = t.term_id
+            LEFT JOIN study_year sy ON p.year_id = sy.year_id
+            LEFT JOIN classes c ON p.class_id = c.class_id
+            LEFT JOIN terms t ON p.term_id = t.term_id
             LEFT JOIN stream s ON p.stream_id = s.stream_id
-            WHERE {' AND '.join(filters)}
+            WHERE {" AND ".join(filters)}
             ORDER BY p.last_name
         '''
         cursor.execute(query, params)
@@ -147,15 +153,20 @@ def r_pupils():
 
 
 
+from flask import Blueprint, request, redirect, url_for, session, flash
+from datetime import datetime
+import pytz
 
+def get_kampala_time():
+    kampala = pytz.timezone("Africa/Kampala")
+    return datetime.now(kampala)
 
 @blueprint.route('/register_pupil', methods=['POST'])
 def register_pupil():
-    assigned_by = session['id']  # Current user's ID from session
-
+    assigned_by = session['id']
     selected_pupil_ids = request.form.getlist('pupil_ids')
     term_id = request.form.get('term')
-    class_id = request.form.get('class_name')  # Get class from form
+    class_id = request.form.get('class_name')
     flash_messages = []
 
     if not selected_pupil_ids:
@@ -171,8 +182,7 @@ def register_pupil():
 
     try:
         for pupil_id in selected_pupil_ids:
-            # Fetch current pupil data
-            cursor.execute("SELECT term_id, class_id FROM pupils WHERE pupil_id = %s", (pupil_id,))
+            cursor.execute("SELECT term_id, class_id, stream_id, year_id FROM pupils WHERE pupil_id = %s", (pupil_id,))
             result = cursor.fetchone()
 
             if not result:
@@ -182,13 +192,16 @@ def register_pupil():
             updates = []
             params = []
 
-            # Check if term needs update
-            if str(result['term_id']) != str(term_id):
+            new_term = str(term_id)
+            new_class = str(class_id) if class_id else result['class_id']
+            current_term = str(result['term_id'])
+            current_class = str(result['class_id'])
+
+            # Detect needed updates
+            if current_term != new_term:
                 updates.append("term_id = %s")
                 params.append(term_id)
-
-            # Check if class_name was provided and needs update
-            if class_id and str(result['class_id']) != str(class_id):
+            if class_id and current_class != new_class:
                 updates.append("class_id = %s")
                 params.append(class_id)
 
@@ -196,6 +209,24 @@ def register_pupil():
                 update_query = f"UPDATE pupils SET {', '.join(updates)} WHERE pupil_id = %s"
                 params.append(pupil_id)
                 cursor.execute(update_query, tuple(params))
+
+                # Log update to enrollment_history
+                cursor.execute("""
+                    INSERT INTO enrollment_history (
+                        pupil_id, class_id, stream_id, term_id, year_id,
+                        action_type, registered_by, notes, timestamp
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    pupil_id,
+                    class_id or result['class_id'],
+                    result['stream_id'],
+                    term_id,
+                    result['year_id'],
+                    'register' if result['term_id'] is None and result['class_id'] is None else 'update',
+                    assigned_by,
+                    'Registered or updated term/class via registration page',
+                    get_kampala_time()
+                ))
             else:
                 flash_messages.append(f'Pupil {pupil_id} already has the selected term and class.')
 

@@ -79,6 +79,8 @@
             <thead class="thead-dark">
               <tr>
                 <th>Username</th>
+                <th>Name SF</th>
+                <th>Full Name</th>
                 <th>Role</th>
                 <th>Status</th>
                 <th>Section Roles</th>
@@ -91,6 +93,8 @@
               {% for user in users %}
               <tr>
                 <td>{{ user.username }}</td>
+                <td>{{ user.name_sf or '-' }}</td>
+                <td>{{ user.full_name or '-' }}</td>
                 <td>{{ user.role }}</td>
                 <td id="user-status-{{ user.id }}">
                   {% if user.is_online %}

@@ -152,8 +152,13 @@ def stream_assign():
 
 
 
+from datetime import datetime
+import pytz
 
 
+def get_kampala_time():
+    kampala = pytz.timezone("Africa/Kampala")
+    return datetime.now(kampala)
 
 @blueprint.route('/stream_term_assign', methods=['POST'])
 def stream_term_assign():
@@ -162,7 +167,6 @@ def stream_term_assign():
     stream_id = request.form.get('stream_id')
     term_id = request.form.get('term')
 
-    # Input validation
     if not selected_pupil_ids:
         flash('No pupils were selected.', 'warning')
         return redirect(url_for('stream_assign_blueprint.stream_assign'))
@@ -175,30 +179,52 @@ def stream_term_assign():
         flash('No stream was selected. Please click on a pupil row to select a stream.', 'warning')
         return redirect(url_for('stream_assign_blueprint.stream_assign'))
 
-    # Database logic
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
     successful = 0
 
     try:
         for pupil_id in selected_pupil_ids:
-            cursor.execute("SELECT term_id, stream_id FROM pupils WHERE pupil_id = %s", (pupil_id,))
+            # Fetch current data
+            cursor.execute("SELECT term_id, stream_id, class_id, year_id FROM pupils WHERE pupil_id = %s", (pupil_id,))
             result = cursor.fetchone()
 
             if not result:
                 flash(f'Pupil {pupil_id} not found, skipping.', 'warning')
                 continue
 
-            if str(result['term_id']) == str(term_id) and str(result['stream_id']) == str(stream_id):
+            current_term = str(result['term_id'])
+            current_stream = str(result['stream_id'])
+
+            if current_term == str(term_id) and current_stream == str(stream_id):
                 flash(f'Pupil {pupil_id} is already assigned to this stream and term.', 'info')
                 continue
 
+            # Update pupils table
             cursor.execute("""
                 UPDATE pupils
                 SET term_id = %s, stream_id = %s
                 WHERE pupil_id = %s
             """, (term_id, stream_id, pupil_id))
             successful += 1
+
+            # Log the change to enrollment_history
+            cursor.execute("""
+                INSERT INTO enrollment_history (
+                    pupil_id, class_id, stream_id, term_id, year_id,
+                    action_type, registered_by, notes, timestamp
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                pupil_id,
+                result['class_id'],
+                stream_id,
+                term_id,
+                result['year_id'],
+                'update',
+                assigned_by,
+                'Stream and/or term reassignment',
+                get_kampala_time()
+            ))
 
         connection.commit()
 
@@ -213,6 +239,7 @@ def stream_term_assign():
         connection.close()
 
     return redirect(url_for('stream_assign_blueprint.stream_assign'))
+
 
 
 
