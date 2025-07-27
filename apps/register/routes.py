@@ -38,7 +38,6 @@ def allowed_file(filename):
 
 
 
-
 @blueprint.route('/r_pupils')
 def r_pupils():
     """Filter pupils by Reg No, Name, Class, Study Year, Term, and Stream."""
@@ -107,6 +106,9 @@ def r_pupils():
             SELECT 
                 p.pupil_id,
                 p.reg_no,
+                p.first_name,
+                p.last_name,
+                p.other_name,
                 CONCAT_WS(' ', p.first_name, p.last_name, p.other_name) AS full_name,
                 p.gender,
                 p.image,
@@ -146,7 +148,6 @@ def r_pupils():
             'stream': stream_id
         }
     )
-
 
 
 

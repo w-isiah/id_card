@@ -244,7 +244,7 @@ def subject_unassign():
     cursor.execute("""
         SELECT id AS user_id, CONCAT(first_name, ' ', last_name) AS full_name
         FROM users
-        WHERE LOWER(role) = 'teacher'
+        
         ORDER BY full_name
     """)
     teachers = cursor.fetchall()
