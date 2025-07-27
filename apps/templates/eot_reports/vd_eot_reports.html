@@ -147,7 +147,7 @@
               <select name="class_id" class="{{ select_style }}" required>
                 <option value="">-- Select Class --</option>
                 {% for c in class_list %}
-                  <option value="{{ c.class_id }}" {% if c.class_id == selected_class_id %}selected{% endif %}>{{ c.class_name }}</option>
+                <option value="{{ c.class_id }}" {% if c.class_id == selected_class_id %}selected{% endif %}>{{ c.class_name }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -157,7 +157,7 @@
               <select name="stream_id" class="{{ select_style }}">
                 <option value="">-- Select Stream --</option>
                 {% for s in streams %}
-                  <option value="{{ s.stream_id }}" {% if s.stream_id == selected_stream_id %}selected{% endif %}>{{ s.stream_name }}</option>
+                <option value="{{ s.stream_id }}" {% if s.stream_id == selected_stream_id %}selected{% endif %}>{{ s.stream_name }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -167,7 +167,7 @@
               <select name="year_id" class="{{ select_style }}" required>
                 <option value="">-- Select Year --</option>
                 {% for y in study_years %}
-                  <option value="{{ y.year_id }}" {% if y.year_id == selected_study_year_id %}selected{% endif %}>{{ y.year_name }}</option>
+                <option value="{{ y.year_id }}" {% if y.year_id == selected_study_year_id %}selected{% endif %}>{{ y.year_name }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -177,7 +177,7 @@
               <select name="term_id" class="{{ select_style }}" required>
                 <option value="">-- Select Term --</option>
                 {% for t in terms %}
-                  <option value="{{ t.term_id }}" {% if t.term_id == selected_term_id %}selected{% endif %}>{{ t.term_name }}</option>
+                <option value="{{ t.term_id }}" {% if t.term_id == selected_term_id %}selected{% endif %}>{{ t.term_name }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -186,7 +186,7 @@
               <label>Assessments (Multiple)</label>
               <select name="assessment_name" class="{{ select_style }}" multiple required>
                 {% for a in assessments %}
-                  <option value="{{ a.assessment_name }}" {% if selected_assessment_name and a.assessment_name in selected_assessment_name %}selected{% endif %}>{{ a.assessment_name }}</option>
+                <option value="{{ a.assessment_name }}" {% if selected_assessment_name and a.assessment_name in selected_assessment_name %}selected{% endif %}>{{ a.assessment_name }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -210,10 +210,10 @@
           <option value="">-- Select Pupil --</option>
           {% set seen = [] %}
           {% for st in reports %}
-            {% if st.reg_no not in seen %}
-              <option value="{{ st.reg_no }}">{{ st.full_name }}</option>
-              {% set _ = seen.append(st.reg_no) %}
-            {% endif %}
+          {% if st.reg_no not in seen %}
+          <option value="{{ st.reg_no }}">{{ st.full_name }}</option>
+          {% set _ = seen.append(st.reg_no) %}
+          {% endif %}
           {% endfor %}
         </select>
       </div>
@@ -293,27 +293,27 @@
 
     // Header section HTML
     const header = `
-      <div class="print-header">
-        <img src="${badgeImage}" onerror="this.src='{{ url_for('static', filename='assets/img/badge_image.jpg') }}'" alt="School Badge" />
-        <div class="print-header-text">
-          <h1>SACRED HEART GIRLS’ PRIMARY SCHOOL KYAMUSANSALA</h1>
-          <div class="contact">P.O.BOX 1759, MASAKA – UGANDA</div>
-          <div class="contact">TEL: 0772‑848153 / 0782‑957781</div>
-          <div class="contact">Home Page: <a href="http://www.shpsk.ac.ug" target="_blank">www.shpsk.ac.ug</a></div>
-        </div>
-      </div>
-      <div class="form-info-wrapper compact-info">
-        <div class="form-info">
-          <div><strong>PUPIL’S NAME:</strong> <span>${student.full_name}</span></div>
-          <div><strong>REG NO:</strong> <span>${student.reg_no}</span> ${student.class_name === 'PRIMARY 7' && student.index_number ? `&nbsp;<strong>INDEX NO:</strong> <span>${student.index_number}</span>` : ''}</div>
-          <div><strong>CLASS:</strong> <span>${student.class_name}</span> &nbsp; <strong>STREAM:</strong> <span>${student.stream_name}</span></div>
-          <div><strong>CLASS TEACHER:</strong> <span>${student.class_teacher}</span></div>
-          <div><strong>CLASS SIZE:</strong> <span>${student.total_class_size}</span> &nbsp; <strong>STREAM SIZE:</strong> <span>${student.total_stream_size}</span></div>
-        </div>
-        <div class="student-photo">
-          ${student.image ? `<img src="/static/uploads/${student.image}" class="student-square-photo" alt="Student Photo">` : `<span class="text-muted">No Image</span>`}
-        </div>
-      </div>
+    <div class="print-header">
+    <img src="${badgeImage}" onerror="this.src='{{ url_for('static', filename='assets/img/badge_image.jpg') }}'" alt="School Badge" />
+    <div class="print-header-text">
+    <h1>SACRED HEART GIRLS’ PRIMARY SCHOOL KYAMUSANSALA</h1>
+    <div class="contact">P.O.BOX 1759, MASAKA – UGANDA</div>
+    <div class="contact">TEL: 0772‑848153 / 0782‑957781</div>
+    <div class="contact">Home Page: <a href="http://www.shpsk.ac.ug" target="_blank">www.shpsk.ac.ug</a></div>
+    </div>
+    </div>
+    <div class="form-info-wrapper compact-info">
+    <div class="form-info">
+    <div><strong>PUPIL’S NAME:</strong> <span>${student.full_name}</span></div>
+    <div><strong>REG NO:</strong> <span>${student.reg_no}</span> ${student.class_name === 'PRIMARY 7' && student.index_number ? `&nbsp;<strong>INDEX NO:</strong> <span>${student.index_number}</span>` : ''}</div>
+    <div><strong>CLASS:</strong> <span>${student.class_name}</span> &nbsp; <strong>STREAM:</strong> <span>${student.stream_name}</span></div>
+    <div><strong>CLASS TEACHER:</strong> <span>${student.class_teacher}</span></div>
+    <div><strong>CLASS SIZE:</strong> <span>${student.total_class_size}</span> &nbsp; <strong>STREAM SIZE:</strong> <span>${student.total_stream_size}</span></div>
+    </div>
+    <div class="student-photo">
+    ${student.image ? `<img src="/static/uploads/${student.image}" class="student-square-photo" alt="Student Photo">` : `<span class="text-muted">No Image</span>`}
+    </div>
+    </div>
     `;
 
     // Sort reports by assessment name
@@ -321,71 +321,90 @@
 
     // Build the table header and rows dynamically
     const table = `
-      <table>
-        <thead>
-          <tr>
-            <th>Subject</th>
-            ${reports.map(r => `<th colspan="2">${r.assessment_name}</th>`).join('')}
-            <th>Avg</th>
-            <th>Rank</th>
-            <th>Comment</th>
-          </tr>
-          <tr>
-            <th></th>
-            ${reports.map(() => `<th>Mark</th><th>Grade</th>`).join('')}
-            <th></th><th></th><th></th>
-          </tr>
-        </thead>
-        <tbody>
-          ${subjectNames.map(subject => `
-            <tr>
-              <td>${subject}</td>
-              ${reports.map(r => `<td>${r.marks?.[subject] ?? ''}</td><td>${r.grades?.[subject] ?? ''}</td>`).join('')}
-              <td>${subjectAverages[subject]}</td>
-              <td>${getSubjectClassRank(reports, subject)}</td>
-              <td>${reports[0].subject_comments?.[subject] ?? ''}</td>
-            </tr>
-          `).join('')}
-          <tr><td colspan="${(reports.length * 2) + 4}"><strong>Summary</strong></td></tr>
-          <tr><td>Aggregate</td>${reports.map(r => `<td colspan="2">${r.aggregate ?? ''}</td>`).join('')}<td></td><td></td><td></td></tr>
-          <tr><td>Total</td>${reports.map(r => `<td colspan="2">${r.total_score ?? ''}</td>`).join('')}<td></td><td></td><td></td></tr>
-          <tr><td>Average</td>${reports.map(r => `<td colspan="2">${r.average_score ?? ''}</td>`).join('')}<td></td><td></td><td></td></tr>
-          <tr><td>Division</td>${reports.map(r => `<td colspan="2">${r.division ?? ''}</td>`).join('')}<td></td><td></td><td></td></tr>
-          <tr><td>Stream Position</td>${reports.map(r => `<td colspan="2">${r.stream_position ?? ''}</td>`).join('')}<td></td><td></td><td></td></tr>
-          <tr><td>Class Position</td>${reports.map(r => `<td colspan="2">${r.class_position ?? ''}</td>`).join('')}<td></td><td></td><td></td></tr>
-        </tbody>
-      </table>
+    <table>
+    <thead>
+    <tr>
+    <th>Subject</th>
+    ${reports.map(r => `<th colspan="2">${r.assessment_name}</th>`).join('')}
+    <th>Avg</th>
+    <th><small>Subject Rank <small></th>
+    <th>Comment</th>
+    </tr>
+    <tr>
+    <th></th>
+    ${reports.map(() => `<th>Mark</th><th>Grade</th>`).join('')}
+    <th></th><th></th><th></th>
+    </tr>
+    </thead>
+    <tbody>
+    ${subjectNames.map(subject => `
+      <tr>
+      <td>${subject}</td>
+      ${reports.map(r => `<td>${r.marks?.[subject] ?? ''}</td><td>${r.grades?.[subject] ?? ''}</td>`).join('')}
+      <td>${subjectAverages[subject]}</td>
+      <td>${getSubjectClassRank(reports, subject)}</td>
 
-      <table class="signature-section" width="90%">
-        <tr>
-          <td width="50%">
-            <strong>CLASS TEACHER: <span>${student.class_teacher}</span></strong><br>
-            <em>Very good performance. Should keep up the good work and encouraged not to relax.</em><br><br>
-            Signature: ___________________
-          </td>
-          <td width="50%">
-            <strong>HEAD TEACHER'S COMMENT</strong><br><br>
-            Signature: ___________________
-          </td>
-        </tr>
-      </table>
 
-      <hr>
+      <td>
+      ${(() => {
+        const c = reports[0].subject_comments?.[subject];
+        return c ? `<small> ${c.text} (${c.by})</small>` : '';
+      })()}
+      </td>
 
-      <p><strong>REQUIREMENTS (Authorised by Administration)</strong></p>
-      <p>I have read the report ............................................................. ( Parent / Guardian's Signature )</p>
 
-      <div class="gradescale">
-        <table>
-          <tr>
-            <td><strong>Grade Scale:</strong></td>
-            <td>D1: 95-100</td><td>D2: 90-94</td><td>C3: 85-89</td><td>C4: 80-84</td>
-            <td>C5: 70-79</td><td>C6: 60-69</td><td>P7: 55-59</td><td>P8: 40-49</td><td>F9: 0-39</td>
-          </tr>
-        </table>
-      </div>
 
-      <p class="note">NEXT TERM BEGINS ON : 08-Sep-2024</p>
+
+      </tr>
+      `).join('')}
+    <tr><td colspan="${(reports.length * 2) + 4}"><strong>Summary</strong></td></tr>
+    <tr><td>Aggregate</td>${reports.map(r => `<td colspan="2">${r.aggregate ?? ''}</td>`).join('')}<td></td><td></td><td></td></tr>
+    <tr><td>Total</td>${reports.map(r => `<td colspan="2">${r.total_score ?? ''}</td>`).join('')}<td></td><td></td><td></td></tr>
+    <tr><td>Average</td>${reports.map(r => `<td colspan="2">${r.average_score ?? ''}</td>`).join('')}<td></td><td></td><td></td></tr>
+    <tr><td>Division</td>${reports.map(r => `<td colspan="2">${r.division ?? ''}</td>`).join('')}<td></td><td></td><td></td></tr>
+    <tr><td>Stream Position</td>${reports.map(r => `<td colspan="2">${r.stream_position ?? ''}</td>`).join('')}<td></td><td></td><td></td></tr>
+    <tr><td>Class Position</td>${reports.map(r => `<td colspan="2">${r.class_position ?? ''}</td>`).join('')}<td></td><td></td><td></td></tr>
+    </tbody>
+    </table>
+
+    <table class="signature-section" width="90%">
+
+  <td width="50%">
+  <strong>CLASS TEACHER:</strong> <span>${student.class_teacher}</span><br><br>
+  <em>${student.classteacher_comment}</em><br>
+
+  Signature: ___________________
+</td>
+
+
+    
+
+    <td width="50%">
+    <strong>HEAD TEACHER'S COMMENT:</strong> ${student.headteacher_comment || ''}<br><br>
+    Signature: ___________________
+    </td>
+
+
+
+    </tr>
+    </table>
+
+    <hr>
+
+    <p><strong>REQUIREMENTS (Authorised by Administration)</strong></p>
+    <p>I have read the report ............................................................. ( Parent / Guardian's Signature )</p>
+
+    <div class="gradescale">
+    <table>
+    <tr>
+    <td><strong>Grade Scale:</strong></td>
+    <td>D1: 95-100</td><td>D2: 90-94</td><td>C3: 85-89</td><td>C4: 80-84</td>
+    <td>C5: 70-79</td><td>C6: 60-69</td><td>P7: 55-59</td><td>P8: 40-49</td><td>F9: 0-39</td>
+    </tr>
+    </table>
+    </div>
+
+    <p class="note">NEXT TERM BEGINS ON : 08-Sep-2024</p>
     `;
 
     container.innerHTML = printedAt + header + table;

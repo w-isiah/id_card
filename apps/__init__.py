@@ -24,7 +24,8 @@ def register_blueprints(app):
         'p_restock', 'dorm_reg', 'sub_categories', 'sales', 'customers',
         'other_products', 'department_h_products', 'dep_restock', 'division',
         'subject_assign', 'results_update', 'add_marks','assessment','term',
-        'classteacher_assign','grade_analysis','eot_reports','past_reports','subject_comments'
+        'classteacher_assign','grade_analysis','eot_reports','past_reports',
+        'subject_comments','headmaster_comments','classteacher_comments'
     ]
 
     for module_name in modules:

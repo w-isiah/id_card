@@ -117,7 +117,7 @@
                 <option value="class_teacher">Class Teacher</option>
                 <option value="admin">Administrator</option>
                 <option value="other">Other</option>
-                <option value="other">inventory_manager</option>
+                <option value="inventory_manager">Inventory Manager</option>
               </select>
             </div>
 
@@ -126,6 +126,23 @@
               <input type="file" class="form-control-file" id="profile_image" name="profile_image" accept="image/*">
               <small class="form-text text-muted">Accepted formats: PNG, JPG, JPEG, GIF.</small>
             </div>
+
+            <!-- New field for name_sf -->
+            <div class="form-group">
+              <label for="name_sf">Name SF (Short Form) <small class="text-muted">(Optional)</small></label>
+              <div class="input-group">
+                <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-font"></i></span></div>
+                <input type="text" class="form-control" id="name_sf" name="name_sf" placeholder="Enter short form of name">
+              </div>
+            </div>
+
+            <!-- New field for sign_image -->
+            <div class="form-group">
+              <label for="sign_image">Signature Image <small class="text-muted">(Optional)</small></label>
+              <input type="file" class="form-control-file" id="sign_image" name="sign_image" accept="image/*">
+              <small class="form-text text-muted">Accepted formats: PNG, JPG, JPEG, GIF.</small>
+            </div>
+
           </div>
 
           <div class="card-footer">

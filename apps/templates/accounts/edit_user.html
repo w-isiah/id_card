@@ -1,6 +1,6 @@
 {% extends "layouts/base.html" %}
 
-{% block title %}Edit Customer{% endblock %}
+{% block title %}Edit User{% endblock %}
 
 {% block body_class %}sidebar-mini layout-footer-fixed{% endblock %}
 
@@ -29,7 +29,7 @@
           <ol class="breadcrumb float-sm-right">
             <li class="breadcrumb-item"><a href="/index">Home</a></li>
             <li class="breadcrumb-item"><a href="/customers">Customers</a></li>
-            <li class="breadcrumb-item active">Edit Customer</li>
+            <li class="breadcrumb-item active">Edit User</li>
           </ol>
         </div>
       </div>
@@ -55,7 +55,7 @@
     <div class="container-fluid">
       <div class="card card-primary card-outline">
         <div class="card-header">
-          <h3 class="card-title">Customer Information</h3>
+          <h3 class="card-title">User Information</h3>
         </div>
 
         <form action="{{ url_for('authentication_blueprint.edit_user', id=user.id) }}" method="POST" enctype="multipart/form-data">
@@ -110,6 +110,14 @@
                 </div>
               </div>
 
+              <!-- Confirm Password -->
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="confirm_password">Confirm Password</label>
+                  <input type="password" class="form-control" name="confirm_password" id="confirm_password" placeholder="********">
+                </div>
+              </div>
+
               <!-- Role -->
               <div class="col-md-6">
                 <div class="form-group">
@@ -135,7 +143,7 @@
                 <div class="form-group">
                   <label for="role1">Additional Role (role1)</label>
                   <select class="form-control select2bs4" name="role1" id="role1">
-                    <option value="" disabled selected>Select additional role</option>
+                    <option value="" disabled {% if not user.role1 %}selected{% endif %}>Select additional role</option>
                     <option value="teacher" {% if user.role1 == 'teacher' %}selected{% endif %}>Teacher</option>
                     <option value="None" {% if user.role1 == 'None' or not user.role1 %}selected{% endif %}>None</option>
                   </select>
@@ -143,7 +151,7 @@
               </div>
 
               <!-- Profile Image -->
-              <div class="col-md-12">
+              <div class="col-md-6">
                 <div class="form-group">
                   <label for="profile_image">Profile Image</label>
                   <div class="custom-file">
@@ -160,6 +168,26 @@
                   {% endif %}
                 </div>
               </div>
+
+              <!-- Signature Image -->
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="sign_image">Signature Image <small class="text-muted">(Optional)</small></label>
+                  <div class="custom-file">
+                    <input type="file" class="custom-file-input" name="sign_image" id="sign_image" accept="image/*">
+                    <label class="custom-file-label" for="sign_image">Choose signature image</label>
+                  </div>
+                  <small class="form-text text-muted">Accepted formats: PNG, JPG, JPEG, GIF.</small>
+                  {% if user.sign_image %}
+                    <div class="mt-2">
+                      <img src="/static/uploads/{{ user.sign_image }}" alt="Signature Image" class="img-thumbnail" width="150">
+                    </div>
+                  {% else %}
+                    <p class="mt-2">No signature image available</p>
+                  {% endif %}
+                </div>
+              </div>
+
             </div>
           </div>
 

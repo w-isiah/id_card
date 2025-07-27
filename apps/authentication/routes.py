@@ -11,10 +11,16 @@ import mysql.connector
 from apps import get_db_connection
 from apps.authentication import blueprint
 from apps.utils.decorators import login_required  # Adjust path as needed
-
+        
+from werkzeug.utils import secure_filename
+import os
+from flask import current_app
 
 from datetime import datetime
 import pytz
+
+
+
 def get_kampala_time():
     kampala = pytz.timezone("Africa/Kampala")
     return datetime.now(kampala)
@@ -316,7 +322,8 @@ def manage_users():
                         name_sf,
                         is_online,
                         CONCAT_WS(' ', last_name, first_name, other_name) AS full_name,
-                        profile_image
+                        profile_image,
+                        sign_image
                     FROM users
                     WHERE role NOT IN ({placeholders})
                     ORDER BY username ASC
@@ -381,56 +388,58 @@ def activity_logs(id):
 
 
 
-
-@login_required
-# Add user
 @blueprint.route('/add_user', methods=['GET', 'POST'])
+@login_required
 def add_user():
     if request.method == 'POST':
+        # Retrieve form data
         username = request.form['username']
-        password = request.form['password']
+        password = request.form['password']  # Storing raw password
         role = request.form['role']
         first_name = request.form['first_name']
         last_name = request.form['last_name']
-        other_name = request.form['other_name']
-        
+        other_name = request.form.get('other_name', None)
+        name_sf = request.form.get('name_sf', None)
+
         # Handle profile image upload (if present)
         profile_image = None
         if 'profile_image' in request.files:
-            image_file = request.files['profile_image']
-            if image_file and allowed_file(image_file.filename):
-                profile_image = handle_image_upload(image_file)
+            profile_image = request.files['profile_image']
 
+        # Handle signature image upload (if present)
+        sign_image = None
+        if 'sign_image' in request.files:
+            sign_image = request.files['sign_image']
+
+        # Check if the username already exists in the database
         with get_db_connection() as connection:
             with connection.cursor() as cursor:
-                # Check if the username already exists
                 cursor.execute('SELECT 1 FROM users WHERE username = %s', (username,))
                 if cursor.fetchone():
                     flash('Username already exists. Please choose a different one.', 'danger')
                     return render_template('accounts/add_user.html', role=session.get('role'), username=session.get('username'))
 
                 try:
+                    # Handle the profile image and signature image, saving or fetching from DB if necessary
+                    profile_image_filename = handle_profile_image(cursor, profile_image, None)
+                    sign_image_filename = handle_sign_image(cursor, sign_image, None)
+
+                    # Insert the new user data into the database (storing raw password)
                     cursor.execute(''' 
-                        INSERT INTO users (username, password, role, first_name, last_name, other_name, profile_image)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s)
-                    ''', (username, password, role, first_name, last_name, other_name, profile_image))
+                        INSERT INTO users 
+                        (username, password, role, first_name, last_name, other_name, profile_image, name_sf, sign_image)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ''', (username, password, role, first_name, last_name, other_name, profile_image_filename, name_sf, sign_image_filename))
+
                     connection.commit()
                     flash('User added successfully!', 'success')
-                except mysql.connector.Error as err:
+                except Exception as err:
                     flash(f'Error: {err}', 'danger')
+                    return render_template('accounts/add_user.html', role=session.get('role'), username=session.get('username'))
 
-        return redirect(url_for('home_blueprint.index'))  # Redirect to user management page
+        return redirect(url_for('home_blueprint.index'))
 
     return render_template("accounts/add_user.html", role=session.get('role'), username=session.get('username'))
-
-
-# Handle the form submission
-
-
-
-
-
-
 
 
 
@@ -461,6 +470,7 @@ def edit_user(id):
                     role = request.form.get('role')
                     role1 = request.form.get('role1') or None
                     profile_image = request.files.get('profile_image')
+                    sign_image = request.files.get('sign_image')
 
                     # Normalize role1
                     if role1 in ('None', ''):
@@ -472,19 +482,18 @@ def edit_user(id):
 
                     # Handle image upload (or keep existing)
                     profile_image_path = handle_profile_image(cursor, profile_image, id)
-                    if not profile_image_path:
-                        profile_image_path = user['profile_image']
+                    sign_image_path = handle_sign_image(cursor, sign_image, id)
 
                     # Update user in DB including name_sf
-                    cursor.execute('''
-                        UPDATE users
+                    cursor.execute(''' 
+                        UPDATE users 
                         SET username = %s, first_name = %s, last_name = %s, other_name = %s,
-                            name_sf = %s,
-                            password = %s, role = %s, role1 = %s, profile_image = %s
+                            name_sf = %s, password = %s, role = %s, role1 = %s,
+                            profile_image = %s, sign_image = %s 
                         WHERE id = %s
                     ''', (
                         username, first_name, last_name, other_name, name_sf,
-                        password, role, role1, profile_image_path, id
+                        password, role, role1, profile_image_path, sign_image_path, id
                     ))
                     connection.commit()
 
@@ -499,6 +508,48 @@ def edit_user(id):
             return render_template("accounts/edit_user.html", user=user)
 
 
+
+def handle_sign_image(cursor, sign_image, user_id):
+    # Check if a signature image is provided and is a valid file type
+    if sign_image and allowed_file(sign_image.filename):
+        filename = secure_filename(sign_image.filename)
+        file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+        
+        # Save the signature image to the specified upload folder
+        sign_image.save(file_path)
+        
+        # Return the filename to save in the database
+        return filename
+    else:
+        # If no new signature image, fetch the existing one from the DB
+        cursor.execute('SELECT sign_image FROM users WHERE id = %s', (user_id,))
+        result = cursor.fetchone()
+        
+        # Return the existing signature image filename or None if not found
+        return result['sign_image'] if result else None
+
+
+
+
+
+def handle_profile_image(cursor, profile_image, user_id):
+    # Check if a profile image is provided and it's a valid file type
+    if profile_image and allowed_file(profile_image.filename):
+        filename = secure_filename(profile_image.filename)
+        file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+        
+        # Save the image to the specified upload folder
+        profile_image.save(file_path)
+        
+        # Return the filename to save in the database
+        return filename
+    else:
+        # If no new image, fetch the existing profile image from the DB
+        cursor.execute('SELECT profile_image FROM users WHERE id = %s', (user_id,))
+        result = cursor.fetchone()
+        
+        # Return the existing profile image filename or None if not found
+        return result['profile_image'] if result else None
 
 
 
@@ -696,16 +747,7 @@ def get_user_password(cursor, user_id):
     cursor.execute('SELECT password FROM users WHERE id = %s', (user_id,))
     return cursor.fetchone()['password']
 
-@login_required
-def handle_profile_image(cursor, profile_image, user_id):
-    if profile_image and allowed_file(profile_image.filename):
-        filename = secure_filename(profile_image.filename)
-        file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-        profile_image.save(file_path)
-        return filename
-    else:
-        cursor.execute('SELECT profile_image FROM users WHERE id = %s', (user_id,))
-        return cursor.fetchone()['profile_image']
+
 
 
 

@@ -96,6 +96,11 @@
             </div>
 
             <div class="form-group">
+              <label for="name_sf">Name SF <small class="text-muted">(Optional)</small></label>
+              <input type="text" class="form-control" name="name_sf" id="name_sf" placeholder="Enter short form name">
+            </div>
+
+            <div class="form-group">
               <label for="password">Password</label>
               <input type="password" class="form-control" name="password" id="password" required minlength="8"
                      placeholder="Enter password" title="Password must be at least 8 characters.">
@@ -119,13 +124,13 @@
                   <option value="" selected disabled>Select a role</option>
                   <option value="class_teacher">Class Teacher</option>
                   <option value="admin">Administrator</option>
-                  <option value="inventory_manager">Inventory Manager</option>  section_head
+                  <option value="inventory_manager">Inventory Manager</option>
                   <option value="other">Other</option>
                   <option value="section_head">Head Of Section</option>
-                  <option value="department_head">Head Of Inventory  Depertment</option>
-                  <option value="assistant_manager"> Assistant Inventory Manager</option>
-                  <option value="assistant_manager"> Head ICT</option>
-                  <option value="teacher"> Teacher</option>
+                  <option value="department_head">Head Of Inventory Department</option>
+                  <option value="assistant_manager">Assistant Inventory Manager</option>
+                  <option value="head_ict">Head ICT</option>
+                  <option value="teacher">Teacher</option>
                   <option value="support_staff">Support Staff</option>
                   <option value="dorm_master">Dorm Master</option>
                   <option value="metron">Dorm Metron</option>
@@ -139,8 +144,7 @@
                   <option value="" selected disabled>Select a role</option>
                   <option value="other">Other</option>
                   <option value="section_head">Head Of Section</option>
-                  <option value="department_head">Head Of Inventory  Depertment</option>
-                  
+                  <option value="department_head">Head Of Inventory Department</option>
                 </select>
               </div>
             {% endif %}
@@ -150,6 +154,13 @@
               <input type="file" class="form-control-file" id="profile_image" name="profile_image" accept="image/*">
               <small class="form-text text-muted">Accepted formats: PNG, JPG, JPEG, GIF.</small>
             </div>
+
+            <div class="form-group">
+              <label for="sign_image">Signature Image <small class="text-muted">(Optional)</small></label>
+              <input type="file" class="form-control-file" id="sign_image" name="sign_image" accept="image/*">
+              <small class="form-text text-muted">Accepted formats: PNG, JPG, JPEG, GIF.</small>
+            </div>
+
           </div>
 
           <div class="card-footer">
