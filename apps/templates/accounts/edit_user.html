@@ -38,16 +38,16 @@
 
   <!-- Flash Messages -->
   {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="alert alert-{{ category }} alert-dismissible fade show mx-3" role="alert">
-          <strong>{{ message }}</strong>
-          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-      {% endfor %}
-    {% endif %}
+  {% if messages %}
+  {% for category, message in messages %}
+  <div class="alert alert-{{ category }} alert-dismissible fade show mx-3" role="alert">
+    <strong>{{ message }}</strong>
+    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+      <span aria-hidden="true">&times;</span>
+    </button>
+  </div>
+  {% endfor %}
+  {% endif %}
   {% endwith %}
 
   <!-- Main Content -->
@@ -102,6 +102,8 @@
                 </div>
               </div>
 
+              
+
               <!-- Password -->
               <div class="col-md-6">
                 <div class="form-group">
@@ -118,6 +120,17 @@
                 </div>
               </div>
 
+              <!-- Show Password Checkbox -->
+              <div class="col-md-12">
+                <div class="form-check ml-2">
+                  <input type="checkbox" class="form-check-input" id="show_password_checkbox" onclick="togglePasswordVisibility()">
+                  <label class="form-check-label" for="show_password_checkbox">Show Password</label>
+                </div>
+              </div>
+
+
+
+
               <!-- Role -->
               <div class="col-md-6">
                 <div class="form-group">
@@ -131,6 +144,7 @@
                     <option value="assistant_manager" {% if user.role == 'assistant_manager' %}selected{% endif %}>Assistant Inventory Manager</option>
                     <option value="Head_ICT" {% if user.role == 'Head_ICT' %}selected{% endif %}>Head ICT</option>
                     <option value="teacher" {% if user.role == 'teacher' %}selected{% endif %}>Teacher</option>
+                    <option value="headteacher" {% if user.role == 'headteacher' %}selected{% endif %}>Head Teacher</option>
                     <option value="other" {% if user.role == 'other' %}selected{% endif %}>Other</option>
                     <option value="dos" {% if user.role == 'dos' %}selected{% endif %}>Deputy of Studies</option>
                     <option value="co_ordinator" {% if user.role == 'co_ordinator' %}selected{% endif %}>Co-Ordinator</option>
@@ -160,11 +174,11 @@
                   </div>
                   <small class="form-text text-muted">Accepted formats: PNG, JPG, JPEG, GIF.</small>
                   {% if user.profile_image %}
-                    <div class="mt-2">
-                      <img src="/static/uploads/{{ user.profile_image }}" alt="Profile Image" class="img-thumbnail" width="150">
-                    </div>
+                  <div class="mt-2">
+                    <img src="/static/uploads/{{ user.profile_image }}" alt="Profile Image" class="img-thumbnail" width="150">
+                  </div>
                   {% else %}
-                    <p class="mt-2">No profile image available</p>
+                  <p class="mt-2">No profile image available</p>
                   {% endif %}
                 </div>
               </div>
@@ -179,11 +193,11 @@
                   </div>
                   <small class="form-text text-muted">Accepted formats: PNG, JPG, JPEG, GIF.</small>
                   {% if user.sign_image %}
-                    <div class="mt-2">
-                      <img src="/static/uploads/{{ user.sign_image }}" alt="Signature Image" class="img-thumbnail" width="150">
-                    </div>
+                  <div class="mt-2">
+                    <img src="/static/uploads/{{ user.sign_image }}" alt="Signature Image" class="img-thumbnail" width="150">
+                  </div>
                   {% else %}
-                    <p class="mt-2">No signature image available</p>
+                  <p class="mt-2">No signature image available</p>
                   {% endif %}
                 </div>
               </div>
@@ -193,7 +207,7 @@
 
           <div class="card-footer text-center">
             <button type="submit" class="btn btn-primary"><i class="fas fa-save mr-1"></i> Save Changes</button>
-            <a href="/customers" class="btn btn-secondary ml-2">Cancel</a>
+            <a href="/manage_users" class="btn btn-secondary ml-2">Cancel</a>
           </div>
         </form>
       </div>

@@ -40,7 +40,7 @@ def scores_positions_past_reports():
     cursor = connection.cursor(dictionary=True)
 
     # Load dropdown data
-    cursor.execute("SELECT * FROM classes WHERE class_id IN ('4', '30', '31', '32') ORDER BY class_name")
+    cursor.execute("SELECT * FROM classes WHERE class_id IN ('4', '30', '31', '32','33') ORDER BY class_name")
     class_list = cursor.fetchall()
 
     cursor.execute("SELECT * FROM study_year ORDER BY year_name")

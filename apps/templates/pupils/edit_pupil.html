@@ -201,17 +201,29 @@
                     </div>
                   </div>
 
-                  <!-- Class -->
-                  <div class="row mb-3">
-                    <label class="col-sm-2 col-form-label">Class:</label>
-                    <div class="col-sm-10">
-                      <select name="class_id" class="form-control select2" required>
-                        {% for class in classes %}
-                        <option value="{{ class.class_id }}" {% if class.class_id == pupil.class_id %}selected{% endif %}>{{ class.class_name }}</option>
-                        {% endfor %}
-                      </select>
-                    </div>
-                  </div>
+                 
+
+                 <!-- Class Selection -->
+<div class="row mb-3">
+  <label class="col-sm-2 col-form-label">Class:</label>
+  <div class="col-sm-10">
+    <select name="class_id" class="form-control select2" required>
+      <option value="" disabled {% if not pupil.class_id %}selected{% endif %}>-- Select Class --</option>
+      {% if classes %}
+        {% for cls in classes %}
+          <option value="{{ cls.class_id }}" {% if cls.class_id == pupil.class_id %}selected{% endif %}>
+            {{ cls.class_name }} 
+            {% if cls.room_number %} - {{ cls.room_number }}{% endif %} 
+            ({{ cls.year }})
+          </option>
+        {% endfor %}
+      {% else %}
+        <option disabled>No classes available</option>
+      {% endif %}
+    </select>
+  </div>
+</div>
+
 
                   <!-- Study Year -->
                   <div class="row mb-3">

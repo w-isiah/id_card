@@ -367,27 +367,41 @@
     </tbody>
     </table>
 
-    <table class="signature-section" width="90%">
-
-  <td width="50%">
-  <strong>CLASS TEACHER:</strong> <span>${student.class_teacher}</span><br><br>
-  <em>${student.classteacher_comment}</em><br>
-
-  Signature: ___________________
-</td>
-
-
     
 
+<table class="signature-section" width="90%">
+  <tr>
+    <!-- Class Teacher Section -->
     <td width="50%">
-    <strong>HEAD TEACHER'S COMMENT:</strong> ${student.headteacher_comment || ''}<br><br>
-    Signature: ___________________
+      <strong>CLASS TEACHER:</strong> <span>${student.class_teacher}</span><br><br>
+      <em>${student.classteacher_comment || ''}</em><br><br>
+      ${
+        student.class_teacher_sign_image
+          ? `<img src="/static/uploads/${student.class_teacher_sign_image}" 
+                   alt="Class Teacher Signature" 
+                   style="width:120px; height:auto;" 
+                   onerror="this.onerror=null; this.style.display='none';">`
+          : ''
+      }
     </td>
 
+    <!-- Head Teacher Section -->
+    <td width="50%">
+      <strong>HEAD TEACHER'S COMMENT:</strong> ${student.headteacher_comment || ''}<br><br>
+      ${
+        student.headmaster_sign_image
+          ? `<img src="/static/uploads/${student.headmaster_sign_image}" 
+                   alt="Head Teacher Signature" 
+                   style="width:120px; height:auto;" 
+                   onerror="this.onerror=null; this.style.display='none';">`
+          : ''
+      }
+    </td>
+  </tr>
+</table>
 
 
-    </tr>
-    </table>
+
 
     <hr>
 

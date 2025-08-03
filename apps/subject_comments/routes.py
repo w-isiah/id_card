@@ -251,34 +251,36 @@ def edit_subject_comments(comment_id):
 
 
 
-@blueprint.route('/delete_subject_comments/<int:grade_id>')
-def delete_subject_comments(grade_id):
-    """Deletes a grade from the database."""
+@blueprint.route('/delete_subject_comments/<int:comment_id>', methods=["POST"])
+def delete_subject_comments(comment_id):
+    """Deletes a subject comment from the database."""
     connection = get_db_connection()
     cursor = connection.cursor()
 
     try:
-        # Check if grade exists
-        cursor.execute("SELECT * FROM subject_comments WHERE grade_id = %s", (grade_id,))
-        grade = cursor.fetchone()
+        # Check if comment exists
+        cursor.execute("SELECT * FROM subject_comments WHERE comment_id = %s", (comment_id,))
+        comment = cursor.fetchone()
 
-        if not grade:
-            flash("Grade not found.", "warning")
+        if not comment:
+            flash("Subject comment not found.", "warning")
             return redirect(url_for('subject_comments_blueprint.subject_comments'))
 
         # Proceed with deletion
-        cursor.execute("DELETE FROM subject_comments WHERE grade_id = %s", (grade_id,))
+        cursor.execute("DELETE FROM subject_comments WHERE comment_id = %s", (comment_id,))
         connection.commit()
-        flash("Grade deleted successfully.", "success")
+        flash("Subject comment deleted successfully.", "success")
 
     except Exception as e:
-        flash(f"An error occurred while deleting the grade: {str(e)}", "danger")
+        flash("An error occurred while deleting the subject comment.", "danger")
+        logging.exception("Error deleting subject comment")
 
     finally:
         cursor.close()
         connection.close()
 
     return redirect(url_for('subject_comments_blueprint.subject_comments'))
+
 
 
 
