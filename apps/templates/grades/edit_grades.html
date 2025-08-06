@@ -114,9 +114,18 @@
                   <div class="row mb-3">
                     <label for="max_score" class="col-sm-2 col-form-label">Maximum Score:</label>
                     <div class="col-sm-10">
-                      <input type="number" name="max_score" class="form-control" value="{{ grade.max_score }}" required>
+                      <input 
+                      type="number" 
+                      name="max_score" 
+                      class="form-control" 
+                      value="{{ grade.max_score }}" 
+                      required 
+                      step="0.01" 
+                      min="0"
+                      >
                     </div>
                   </div>
+
 
                   <!-- Grade Letter -->
                   <div class="row mb-3">

@@ -38,16 +38,16 @@
 
   <!-- Flash Messages -->
   {% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-  {% for category, message in messages %}
-  <div class="alert alert-{{ category }} alert-dismissible fade show mx-3" role="alert">
-    <strong>{{ message }}</strong>
-    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-      <span aria-hidden="true">&times;</span>
-    </button>
-  </div>
-  {% endfor %}
-  {% endif %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show mx-3" role="alert">
+          <strong>{{ message }}</strong>
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+      {% endfor %}
+    {% endif %}
   {% endwith %}
 
   <!-- Main Content -->
@@ -102,13 +102,12 @@
                 </div>
               </div>
 
-              
-
               <!-- Password -->
               <div class="col-md-6">
                 <div class="form-group">
                   <label for="password">Password <small class="text-muted">(leave blank to keep current)</small></label>
-                  <input type="password" class="form-control" name="password" id="password" placeholder="********">
+                  <input type="password" class="form-control" name="password" id="password" placeholder="{{ user.password}}">
+
                 </div>
               </div>
 
@@ -120,16 +119,13 @@
                 </div>
               </div>
 
-              <!-- Show Password Checkbox -->
+              <!-- Show Password Toggle -->
               <div class="col-md-12">
-                <div class="form-check ml-2">
+                <div class="form-check ml-2 mt-2">
                   <input type="checkbox" class="form-check-input" id="show_password_checkbox" onclick="togglePasswordVisibility()">
                   <label class="form-check-label" for="show_password_checkbox">Show Password</label>
                 </div>
               </div>
-
-
-
 
               <!-- Role -->
               <div class="col-md-6">
@@ -174,11 +170,11 @@
                   </div>
                   <small class="form-text text-muted">Accepted formats: PNG, JPG, JPEG, GIF.</small>
                   {% if user.profile_image %}
-                  <div class="mt-2">
-                    <img src="/static/uploads/{{ user.profile_image }}" alt="Profile Image" class="img-thumbnail" width="150">
-                  </div>
+                    <div class="mt-2">
+                      <img src="/static/uploads/{{ user.profile_image }}" alt="Profile Image" class="img-thumbnail" width="150">
+                    </div>
                   {% else %}
-                  <p class="mt-2">No profile image available</p>
+                    <p class="mt-2">No profile image available</p>
                   {% endif %}
                 </div>
               </div>
@@ -193,11 +189,11 @@
                   </div>
                   <small class="form-text text-muted">Accepted formats: PNG, JPG, JPEG, GIF.</small>
                   {% if user.sign_image %}
-                  <div class="mt-2">
-                    <img src="/static/uploads/{{ user.sign_image }}" alt="Signature Image" class="img-thumbnail" width="150">
-                  </div>
+                    <div class="mt-2">
+                      <img src="/static/uploads/{{ user.sign_image }}" alt="Signature Image" class="img-thumbnail" width="150">
+                    </div>
                   {% else %}
-                  <p class="mt-2">No signature image available</p>
+                    <p class="mt-2">No signature image available</p>
                   {% endif %}
                 </div>
               </div>
@@ -225,10 +221,15 @@
 
 <script>
   $(function () {
-    $('.select2bs4').select2({
-      theme: 'bootstrap4'
-    });
+    $('.select2bs4').select2({ theme: 'bootstrap4' });
     bsCustomFileInput.init();
   });
+
+  function togglePasswordVisibility() {
+    const password = document.getElementById("password");
+    const confirm = document.getElementById("confirm_password");
+    const isVisible = password.type === "text";
+    password.type = confirm.type = isVisible ? "password" : "text";
+  }
 </script>
 {% endblock %}

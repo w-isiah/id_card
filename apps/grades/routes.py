@@ -86,38 +86,37 @@ def add_grades():
 
 
 
-
 @blueprint.route('/edit_grades/<int:grade_id>', methods=['GET', 'POST'])
 def edit_grades(grade_id):
     """Handles editing an existing grade."""
+
     if request.method == 'POST':
-        # Retrieve the form data
+        # Retrieve form data
         min_score = request.form['min_score']
         max_score = request.form['max_score']
         grade_letter = request.form['grade_letter']
-        remark = request.form.get('remark')  # Optional field
+        remark = request.form.get('remark')  # Optional
         weight = request.form['weight']
 
-        # Validate the input
+        # Validate required fields
         if not min_score or not max_score or not grade_letter or not weight:
             flash("Please fill out all required fields!", "warning")
             return redirect(url_for('grades_blueprint.edit_grades', grade_id=grade_id))
 
-        # Validate that min_score, max_score, and weight are numbers
-        if not min_score.isdigit() or not max_score.isdigit() or not weight.isdigit():
-            flash("Scores and weight must be valid numbers!", "danger")
-            return redirect(url_for('grades_blueprint.edit_grades', grade_id=grade_id))
-
         try:
-            # Convert to integers
-            min_score = int(min_score)
-            max_score = int(max_score)
-            weight = int(weight)
+            # Convert values to float for decimal support
+            min_score = float(min_score)
+            max_score = float(max_score)
+            weight = float(weight)
+
+            if min_score > max_score:
+                flash("Minimum score cannot be greater than maximum score.", "warning")
+                return redirect(url_for('grades_blueprint.edit_grades', grade_id=grade_id))
 
             connection = get_db_connection()
             cursor = connection.cursor()
 
-            # Check if the grade already exists with the same grade_letter (excluding current grade)
+            # Check for duplicate grade letter (excluding current record)
             cursor.execute("""
                 SELECT * FROM grades 
                 WHERE grade_letter = %s AND grade_id != %s
@@ -128,40 +127,48 @@ def edit_grades(grade_id):
                 flash("A grade with the same letter already exists!", "warning")
                 return redirect(url_for('grades_blueprint.edit_grades', grade_id=grade_id))
 
-            # Update the grade details in the database
+            # Update grade in database
             cursor.execute("""
                 UPDATE grades
-                SET min_score = %s, max_score = %s, grade_letter = %s, remark = %s, weight = %s
+                SET min_score = %s,
+                    max_score = %s,
+                    grade_letter = %s,
+                    remark = %s,
+                    weight = %s
                 WHERE grade_id = %s
             """, (min_score, max_score, grade_letter, remark, weight, grade_id))
             connection.commit()
 
             flash("Grade updated successfully!", "success")
 
+        except ValueError:
+            flash("Scores and weight must be valid numbers (e.g., 79.99).", "danger")
         except mysql.connector.Error as err:
-            flash(f"Database Error: {err}", "danger")
+            flash(f"Database error: {err}", "danger")
         except Exception as e:
-            flash(f"An error occurred: {str(e)}", "danger")
+            flash(f"Unexpected error: {str(e)}", "danger")
         finally:
             cursor.close()
             connection.close()
 
         return redirect(url_for('grades_blueprint.grades'))
 
-    elif request.method == 'GET':
-        # Retrieve the grade to pre-fill the form
-        connection = get_db_connection()
-        cursor = connection.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM grades WHERE grade_id = %s", (grade_id,))
-        grade_data = cursor.fetchone()
-        cursor.close()
-        connection.close()
+    # GET request – prefill form
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
 
-        if grade_data:
-            return render_template('grades/edit_grades.html', grade=grade_data, segment='grades')
-        else:
-            flash("Grade not found.", "danger")
-            return redirect(url_for('grades_blueprint.grades'))
+    cursor.execute("SELECT * FROM grades WHERE grade_id = %s", (grade_id,))
+    grade_data = cursor.fetchone()
+
+    cursor.close()
+    connection.close()
+
+    if not grade_data:
+        flash("Grade not found.", "danger")
+        return redirect(url_for('grades_blueprint.grades'))
+
+    return render_template('grades/edit_grades.html', grade=grade_data, segment='grades')
+
 
 
 

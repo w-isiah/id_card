@@ -97,6 +97,11 @@
     color: white;
     font-weight: bold;
   }
+  table th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
   .print-datetime {
     text-align: right;
     margin: 10px 40px 0 0;
@@ -116,6 +121,21 @@
     font-size: 16px;
     margin-top: 15px;
     margin-left: 5%;
+  }
+  .grade-scale-small {
+    width: 90%;
+    margin: 10px auto;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  .grade-scale-small th, .grade-scale-small td {
+    border: 1px solid black;
+    padding: 8px;
+    text-align: center;
+  }
+  .grade-scale-small th {
+    background-color: #800000;
+    color: white;
   }
 </style>
 {% endblock %}
@@ -242,36 +262,23 @@
 <script src="/static/assets/js/select2.min.js"></script>
 <script src="/static/assets/js/adminlte.min.js"></script>
 
+
+
+
+
 <script>
-  // Convert server-side data to JS objects
+  // Server‑side data
   const allReports = {{ reports | tojson }};
   const subjectNames = {{ subject_names | tojson }};
-  const badgeImage = "{{ url_for('static', filename='uploads/' ~ (badge_image or 'default-badge.png')) }}";
-
-  // Calculate average marks for each subject across assessments
-  function calculateSubjectAverages(reports, subjects) {
-    const averages = {};
-    subjects.forEach(subject => {
-      let total = 0, count = 0;
-      reports.forEach(r => {
-        const mark = parseFloat(r.marks?.[subject]);
-        if (!isNaN(mark)) {
-          total += mark;
-          count++;
-        }
-      });
-      averages[subject] = count ? (total / count).toFixed(2) + '%' : '';
-    });
-    return averages;
-  }
-
-  // Get rank for subject in the first report (assuming consistent ranking)
+  const overallResults = {{ overall_results | default([]) | tojson }};
+ const badgeImage = "{{ url_for('static', filename='uploads/' ~ (badge_image or 'default-badge.png')) }}";
   function getSubjectClassRank(reports, subject) {
-    const rank = reports[0].subject_ranks?.[subject];
-    return rank !== undefined ? rank : '';
+    if (reports.length && reports[0].subject_ranks?.[subject] !== undefined) {
+      return reports[0].subject_ranks[subject];
+    }
+    return '';
   }
 
-  // Main rendering function for student report
   function renderStudentReport(regNo) {
     const container = document.getElementById('printableReportContainer');
     container.innerHTML = '';
@@ -287,159 +294,164 @@
       return;
     }
 
+    const overall = overallResults.find(r => r.reg_no === regNo) || {};
     const student = reports[0];
-    const printedAt = `<div class="print-datetime">Printed on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</div>`;
-    const subjectAverages = calculateSubjectAverages(reports, subjectNames);
+    const now = new Date();
+    const printedAt = `<div class="print-datetime">Printed on: ${now.toLocaleDateString()} at ${now.toLocaleTimeString()}</div>`;
 
-    // Header section HTML
     const header = `
-    <div class="print-header">
-    <img src="${badgeImage}" onerror="this.src='{{ url_for('static', filename='assets/img/badge_image.jpg') }}'" alt="School Badge" />
-    <div class="print-header-text">
-    <h1>SACRED HEART GIRLS’ PRIMARY SCHOOL KYAMUSANSALA</h1>
-    <div class="contact">P.O.BOX 1759, MASAKA – UGANDA</div>
-    <div class="contact">TEL: 0772‑848153 / 0782‑957781</div>
-    <div class="contact">Home Page: <a href="http://www.shpsk.ac.ug" target="_blank">www.shpsk.ac.ug</a></div>
-    </div>
-    </div>
-    <div class="form-info-wrapper compact-info">
-    <div class="form-info">
-    <div><strong>PUPIL’S NAME:</strong> <span>${student.full_name}</span></div>
-    <div><strong>REG NO:</strong> <span>${student.reg_no}</span> ${student.class_name === 'PRIMARY 7' && student.index_number ? `&nbsp;<strong>INDEX NO:</strong> <span>${student.index_number}</span>` : ''}</div>
-    <div><strong>CLASS:</strong> <span>${student.class_name}</span> &nbsp; <strong>STREAM:</strong> <span>${student.stream_name}</span></div>
-    <div><strong>CLASS TEACHER:</strong> <span>${student.class_teacher}</span></div>
-    <div><strong>CLASS SIZE:</strong> <span>${student.total_class_size}</span> &nbsp; <strong>STREAM SIZE:</strong> <span>${student.total_stream_size}</span></div>
-    </div>
-    <div class="student-photo">
-    ${student.image ? `<img src="/static/uploads/${student.image}" class="student-square-photo" alt="Student Photo">` : `<span class="text-muted">No Image</span>`}
-    </div>
-    </div>
+      <div class="print-header">
+        <img src="${badgeImage}" 
+          onerror="this.src='{{ url_for('static', filename='assets/img/badge_image.jpg') }}'" 
+          alt="School Badge" />
+        <div class="print-header-text">
+          <h1>SACRED HEART GIRLS’ PRIMARY SCHOOL KYAMUSANSALA</h1>
+          <div class="contact">P.O.BOX 1759, MASAKA – UGANDA</div>
+          <div class="contact">TEL: 0772‑848153 / 0782‑957781</div>
+          <div class="contact">
+            Home Page: <a href="http://www.shpsk.ac.ug" target="_blank">www.shpsk.ac.ug</a>
+          </div>
+        </div>
+      </div>
+      <div class="form-info-wrapper compact-info">
+        <div class="form-info">
+          <div><strong>PUPIL’S NAME:</strong> <span>${student.full_name}</span></div>
+          <div><strong>REG NO:</strong> <span>${student.reg_no}</span>
+            ${student.class_name === 'PRIMARY 7' && student.index_number
+              ? `&nbsp;<strong>INDEX NO:</strong> <span>${student.index_number}</span>`
+              : ''}
+          </div>
+          <div><strong>CLASS:</strong> <span>${student.class_name}</span>
+            &nbsp;<strong>STREAM:</strong> <span>${student.stream_name}</span>
+          </div>
+          <div><strong>CLASS SIZE:</strong> <span>${student.total_class_size}</span>
+            &nbsp;<strong>STREAM SIZE:</strong> <span>${student.total_stream_size}</span>
+          </div>
+        </div>
+        <div class="student-photo">
+          ${student.image
+            ? `<img src="/static/uploads/${student.image}" class="student-square-photo" alt="Student Photo">`
+            : `<span class="text-muted">No Image</span>`}
+        </div>
+      </div>
     `;
 
-    // Sort reports by assessment name
     reports.sort((a, b) => a.assessment_name.localeCompare(b.assessment_name));
 
-    // Build the table header and rows dynamically
-    const table = `
-    <table>
-    <thead>
-    <tr>
-    <th>Subject</th>
-    ${reports.map(r => `<th colspan="2">${r.assessment_name}</th>`).join('')}
-    <th>Avg</th>
-    <th><small>Subject Rank <small></th>
-    <th>Comment</th>
-    </tr>
-    <tr>
-    <th></th>
-    ${reports.map(() => `<th>Mark</th><th>Grade</th>`).join('')}
-    <th></th><th></th><th></th>
-    </tr>
-    </thead>
-    <tbody>
-    ${subjectNames.map(subject => `
-      <tr>
-      <td>${subject}</td>
-      ${reports.map(r => `<td>${r.marks?.[subject] ?? ''}</td><td>${r.grades?.[subject] ?? ''}</td>`).join('')}
-      <td>${subjectAverages[subject]}</td>
-      <td>${getSubjectClassRank(reports, subject)}</td>
+    const tableHeader = `
+      <table>
+        <thead>
+          <tr>
+            <th>Subject</th>
+            ${reports.map(r => `<th>${r.assessment_name}</th>`).join('')}
+            <th><small>Subject Average (%)</small></th>
+            <th><small>Subject Average (Grade)</small></th>
+            <th><small> Class Subject (Rank)  </small></th>
+            <th>Comment</th>
+          </tr>
+          <tr>
+            <th></th>
+            ${reports.map(() => `<th>Mark</th>`).join('')}
+            <th colspan="4"></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${subjectNames.map(subject => {
+            let total = 0, count = 0;
+            reports.forEach(r => {
+              const m = parseFloat(r.marks?.[subject]);
+              if (!isNaN(m)) { total += m; count++; }
+            });
+            // Round average to integer (no decimals)
+            const avg = count ? Math.round(total / count) : '';
+            const avgGrade = overall.subject_average_grades?.[subject] || '';
+            const rank = getSubjectClassRank(reports, subject);
+            const sc = reports[0].subject_comments?.[subject];
+            const comment = sc 
+              ? `<small style="font-size: 12px; color: #666;">${sc.text}<em>(${sc.by})</em></small>` 
+              : '';
 
-
-      <td>
-      ${(() => {
-        const c = reports[0].subject_comments?.[subject];
-        return c ? `<small> ${c.text} (${c.by})</small>` : '';
-      })()}
-      </td>
-
-
-
-
-      </tr>
-      `).join('')}
-    <tr><td colspan="${(reports.length * 2) + 4}"><strong>Summary</strong></td></tr>
-    <tr><td>Aggregate</td>${reports.map(r => `<td colspan="2">${r.aggregate ?? ''}</td>`).join('')}<td></td><td></td><td></td></tr>
-    <tr><td>Total</td>${reports.map(r => `<td colspan="2">${r.total_score ?? ''}</td>`).join('')}<td></td><td></td><td></td></tr>
-    <tr><td>Average</td>${reports.map(r => `<td colspan="2">${r.average_score ?? ''}</td>`).join('')}<td></td><td></td><td></td></tr>
-    <tr><td>Division</td>${reports.map(r => `<td colspan="2">${r.division ?? ''}</td>`).join('')}<td></td><td></td><td></td></tr>
-    <tr><td>Stream Position</td>${reports.map(r => `<td colspan="2">${r.stream_position ?? ''}</td>`).join('')}<td></td><td></td><td></td></tr>
-    <tr><td>Class Position</td>${reports.map(r => `<td colspan="2">${r.class_position ?? ''}</td>`).join('')}<td></td><td></td><td></td></tr>
-    </tbody>
-    </table>
-
-    
-
-<table class="signature-section" width="90%">
-  <tr>
-    <!-- Class Teacher Section -->
-    <td width="50%">
-      <strong>CLASS TEACHER:</strong> <span>${student.class_teacher}</span><br><br>
-      <em>${student.classteacher_comment || ''}</em><br><br>
-      ${
-        student.class_teacher_sign_image
-          ? `<img src="/static/uploads/${student.class_teacher_sign_image}" 
-                   alt="Class Teacher Signature" 
-                   style="width:120px; height:auto;" 
-                   onerror="this.onerror=null; this.style.display='none';">`
-          : ''
-      }
-    </td>
-
-    <!-- Head Teacher Section -->
-    <td width="50%">
-      <strong>HEAD TEACHER'S COMMENT:</strong> ${student.headteacher_comment || ''}<br><br>
-      ${
-        student.headmaster_sign_image
-          ? `<img src="/static/uploads/${student.headmaster_sign_image}" 
-                   alt="Head Teacher Signature" 
-                   style="width:120px; height:auto;" 
-                   onerror="this.onerror=null; this.style.display='none';">`
-          : ''
-      }
-    </td>
-  </tr>
-</table>
-
-
-
-
-    <hr>
-
-    <p><strong>REQUIREMENTS (Authorised by Administration)</strong></p>
-    <p>I have read the report ............................................................. ( Parent / Guardian's Signature )</p>
-
-    <div class="gradescale">
-    <table>
-    <tr>
-    <td><strong>Grade Scale:</strong></td>
-    <td>D1: 95-100</td><td>D2: 90-94</td><td>C3: 85-89</td><td>C4: 80-84</td>
-    <td>C5: 70-79</td><td>C6: 60-69</td><td>P7: 55-59</td><td>P8: 40-49</td><td>F9: 0-39</td>
-    </tr>
-    </table>
-    </div>
-
-    <p class="note">NEXT TERM BEGINS ON : 08-Sep-2024</p>
+            return `
+              <tr>
+                <td>${subject}</td>
+                ${reports.map(r => {
+                  // Round individual marks to integer if present
+                  const mark = r.marks?.[subject];
+                  const intMark = (mark !== undefined && mark !== null && mark !== '') 
+                    ? Math.round(parseFloat(mark))
+                    : '';
+                  return `<td>${intMark}</td>`;
+                }).join('')}
+                <td>${avg !== '' ? avg + '%' : ''}</td>
+                <td>${avgGrade}</td>
+                <td>${rank}</td>
+                <td>${comment}</td>
+              </tr>`;
+          }).join('')}
+          <tr><td colspan="${reports.length + 5}"><strong>Summary</strong></td></tr>
+          ${[
+            ['Aggregate', 'aggregate', 'aggregate'],
+            ['Total', 'total_score', 'overall_total'],
+            ['Average', 'average_score', 'overall_subject_average'],
+            ['Division', 'division', 'division'],
+            ['Stream Position', 'stream_position_assessment', 'stream_position'],
+            ['Class Position', 'class_position_assessment', 'class_position']
+          ].map(([label, rptKey, ovKey]) => `
+            <tr>
+              <td>${label}</td>
+              ${reports.map(r => `<td>${r[rptKey] ?? ''}</td>`).join('')}
+              <td colspan="5"><strong>Overall ${label}:</strong> ${overall[ovKey] ?? ''}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
     `;
 
-    container.innerHTML = printedAt + header + table;
+    const footer = `
+      <table class="signature-section" width="90%">
+        <tr>
+          <td width="50%">
+            <strong>CLASS TEACHER:</strong> ${overall.class_teacher || ''}<br><br>
+            <em>${overall.classteacher_comment || ''}</em><br><br>
+            ${student.class_teacher_sign_image
+              ? `<img src="/static/uploads/${student.class_teacher_sign_image}" alt="Class Teacher Signature" style="width:120px; height:auto;" onerror="this.style.display='none';">`
+              : ''}
+          </td>
+          <td width="50%">
+            <strong>HEAD TEACHER'S COMMENT:</strong> ${overall.headteacher_comment || ''}<br><br>
+            ${student.headmaster_sign_image
+              ? `<img src="/static/uploads/${student.headmaster_sign_image}" alt="Head Teacher Signature" style="width:120px; height:auto;" onerror="this.style.display='none';">`
+              : ''}
+          </td>
+        </tr>
+      </table>
+      <hr>
+      <p><strong>REQUIREMENTS (Authorised by Administration)</strong></p>
+      <p>I have read the report ............................................................. ( Parent / Guardian's Signature )</p>
+      <table class="grade-scale-small">
+        <tr>
+          <td><strong>Grade Scale:</strong></td>
+          {% for g in grade_scale %}
+          <td>{{ g.grade_letter }}: {{ g.min_score }}–{{ g.max_score }}</td>
+          {% endfor %}
+        </tr>
+      </table>
+      <p class="note">NEXT TERM BEGINS ON : 08‑Sep‑2024</p>
+    `;
+
+    container.innerHTML = printedAt + header + tableHeader + footer;
   }
 
   $(document).ready(() => {
-    // Initialize Select2 plugin
-    $('.select2').select2({
-      width: '100%'
-    });
-
-    // On pupil select change, render report
+    $('.select2').select2();
     $('#studentSelect').on('change', function() {
       renderStudentReport(this.value);
     });
-
-    // Optionally pre-select first pupil and show report
-    const initialRegNo = $('#studentSelect').val();
-    if (initialRegNo) {
-      renderStudentReport(initialRegNo);
-    }
   });
 </script>
-{% endblock %}
+
+
+
+
+
+        {% endblock %}
