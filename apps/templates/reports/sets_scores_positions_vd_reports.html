@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
 <link rel="stylesheet" href="/static/assets/css/mine.css">
 <style>
+  /* Your CSS here, same as provided */
   .no-print { display: block; }
   @media print {
     .no-print { display: none !important; }
@@ -26,8 +27,6 @@
   .form-info-wrapper { width: 90%; margin: 20px auto; display: flex; justify-content: space-between; align-items: flex-start; }
   .form-info { flex: 1; font-weight: bold; color: #800000; }
   .form-info span { color: black; }
-  .form-info-wrapper.compact-info { margin: 10px auto; align-items: center; }
-  .form-info-wrapper.compact-info .form-info > div { font-size: 16px; margin-bottom: 5px; }
   .student-photo img.student-square-photo {
     width: 130px; height: 130px; object-fit: contain;
     border: 2px solid #800000; border-radius: 5px; background: white;
@@ -50,11 +49,10 @@
   </section>
 
   <section class="content container-fluid">
-
-    <!-- Filters -->
+    <!-- Filters Section -->
     <div class="card no-print">
       <div class="card-header dark-maroon"><h3 class="card-title">Filter Report</h3></div>
-      <form method="GET" action="{{ url_for('reports_blueprint.vd_reports') }}">
+      <form method="GET" action="{{ url_for('reports_blueprint.sets_scores_positions_vd_reports') }}">
         <div class="card-body">
           <div class="row">
             {% set select_style = "form-control select2" %}
@@ -96,12 +94,11 @@
             </div>
             <div class="col-md-12 mt-2">
               <label>Assessments (Multiple)</label>
-              <select name="assessment_name" class="{{ select_style }}" multiple required>
+               <select id="assessment_name" name="assessment_name" class="form-control select2" multiple required>
                 {% for a in assessments %}
-                  <option value="{{ a.assessment_name }}" {% if selected_assessment_name and a.assessment_name in selected_assessment_name %}selected{% endif %}>{{ a.assessment_name }}</option>
+                <option value="{{ a.assessment_name }}" {% if selected_assessment_name and a.assessment_name in selected_assessment_name %}selected{% endif %}>{{ a.assessment_name }}</option>
                 {% endfor %}
               </select>
-            </div>
           </div>
         </div>
         <div class="card-footer text-right">
@@ -116,18 +113,14 @@
       <div class="card-body">
         <select id="studentSelect" class="form-control select2">
           <option value="">-- Select Pupil --</option>
-          {% set seen = [] %}
           {% for st in reports %}
-            {% if st.reg_no not in seen %}
-              <option value="{{ st.reg_no }}">{{ st.full_name }}</option>
-              {% set _ = seen.append(st.reg_no) %}
-            {% endif %}
+            <option value="{{ st.reg_no }}">{{ st.full_name }}</option>
           {% endfor %}
         </select>
       </div>
     </div>
 
-    <!-- Report -->
+    <!-- Report Section -->
     <div class="card">
       <div class="card-header dark-maroon">
         <h3 class="card-title">Report</h3>
@@ -151,120 +144,76 @@
 <script src="/static/assets/js/adminlte.min.js"></script>
 
 <script>
-
-
-
-
 const allReports = {{ reports | tojson }};
 const subjectNames = {{ subject_names | tojson }};
-const badgeImage = "{{ url_for('static', filename='uploads/' ~ (badge_image or 'default-badge.jpg')) }}";
-
-// Calculate subject average across assessments
-function calculateSubjectAverages(reps, subjectNames) {
-  const averages = {};
-  subjectNames.forEach(subject => {
-    let total = 0, count = 0;
-    reps.forEach(r => {
-      const mark = parseFloat(r.marks?.[subject]);
-      if (!isNaN(mark)) {
-        total += mark;
-        count++;
-      }
-    });
-    averages[subject] = count ? (total / count).toFixed(2) + '%' : '';
-  });
-  return averages;
-}
-
-// Get subject class rank from the first assessment's report data
-function getSubjectClassRank(reps, subject) {
-  // Check if subject_ranks exists and has rank for the subject
-  const rank = reps[0].subject_ranks?.[subject];
-  return rank !== undefined ? rank : '';
-}
+const assessments = {{ selected_assessment_name | tojson }};
 
 function renderStudentReport(regNo) {
   const container = document.getElementById('printableReportContainer');
   container.innerHTML = '';
+
   if (!regNo) {
     container.innerHTML = '<p>Please select a pupil to view the report.</p>';
     return;
   }
 
-  const reps = allReports.filter(r => r.reg_no === regNo);
-  if (!reps.length) {
+  const student = allReports.find(r => r.reg_no === regNo);
+  if (!student) {
     container.innerHTML = '<p>No report data available for this pupil.</p>';
     return;
   }
 
-  const st = reps[0];
-  const printedAt = `<div class="print-datetime">Printed on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</div>`;
-  const subjectAverages = calculateSubjectAverages(reps, subjectNames);
-
+  // Render Header
   const header = `
-  <div class="print-header">
-    <img src="${badgeImage}" onerror="this.src='{{ url_for('static', filename='assets/img/badge_image.jpg') }}'" />
-    <div class="print-header-text">
-      <h1>SACRED HEART GIRLS’ PRIMARY SCHOOL KYAMUSANSALA</h1>
-      <div class="contact">P.O.BOX 1759, MASAKA – UGANDA</div>
-      <div class="contact">TEL: 0772‑848153 / 0782‑957781</div>
-      <div class="contact">Home Page: <a href="http://www.njbs.ac.ug" target="_blank">www.njbs.ac.ug</a></div>
+    <div class="print-header">
+      <img src="{{ url_for('static', filename='assets/img/school_badge.png') }}" alt="School Badge" />
+      <div class="print-header-text">
+        <h1>SACRED HEART GIRLS’ PRIMARY SCHOOL KYAMUSANSALA</h1>
+        <div class="contact">P.O.BOX 1759, MASAKA – UGANDA</div>
+        <div class="contact">TEL: 0772‑848153 / 0782‑957781</div>
+        <div class="contact">Home Page: <a href="http://www.njbs.ac.ug" target="_blank">www.njbs.ac.ug</a></div>
+      </div>
     </div>
-  </div>
-  <div class="form-info-wrapper compact-info">
-    <div class="form-info">
-      <div><strong>PUPIL’S NAME:</strong> <span>${st.full_name}</span></div>
-      <div><strong>REG NO:</strong> <span>${st.reg_no}</span> ${st.class_name === 'PRIMARY 7' && st.index_number ? `&nbsp;<strong>INDEX NO:</strong> <span>${st.index_number}</span>` : ''}</div>
-      <div><strong>CLASS:</strong> <span>${st.class_name}</span> &nbsp; <strong>STREAM:</strong> <span>${st.stream_name}</span></div>
-      <div><strong>CLASS TEACHER:</strong> <span>${st.class_teacher}</span></div>
-      <div><strong>CLASS SIZE:</strong> <span>${st.total_class_size}</span> &nbsp; <strong>STREAM SIZE:</strong> <span>${st.total_stream_size}</span></div>
-    </div>
-    <div class="student-photo">
-      ${st.image ? `<img src="/static/uploads/${st.image}" class="student-square-photo">` : `<span class="text-muted">No Image</span>`}
-    </div>
-  </div>`;
+    <div class="form-info-wrapper compact-info">
+      <div class="form-info">
+        <div><strong>PUPIL’S NAME:</strong> <span>${student.full_name}</span></div>
+        <div><strong>REG NO:</strong> <span>${student.reg_no}</span>${student.class_name === 'PRIMARY 7' && student.index_number ? `&nbsp;<strong>INDEX NO:</strong> <span>${student.index_number}</span>` : ''}</div>
+        <div><strong>CLASS:</strong> <span>${student.class_name}</span> &nbsp; <strong>STREAM:</strong> <span>${student.stream_name}</span></div>
+        <div><strong>CLASS TEACHER:</strong> <span>${student.class_teacher}</span></div>
+        <div><strong>CLASS SIZE:</strong> <span>${student.total_class_size}</span> &nbsp; <strong>STREAM SIZE:</strong> <span>${student.total_stream_size}</span></div>
+      </div>
+      <div class="student-photo">
+        ${student.image ? `<img src="/static/uploads/${student.image}" class="student-square-photo" alt="Student Photo">` : `<span class="text-muted">No Image</span>`}
+      </div>
+    </div>`;
 
-  reps.sort((a, b) => a.assessment_name.localeCompare(b.assessment_name));
-
-  const table = `
-  <table>
+  // Generate Report Table
+  let table = `<table>
     <thead>
       <tr>
         <th>Subject</th>
-        ${reps.map(r => `<th colspan="2">${r.assessment_name}</th>`).join('')}
-        <th><small>Subject  Class Avg (%) </small></th>
-        <th><small>subject Class Rank </small></th>
+        ${assessments.map(a => `<th colspan="2">${a}</th>`).join('')}
       </tr>
       <tr>
         <th></th>
-        ${reps.map(() => `<th>Mark</th><th>Grade</th>`).join('')}
-        <th></th>
-        <th></th>
+        ${assessments.map(() => `<th>Mark</th><th>Grade</th>`).join('')}
       </tr>
     </thead>
     <tbody>
-      ${subjectNames.map(subject => `
-        <tr>
+      ${subjectNames.map(subject => {
+        return `<tr>
           <td>${subject}</td>
-          ${reps.map(r => `
-            <td>${r.marks?.[subject] || ''}</td>
-            <td>${r.grades?.[subject] || ''}</td>
-          `).join('')}
-          <td><strong>${subjectAverages[subject]}</strong></td>
-          <td><strong>${getSubjectClassRank(reps, subject)}</strong></td>
-        </tr>
-      `).join('')}
-      <tr><td colspan="${(reps.length * 2) + 3}"><strong>Summary</strong></td></tr>
-      <tr><td>Aggregate</td>${reps.map(r => `<td colspan="2">${r.aggregate || ''}</td>`).join('')}<td></td><td></td></tr>
-      <tr><td>Total</td>${reps.map(r => `<td colspan="2">${r.total_score || ''}</td>`).join('')}<td></td><td></td></tr>
-      <tr><td>Average</td>${reps.map(r => `<td colspan="2">${r.average_score || ''}</td>`).join('')}<td></td><td></td></tr>
-      <tr><td>Division</td>${reps.map(r => `<td colspan="2">${r.division || ''}</td>`).join('')}<td></td><td></td></tr>
-      <tr><td>Stream Position</td>${reps.map(r => `<td colspan="2">${r.stream_position || ''}</td>`).join('')}<td></td><td></td></tr>
-      <tr><td>Class Position</td>${reps.map(r => `<td colspan="2">${r.class_position || ''}</td>`).join('')}<td></td><td></td></tr>
+          ${assessments.map(assessment => {
+            const mark = (student.marks[subject] && student.marks[subject][assessment]) ?? '';
+            const grade = (student.grades[subject] && student.grades[subject][assessment]) ?? '';
+            return `<td>${mark}</td><td>${grade}</td>`;
+          }).join('')}
+        </tr>`;
+      }).join('')}
     </tbody>
   </table>`;
 
-  container.innerHTML = header + printedAt + table;
+  container.innerHTML = header + table;
 }
 
 $(function () {
@@ -273,10 +222,5 @@ $(function () {
     renderStudentReport(this.value);
   });
 });
-
-
-
-
-
 </script>
 {% endblock %}

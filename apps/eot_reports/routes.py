@@ -378,7 +378,7 @@ def term_eot_reports():
             class_list=class_list,
             study_years=study_years,
             terms=terms,
-            subjects=[],  # Empty since we’re filtering
+            subjects=[],  # Empty since we're filtering
             assessments=assessments,
             selected_class_id=None,
             selected_study_year_id=None,
@@ -1448,8 +1448,12 @@ def scores_positions_eot_reports():
 
 
 
+
+
+
 @blueprint.route('/vd_eot_reports', methods=['GET'])
 def vd_eot_reports():
+    from collections import defaultdict
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
@@ -1477,6 +1481,7 @@ def vd_eot_reports():
         conn.close()
         return render_template('eot_reports/vd_eot_reports.html',
             reports=[], subject_names=[],
+            subject_averages={},
             class_list=class_list, study_years=study_years,
             terms=terms, assessments=assessments,
             streams=streams,
@@ -1550,14 +1555,10 @@ def vd_eot_reports():
     core_subjects = ['MTC', 'ENGLISH', 'SST', 'SCIE']
     grouped = {}
     subject_names = set()
-    subject_ranks_data = defaultdict(lambda: defaultdict(list))
 
     for r in rows:
         key = (r['reg_no'], r['assessment_name'])
         subject_names.add(r['subject_name'])
-        subject_ranks_data[r['assessment_name']][r['subject_name']].append({
-            'reg_no': r['reg_no'], 'Mark': r['Mark']
-        })
         if key not in grouped:
             grouped[key] = {
                 'reg_no': r['reg_no'],
@@ -1573,7 +1574,6 @@ def vd_eot_reports():
                 'total_class_size': r['total_class_size'],
                 'total_stream_size': r['total_stream_size'],
                 'stream_id': r['stream_id'],
-                # add sign images once per student
                 'class_teacher_sign_image': class_teacher_sign_image,
                 'headmaster_sign_image': headmaster_sign_image
             }
@@ -1600,20 +1600,7 @@ def vd_eot_reports():
                 'by': cm['name_sf'] if cm else ''
             }
 
-    # rank computation
-    subject_ranks = defaultdict(lambda: defaultdict(dict))
-    for asmt, subjmap in subject_ranks_data.items():
-        for subj, entries in subjmap.items():
-            entries.sort(key=lambda e: -e['Mark'] if e['Mark'] is not None else float('-inf'))
-            prev = None
-            rank = 0
-            for idx, e in enumerate(entries):
-                if e['Mark'] != prev:
-                    rank = idx + 1
-                subject_ranks[asmt][subj][e['reg_no']] = rank
-                prev = e['Mark']
-
-    # build reports_list with aggregates, comments
+    # Build reports_list with aggregates, comments
     reports_list = []
     for stu in grouped.values():
         core = [stu['marks'].get(s) for s in core_subjects if stu['marks'].get(s) is not None]
@@ -1654,9 +1641,7 @@ def vd_eot_reports():
             'division': division,
             'headteacher_comment': ht['comment'] if ht else '',
             'classteacher_comment': ctcm['comment'] if ctcm else '',
-            'classteacher_comment_by': ctcm['name_sf'] if ctcm else '',
-            'subject_ranks': {subj: subject_ranks[stu['assessment_name']].get(subj, {}).get(stu['reg_no'])
-                              for subj in subject_names}
+            'classteacher_comment_by': ctcm['name_sf'] if ctcm else ''
         })
 
         reports_list.append(stu)
@@ -1674,12 +1659,49 @@ def vd_eot_reports():
         for idx, stu in enumerate(group, 1):
             stu['stream_position'] = idx
 
+    # --- Calculate average marks per subject across all assessments ---
+    subject_averages = {}
+    subject_counts = {}
+
+    for stu in grouped.values():
+        for subj, mark in stu['marks'].items():
+            if mark is not None and isinstance(mark, (int, float)):
+                subject_averages[subj] = subject_averages.get(subj, 0) + mark
+                subject_counts[subj] = subject_counts.get(subj, 0) + 1
+
+    for subj in subject_averages.keys():
+        total = subject_averages[subj]
+        count = subject_counts[subj]
+        avg = (total / count) if count > 0 else 0
+        subject_averages[subj] = f"{avg:.2f}%"
+
+    # Ensure all subject names have a value, even if no marks exist
+    for subj in subject_names:
+        if subj not in subject_averages:
+            subject_averages[subj] = "0.00%"
+
+    # Ensure all values are strings and properly serializable
+    subject_averages = {k: str(v) if v is not None else "0.00%" for k, v in subject_averages.items()}
+    
+    # Final safety check - ensure all values are strings
+    for key, value in subject_averages.items():
+        if value is None or str(value).lower() == 'undefined':
+            subject_averages[key] = "0.00%"
+    
+    # Ensure all keys are strings
+    subject_averages = {str(k): str(v) for k, v in subject_averages.items()}
+
+    # Debug: Print subject_averages for debugging
+    print("DEBUG: subject_averages =", subject_averages)
+    print("DEBUG: subject_names =", sorted(subject_names))
+
     cursor.close()
     conn.close()
 
     return render_template('eot_reports/vd_eot_reports.html',
         reports=reports_list,
         subject_names=sorted(subject_names),
+        subject_averages=subject_averages,
         class_list=class_list,
         study_years=study_years,
         terms=terms,
@@ -1692,6 +1714,11 @@ def vd_eot_reports():
         selected_assessment_name=assessment_names,
         segment='vd_eot_reports'
     )
+
+
+
+
+
 
 
 

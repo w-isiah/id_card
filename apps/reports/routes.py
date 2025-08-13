@@ -16,6 +16,441 @@ import numpy as np
 
 
 
+
+
+
+
+@blueprint.route('/sets_scores_positions_reports', methods=['GET'])
+def sets_scores_positions_reports():
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    # 1. Load dropdown options
+    cursor.execute("SELECT * FROM classes WHERE class_id IN (4, 30, 31, 32, 33)")
+    class_list = cursor.fetchall()
+    cursor.execute("SELECT * FROM study_year")
+    study_years = cursor.fetchall()
+    cursor.execute("SELECT * FROM terms")
+    terms = cursor.fetchall()
+    cursor.execute("SELECT * FROM assessment")
+    assessments = cursor.fetchall()
+    cursor.execute("SELECT * FROM stream")
+    streams = cursor.fetchall()
+
+    # 2. Read filters from GET params
+    class_id = request.args.get('class_id', type=int)
+    year_id = request.args.get('year_id', type=int)
+    term_id = request.args.get('term_id', type=int)
+    assessment_names = request.args.getlist('assessment_name')  # supports multiple selections
+    stream_id = request.args.get('stream_id', type=int)
+
+    if not all([class_id, year_id, term_id, assessment_names]):
+        cursor.close()
+        connection.close()
+        return render_template(
+            'reports/sets_scores_positions_reports.html',
+            reports=[],
+            subject_names=[],
+            class_list=class_list,
+            study_years=study_years,
+            terms=terms,
+            assessments=assessments,
+            streams=streams,
+            selected_class_id=class_id,
+            selected_study_year_id=year_id,
+            selected_term_id=term_id,
+            selected_assessment_name=assessment_names,
+            selected_stream_id=stream_id,
+            segment='reports'
+        )
+
+    core_subjects = ['MTC', 'ENGLISH', 'SST', 'SCIE']
+
+    # 3. Build SQL query for selected assessments
+    placeholders = ','.join(['%s'] * len(assessment_names))
+    sql = f"""
+        SELECT
+            p.reg_no, p.stream_id, p.class_id,
+            CONCAT_WS(' ', p.last_name, p.first_name, p.other_name) AS full_name,
+            y.year_name, y.year_id,
+            t.term_name, t.term_id,
+            a.assessment_name,
+            sub.subject_name,
+            s.Mark,
+            st.stream_name
+        FROM scores s
+        JOIN pupils p ON s.reg_no = p.reg_no
+        JOIN assessment a ON s.assessment_id = a.assessment_id
+        JOIN terms t ON s.term_id = t.term_id
+        JOIN study_year y ON s.year_id = y.year_id
+        JOIN subjects sub ON s.subject_id = sub.subject_id
+        JOIN stream st ON p.stream_id = st.stream_id
+        WHERE p.class_id = %s
+          AND s.year_id = %s
+          AND s.term_id = %s
+          AND a.assessment_name IN ({placeholders})
+    """
+    args = [class_id, year_id, term_id] + assessment_names
+    if stream_id:
+        sql += " AND p.stream_id = %s"
+        args.append(stream_id)
+
+    cursor.execute(sql, args)
+    rows = cursor.fetchall()
+
+    # 4. Determine subjects present
+    subject_set = {row['subject_name'] for row in rows}
+    subject_names = [s for s in core_subjects if s in subject_set] + sorted(subject_set - set(core_subjects))
+
+    # 5. Build student-level data map
+    student_map = {}
+    for row in rows:
+        reg = row['reg_no']
+        if reg not in student_map:
+            student_map[reg] = {
+                'reg_no': reg,
+                'full_name': row['full_name'],
+                'class_id': row['class_id'],
+                'stream_id': row['stream_id'],
+                'stream_name': row['stream_name'],
+                'year_id': row['year_id'],
+                'term_id': row['term_id'],
+                'year_name': row['year_name'],
+                'term_name': row['term_name'],
+                'assessment_name': ', '.join(assessment_names),
+                'marks': {},              # will hold averaged marks per subject
+                'grades': {},             # store grade letter (might be useful)
+                'weights': {},            # weight based on averaged marks
+            }
+
+        subj = row['subject_name']
+        student_map[reg]['marks'].setdefault(subj, []).append(row['Mark'] or 0)
+
+    # 6. Compute averages and corresponding grade weights
+    for st in student_map.values():
+        avg_marks = {}
+        weights = {}
+
+        for subject, mark_list in st['marks'].items():
+            avg_mark = sum(mark_list) // len(mark_list)  # integer average
+            avg_marks[subject] = avg_mark
+
+            # Lookup weight based on average mark
+            cursor.execute("""
+                SELECT weight, grade_letter FROM grades
+                WHERE %s BETWEEN min_score AND max_score
+                LIMIT 1
+            """, (avg_mark,))
+            grade_info = cursor.fetchone() or {}
+            weights[subject] = grade_info.get('weight', 0)
+            st['grades'][subject] = grade_info.get('grade_letter', '')
+
+        st['marks'] = avg_marks
+        st['weights'] = weights
+
+    # 7. Calculate scores, averages, aggregates, division
+    for st in student_map.values():
+        core_values = [st['marks'].get(s, 0) for s in core_subjects]
+        total_score = sum(core_values)
+        average_score = total_score // len(core_subjects)  # integer average
+
+        incomplete = any(s not in st['marks'] for s in core_subjects)
+        if incomplete:
+            aggregate = 'X'
+            division = 'X'
+        else:
+            aggregate = sum(st['weights'].get(s, 0) for s in core_subjects)
+            cursor.execute("""
+                SELECT division_name FROM division
+                WHERE %s BETWEEN min_score AND max_score
+                LIMIT 1
+            """, (aggregate,))
+            div = cursor.fetchone()
+            division = div['division_name'] if div else 'N/A'
+
+        st.update({
+            'total_score': total_score,
+            'average_score': average_score,
+            'aggregate': aggregate,
+            'division': division
+        })
+
+    students = list(student_map.values())
+
+    # 8. Assign class and stream positions
+    def assign_positions(lst, key):
+        lst.sort(key=lambda x: (float('inf') if x['aggregate'] == 'X' else -x['average_score'], x['reg_no']))
+        prev_score = None
+        pos = 0
+        for idx, student in enumerate(lst, 1):
+            if student['aggregate'] == 'X':
+                student[key] = idx
+            else:
+                if student['average_score'] != prev_score:
+                    pos = idx
+                student[key] = pos
+                prev_score = student['average_score']
+
+    assign_positions(students, 'class_position')
+    from collections import defaultdict
+    by_stream = defaultdict(list)
+    for st in students:
+        by_stream[st['stream_id']].append(st)
+    for grp in by_stream.values():
+        assign_positions(grp, 'stream_position')
+
+    cursor.close()
+    connection.close()
+
+    # 9. Render with updated variables
+    return render_template(
+        'reports/sets_scores_positions_reports.html',
+        reports=students,
+        subject_names=subject_names,
+        class_list=class_list,
+        study_years=study_years,
+        terms=terms,
+        assessments=assessments,
+        streams=streams,
+        selected_class_id=class_id,
+        selected_study_year_id=year_id,
+        selected_term_id=term_id,
+        selected_assessment_name=assessment_names,
+        selected_stream_id=stream_id,
+        segment='reports'
+    )
+
+
+
+
+
+
+
+
+
+
+
+
+
+@blueprint.route('/sets_scores_positions_vd_reports', methods=['GET'])
+def sets_scores_positions_vd_reports():
+    # Establish DB connection
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    # Load dropdown options
+    cursor.execute("SELECT * FROM classes WHERE class_id IN (4, 30, 31, 32, 33)")
+    class_list = cursor.fetchall()
+
+    cursor.execute("SELECT * FROM study_year")
+    study_years = cursor.fetchall()
+
+    cursor.execute("SELECT * FROM terms")
+    terms = cursor.fetchall()
+
+    cursor.execute("SELECT * FROM assessment")
+    assessments = cursor.fetchall()
+
+    cursor.execute("SELECT * FROM stream")
+    streams = cursor.fetchall()
+
+    # Get filter parameters from request arguments
+    class_id = request.args.get('class_id', type=int)
+    year_id = request.args.get('year_id', type=int)
+    term_id = request.args.get('term_id', type=int)
+    assessment_names = request.args.getlist('assessment_name')
+    stream_id = request.args.get('stream_id', type=int)
+
+    # Check if necessary filters are selected
+    if not all([class_id, year_id, term_id, assessment_names]):
+        cursor.close()
+        connection.close()
+        return render_template(
+            'reports/sets_scores_positions_vd_reports.html',
+            reports=[],  # Empty reports initially
+            subject_names=[],  # Empty subject names
+            class_list=class_list,
+            study_years=study_years,
+            terms=terms,
+            assessments=assessments,
+            streams=streams,
+            selected_class_id=class_id,
+            selected_study_year_id=year_id,
+            selected_term_id=term_id,
+            selected_assessment_name=assessment_names,
+            selected_stream_id=stream_id,
+            segment='reports'
+        )
+
+    # Core subjects
+    core_subjects = ['MTC', 'ENGLISH', 'SST', 'SCIE']
+
+    # Preparing the SQL placeholders dynamically
+    placeholders = ', '.join(['%s'] * len(assessment_names))
+    sql = f"""
+        SELECT 
+            s.reg_no, p.stream_id, p.class_id, p.index_number,
+            CONCAT_WS(' ', p.last_name, p.first_name, p.other_name) AS full_name,
+            p.image, c.class_name, st.stream_name,
+            y.year_name, y.year_id, t.term_name, t.term_id,
+            a.assessment_name, sub.subject_name, s.Mark,
+            g.grade_letter, g.weight,
+            class_counts.total_class_size,
+            stream_counts.total_stream_size
+        FROM scores s
+        JOIN pupils p USING (reg_no)
+        JOIN classes c ON p.class_id = c.class_id
+        JOIN stream st ON p.stream_id = st.stream_id
+        JOIN study_year y ON s.year_id = y.year_id
+        JOIN terms t ON s.term_id = t.term_id
+        JOIN assessment a ON s.assessment_id = a.assessment_id
+        JOIN subjects sub ON s.subject_id = sub.subject_id
+        LEFT JOIN grades g ON s.Mark BETWEEN g.min_score AND g.max_score
+        JOIN (
+            SELECT class_id, COUNT(*) AS total_class_size 
+            FROM pupils 
+            GROUP BY class_id
+        ) class_counts ON class_counts.class_id = p.class_id
+        JOIN (
+            SELECT class_id, stream_id, COUNT(*) AS total_stream_size 
+            FROM pupils 
+            GROUP BY class_id, stream_id
+        ) stream_counts ON stream_counts.class_id = p.class_id 
+                        AND stream_counts.stream_id = p.stream_id
+        WHERE p.class_id = %s 
+          AND s.year_id = %s 
+          AND s.term_id = %s
+          AND a.assessment_name IN ({placeholders})
+        ORDER BY p.first_name, p.last_name, p.other_name
+    """
+    
+    # Building the arguments list for SQL
+    args = [class_id, year_id, term_id] + assessment_names
+    if stream_id:
+        sql += " AND p.stream_id = %s"
+        args.append(stream_id)
+
+    # Execute the query
+    cursor.execute(sql, args)
+    rows = cursor.fetchall()
+
+    # Extract unique subjects
+    subject_set = {row['subject_name'] for row in rows}
+    subject_names = [s for s in core_subjects if s in subject_set] + sorted(subject_set - set(core_subjects))
+
+    # Map to store student data
+    student_map = {}
+
+    # Process rows to map student data
+    for row in rows:
+        reg = row['reg_no']
+        if reg not in student_map:
+            student_map[reg] = {
+                'reg_no': reg,
+                'full_name': row['full_name'],
+                'class_id': row['class_id'],
+                'stream_id': row['stream_id'],
+                'stream_name': row['stream_name'],
+                'year_id': row['year_id'],
+                'term_id': row['term_id'],
+                'year_name': row['year_name'],
+                'term_name': row['term_name'],
+                'class_name': row.get('class_name', ''),
+                'index_number': row.get('index_number', None),
+                'class_teacher': row.get('class_teacher', ''),
+                'total_class_size': row['total_class_size'],
+                'total_stream_size': row['total_stream_size'],
+                'image': row.get('image', None),
+                'marks': {},  # structure: {subject: {assessment_name: mark}}
+                'grades': {},  # will be computed per subject-assessment
+            }
+
+        # Collect marks for each student
+        subj = row['subject_name']
+        assessment = row['assessment_name']
+        student_map[reg]['marks'].setdefault(subj, {})[assessment] = row['Mark'] or 0
+
+    # Calculate grades per subject per assessment
+    for student in student_map.values():
+        grades = {}
+        for subject, assessments_marks in student['marks'].items():
+            grades[subject] = {}
+            for assessment_name, mark in assessments_marks.items():
+                cursor.execute("""
+                    SELECT grade_letter, weight FROM grades
+                    WHERE %s BETWEEN min_score AND max_score
+                    LIMIT 1
+                """, (mark,))
+                grade_info = cursor.fetchone() or {}
+                grades[subject][assessment_name] = grade_info.get('grade_letter', '')
+        student['grades'] = grades
+
+    # Calculate aggregates/averages per student across assessments (rounded to whole numbers)
+    for student in student_map.values():
+        aggregates = {}
+        for subject in core_subjects:
+            if subject in student['marks']:
+                marks_list = list(student['marks'][subject].values())
+                avg_mark = sum(marks_list) / len(marks_list) if marks_list else 0
+                aggregates[subject] = round(avg_mark)  # Round to whole number
+            else:
+                aggregates[subject] = None
+
+        # Calculate average subject mark (rounded to whole number)
+        total_marks = sum([v for v in aggregates.values() if v is not None])
+        count_valid_subjects = len([v for v in aggregates.values() if v is not None])
+        student['average_subject_mark'] = round(total_marks / count_valid_subjects) if count_valid_subjects else 0
+
+        student['aggregate'] = sum([v for v in aggregates.values() if v is not None])
+        student['average_score'] = round(student['aggregate'] / len(core_subjects)) if all(v is not None for v in aggregates.values()) else None
+
+    # Convert student map to list
+    students = list(student_map.values())
+
+    # Close database connections
+    cursor.close()
+    connection.close()
+
+    # Render the template
+    return render_template(
+        'reports/sets_scores_positions_vd_reports.html',
+        reports=students,
+        subject_names=subject_names,
+        assessments=assessment_names,
+        class_list=class_list,
+        study_years=study_years,
+        terms=terms,
+        streams=streams,
+        selected_class_id=class_id,
+        selected_study_year_id=year_id,
+        selected_term_id=term_id,
+        selected_assessment_name=assessment_names,
+        selected_stream_id=stream_id,
+        segment='reports'
+    )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 @blueprint.route('/reports', methods=['GET'])
 def reports():
     """Fetches pupil marks per subject for a given assessment and renders the reports page,
