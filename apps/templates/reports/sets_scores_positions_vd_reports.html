@@ -143,6 +143,12 @@
 <script src="/static/assets/js/select2.min.js"></script>
 <script src="/static/assets/js/adminlte.min.js"></script>
 
+
+
+
+
+
+
 <script>
 const allReports = {{ reports | tojson }};
 const subjectNames = {{ subject_names | tojson }};
@@ -185,29 +191,29 @@ function renderStudentReport(regNo) {
       <div class="student-photo">
         ${student.image ? `<img src="/static/uploads/${student.image}" class="student-square-photo" alt="Student Photo">` : `<span class="text-muted">No Image</span>`}
       </div>
-    </div>`;
+    </div>
+  `;
 
   // Generate Report Table
   let table = `<table>
     <thead>
       <tr>
         <th>Subject</th>
-        ${assessments.map(a => `<th colspan="2">${a}</th>`).join('')}
-      </tr>
-      <tr>
-        <th></th>
-        ${assessments.map(() => `<th>Mark</th><th>Grade</th>`).join('')}
+        ${assessments.map(a => `<th>${a}</th>`).join('')}
+        <th>Average</th>
+        <th>Grade</th>
       </tr>
     </thead>
     <tbody>
       ${subjectNames.map(subject => {
+        const marks_dict = student.marks[subject] || {};
+        const avg_mark = student.subject_averages[subject] ?? 'N/A';
+        const grade = student.subject_average_grades[subject] ?? '';
         return `<tr>
           <td>${subject}</td>
-          ${assessments.map(assessment => {
-            const mark = (student.marks[subject] && student.marks[subject][assessment]) ?? '';
-            const grade = (student.grades[subject] && student.grades[subject][assessment]) ?? '';
-            return `<td>${mark}</td><td>${grade}</td>`;
-          }).join('')}
+          ${assessments.map(a => marks_dict[a] ?? 'N/A').map(m => `<td>${m}</td>`).join('')}
+          <td>${avg_mark}</td>
+          <td>${grade}</td>
         </tr>`;
       }).join('')}
     </tbody>
@@ -223,4 +229,16 @@ $(function () {
   });
 });
 </script>
+
+
+
+
+
+
+
+
+
+
+
+
 {% endblock %}
