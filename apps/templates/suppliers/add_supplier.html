@@ -1,19 +1,13 @@
 {% extends "layouts/base.html" %}
 
-{% block title %} Add a Department or Category {% endblock %}
+{% block title %} Add a Supplier/Donor {% endblock %}
 
-<!-- Element injected in the BODY element -->
 {% block body_class %} sidebar-mini layout-footer-fixed {% endblock body_class %}
 
-<!-- Specific Page CSS goes HERE -->
 {% block stylesheets %}
-<!-- Google Font: Source Sans Pro -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-<!-- Font Awesome -->
 <link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
-<!-- Theme style -->
 <link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
-<!-- Custom CSS for Flash Messages -->
 <style>
   .alert-container {
     position: fixed;
@@ -40,7 +34,6 @@
 {% block content %}
 <div class="content-wrapper">
 
-  <!-- Flash Messages -->
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
     <div class="alert-container" id="flashMessageContainer">
@@ -56,85 +49,83 @@
     {% endif %}
   {% endwith %}
 
-  <!-- Content Header (Page header) -->
   <section class="content-header">
     <div class="container-fluid">
       <div class="row mb-2">
         <div class="col-sm-6">
-          <h1>Add a Department or Category</h1>
+          <h1>Add a Supplier/Donor</h1>
         </div>
         <div class="col-sm-6">
           <ol class="breadcrumb float-sm-right">
             <li class="breadcrumb-item"><a href="/index">Home</a></li>
-            <li class="breadcrumb-item"><a href="/categories">Depatment</a></li>
-            <li class="breadcrumb-item active">Add Department or Category</li>
+            <li class="breadcrumb-item"><a href="/suppliers">Suppliers</a></li>
+            <li class="breadcrumb-item active">Add Supplier</li>
           </ol>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Main content -->
   <section class="content">
     <div class="container-fluid">
       <div class="row">
-        <div class="col-12">
-          <!-- Default box -->
+        <div class="col-md-6 offset-md-3 col-12">
           <div class="card">
-             <div class="card-header d-flex justify-content-between align-items-center">
-              <h3 class="card-title mb-0">Department and Category List</h3>
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h3 class="card-title mb-0">Add New Supplier/Partner</h3>
               <div class="btn-group ms-auto" role="group">
-                <a href="/categories" class="btn btn-primary btn-sm">Department & Category List</a>
+                <a href="/suppliers" class="btn btn-primary btn-sm">Supplier List</a>
                 <a href="/inventory_index" class="btn btn-success btn-sm">Inventory Dashboard</a>
               </div>
             </div>
 
-
-            <form action="{{ url_for('categories_blueprint.add_category') }}" method="post">
-              <!-- CSRF Token for security -->
+            <form action="{{ url_for('suppliers_blueprint.add_supplier') }}" method="post">
               <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
 
               <div class="card-body">
-                <!-- Category Name Field -->
-                <div class="control-group mb-3">
-                  <label class="control-label" for="category-name">Depatment/Category Name:</label>
-                  <div class="controls">
-                    <input type="text" id="category-name" name="name" placeholder="Enter Department / Category Name" 
-                      class="form-control form-control-sm border-info shadow-sm" required aria-describedby="category-name-help" />
-                    <span id="category-name-help" class="help-block text-muted">Please provide a name for the Department / Category.</span>
-                  </div>
+                <div class="form-group mb-3">
+                  <label class="control-label" for="supplier-name">Name <span class="text-danger">*</span>:</label>
+                  <input type="text" id="supplier-name" name="name" placeholder="Enter Company or Individual Name"
+                    class="form-control form-control-sm border-info shadow-sm" required aria-describedby="supplier-name-help" />
+                  <small id="supplier-name-help" class="form-text text-muted">The name of the vendor, donor, or financial institution.</small>
                 </div>
-              </div> <!--end::Body-->
 
-              <!-- Submit Button -->
-              <div class="card-footer">
-                <button type="submit" class="btn btn-sm btn-success" style="--bs-btn-padding-y: .25rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .75rem;">Save</button>
+                <div class="form-group mb-3">
+                  <label class="control-label" for="contact-details">Contact Details (Email/Phone):</label>
+                  <input type="text" id="contact-details" name="contact_details" placeholder="Email, Phone, or Address"
+                    class="form-control form-control-sm border-info shadow-sm" aria-describedby="contact-details-help" />
+                  <small id="contact-details-help" class="form-text text-muted">Primary contact information (optional).</small>
+                </div>
+
+                <div class="form-group mb-3">
+                  <label class="control-label" for="supplier-type">Type:</label>
+                  <select id="supplier-type" name="type" class="form-control form-control-sm border-info shadow-sm">
+                    <option value="Supplier" selected>Supplier/Vendor</option>
+                    <option value="Financier">Financier (Bank/Leasing)</option>
+                    <option value="Donor">Donor/Sponsor</option>
+                    <option value="Other">Other Partner</option>
+                  </select>
+                  <small class="form-text text-muted">Classification of the partner organization.</small>
+                </div>
+              </div> <div class="card-footer">
+                <button type="submit" class="btn btn-sm btn-success" style="--bs-btn-padding-y: .25rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .75rem;">Save Supplier</button>
               </div>
-
             </form>
           </div>
-          <!-- /.card -->
         </div>
       </div>
     </div>
   </section>
-  <!-- /.content -->
 </div>
 
 {% endblock content %}
 
-<!-- Specific Page JS goes HERE -->
 {% block javascripts %}
-<!-- jQuery -->
 <script src="/static/assets/plugins/jquery/jquery.min.js"></script>
-<!-- Bootstrap 4 -->
 <script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-<!-- AdminLTE App -->
 <script src="/static/assets/js/adminlte.min.js"></script>
-<!-- AdminLTE for demo purposes -->
 <script src="/static/assets/js/demo.js"></script>
 
-<!-- Custom JS to handle Flash Message Fade-in/Fade-out -->
 <script>
   $(document).ready(function() {
     // Flash message fade-in and fade-out effect
