@@ -123,7 +123,7 @@
                     </a>
                   </td>
                   <td>
-                    {% if session['role'] == 'super_admin' %}
+                    {% if session['role'] == 'admin' %}
                     <a href="{{ url_for('subject_comments_blueprint.delete_subject_comments', comment_id=comment.comment_id) }}" 
                        class="btn btn-sm btn-danger" 
                        onclick="return confirm('Delete comment for subject {{ comment.subject_name }}?')"

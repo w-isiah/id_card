@@ -99,7 +99,7 @@
                   </a>
                 </td>
                 <td>
-                  {% if session['role'] == 'super_admin' %}
+                  {% if session['role'] == 'admin' %}
                   <a href="{{ url_for('headmaster_comments_blueprint.delete_headmaster_comments', comment_id=comment.comment_id) }}"
                      class="btn btn-sm btn-danger"
                      onclick="return confirm('Are you sure you want to delete this comment?')"

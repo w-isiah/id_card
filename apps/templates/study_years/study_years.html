@@ -149,7 +149,7 @@
 
                       <!-- Delete (Admin Only) -->
                       <td>
-                        {% if session['role'] == 'super_admin' %}
+                        {% if session['role'] == 'admin' %}
                         <a href="/delete_study_year/{{ year.year_id }}" 
                            class="btn btn-sm btn-danger" 
                            onclick="return confirm('Are you sure you want to delete {{ year.year_name }}?')">

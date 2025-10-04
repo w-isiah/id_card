@@ -32,7 +32,7 @@ except locale.Error:
         pass
 
 
-def format_currency(value, symbol='$', grouping=True):
+def format_currency(value, symbol='UGX', grouping=True):
     """Formats a number as a currency string."""
     try:
         # If locale is set correctly, use locale.currency (best option)

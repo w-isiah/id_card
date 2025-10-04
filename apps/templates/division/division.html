@@ -119,7 +119,7 @@
                           <a href="/edit_division/{{ div.division_id }}" class="btn btn-sm btn-warning">Edit</a>
                         </td>
                         <td>
-                          {% if session['role'] == 'super_admin' %}
+                          {% if session['role'] == 'admin' %}
                           <a href="/delete_division/{{ div.division_id }}" class="btn btn-sm btn-danger"
                           onclick="return confirm('Delete division {{ div.division_name }}?')">
                           Delete

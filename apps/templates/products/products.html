@@ -198,7 +198,7 @@
                   {% endif %}
                 </td>
                 
-                <td>{% if session['role'] == 'super_admin' %}<a href="/delete_product/{{ i.ProductID }}" class="btn btn-danger btn-sm">Del</a>  {% else %}
+                <td>{% if session['role'] == 'admin' %}<a href="/delete_product/{{ i.ProductID }}" class="btn btn-danger btn-sm">Del</a>  {% else %}
                   <span>—</span>
                 {% endif %}</td>
                 <td><a href="/edit_product/{{ i.ProductID }}" class="btn btn-warning btn-sm">Edit</a></td>

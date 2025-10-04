@@ -157,7 +157,7 @@
 
                       <!-- Delete Button (Visible to Admin only) -->
                       <td>
-                        {% if session['role'] == 'super_admin' %}
+                        {% if session['role'] == 'admin' %}
                         <a href="/delete_subject/{{ subject.subject_id }}" 
                            class="btn btn-sm btn-danger" 
                            style="--bs-btn-padding-y: .25rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .75rem;"
