@@ -36,16 +36,16 @@
 
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-    <div class="alert-container" id="flashMessageContainer">
-      {% for category, message in messages %}
-      <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-        <strong>{{ message }}</strong>
-        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
+      <div class="alert-container" id="flashMessageContainer">
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            <strong>{{ message }}</strong>
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+        {% endfor %}
       </div>
-      {% endfor %}
-    </div>
     {% endif %}
   {% endwith %}
 
@@ -83,26 +83,50 @@
               <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
 
               <div class="card-body">
+                <!-- Location Name -->
                 <div class="control-group mb-3">
                   <label class="control-label" for="location-name">Location Name:</label>
                   <div class="controls">
                     <input type="text" id="location-name" name="name" placeholder="Enter Location Name (e.g., IT Lab, Hall)" 
                       class="form-control form-control-sm border-info shadow-sm" required aria-describedby="location-name-help" />
-                    <span id="location-name-help" class="help-block text-muted">Please provide a name for the **physical location** (e.g., a room or area).</span>
+                    <span id="location-name-help" class="help-block text-muted">Please provide a name for the physical location.</span>
                   </div>
                 </div>
-              </div> <div class="card-footer">
+
+                <!-- Room Dropdown -->
+                <div class="control-group mb-3">
+                  <label class="control-label" for="room-id">Room (optional):</label>
+                  <div class="controls">
+                    <select id="room-id" name="room_id" class="form-control form-control-sm border-info shadow-sm">
+                      <option value="">-- Select Room --</option>
+                      {% for room in rooms %}
+                        <option value="{{ room.room_id }}">{{ room.room_name }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Description -->
+                <div class="control-group mb-3">
+                  <label class="control-label" for="description">Description (optional):</label>
+                  <div class="controls">
+                    <textarea id="description" name="description" class="form-control form-control-sm border-info shadow-sm" rows="3" placeholder="Add additional notes about this location..."></textarea>
+                  </div>
+                </div>
+
+              </div> <!-- /.card-body -->
+
+              <div class="card-footer">
                 <button type="submit" class="btn btn-sm btn-success" style="--bs-btn-padding-y: .25rem; --bs-btn-padding-x: .5rem; --bs-btn-font-size: .75rem;">Save Location</button>
               </div>
 
             </form>
           </div>
-          </div>
+        </div>
       </div>
     </div>
   </section>
-  </div>
-
+</div>
 {% endblock content %}
 
 {% block javascripts %}
@@ -113,7 +137,6 @@
 
 <script>
   $(document).ready(function() {
-    // Flash message fade-in and fade-out effect
     if ($('#flashMessageContainer').length) {
       $('#flashMessageContainer').fadeIn(500).delay(3000).fadeOut(1000);
     }

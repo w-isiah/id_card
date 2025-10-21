@@ -15,25 +15,31 @@ from apps import get_db_connection
 from jinja2 import TemplateNotFound
 
 
-@blueprint.route('/locations') # Use the renamed blueprint
+
+@blueprint.route('/locations')
 def locations():
-    """Fetches all locations and renders the manage locations page."""
+    """Fetches all locations and renders the Manage Locations page."""
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
-    # Fetch all locations from the database
-    # The table name 'Locations' is correctly used from the database design
-    cursor.execute('SELECT * FROM Locations ORDER BY LocationName ASC') 
+    # Fetch all locations, including room_id and description
+    cursor.execute("""
+        SELECT 
+            l.LocationID,
+            l.LocationName,
+            l.room_id,
+            r.room_name,
+            l.description
+        FROM locations l
+        LEFT JOIN rooms r ON l.room_id = r.room_id
+        ORDER BY l.LocationName ASC
+    """)
     locations = cursor.fetchall()
 
-    # Close the cursor and connection
     cursor.close()
     connection.close()
 
-    # Renders the template specific to locations
-    return render_template('locations/locations.html', locations=locations, segment='locations')
-
-
+    return render_template('locations/locations.html', locations=locations)
 
 
 
@@ -46,34 +52,40 @@ import re
 
 @blueprint.route('/add_location', methods=['GET', 'POST'])
 def add_location():
-    """Handles the adding of a new location."""
+    """Handles adding a new location with optional room and description."""
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    # Fetch available rooms for the dropdown
+    cursor.execute('SELECT * FROM rooms ORDER BY room_name ASC')
+    rooms = cursor.fetchall()
+
     if request.method == 'POST':
-        # The location name is captured from the form field
-        location_name = request.form.get('name') 
+        location_name = request.form.get('name')
+        room_id = request.form.get('room_id') or None  # Can be NULL
+        description = request.form.get('description') or None
 
         # Validate input
         if not location_name:
             flash("Please fill out the form!", "warning")
-        # Assuming location names can only contain letters, numbers, and spaces
         elif not re.match(r'^[A-Za-z0-9_ ]+$', location_name):
             flash('Location name must contain only letters and numbers!', "danger")
         else:
-            connection = get_db_connection()
-            cursor = connection.cursor(dictionary=True)
-
             try:
-                # Check if the location already exists in the Locations table
+                # Check if the location already exists
                 cursor.execute('SELECT * FROM Locations WHERE LocationName = %s', (location_name,))
                 existing_location = cursor.fetchone()
 
                 if existing_location:
                     flash("Location already exists!", "warning")
                 else:
-                    # Insert the new location into the Locations table
-                    cursor.execute('INSERT INTO Locations (LocationName) VALUES (%s)', (location_name,))
+                    # Insert the new location
+                    cursor.execute(
+                        'INSERT INTO Locations (LocationName, room_id, description) VALUES (%s, %s, %s)',
+                        (location_name, room_id, description)
+                    )
                     connection.commit()
                     flash("Location successfully added!", "success")
-
             except mysql.connector.Error as err:
                 flash(f"Database Error: {err}", "danger")
             except Exception as e:
@@ -81,9 +93,12 @@ def add_location():
             finally:
                 cursor.close()
                 connection.close()
-    
-    # Renders the form for adding a location on GET request or after POST
-    return render_template('locations/add_location.html', segment='add_location')
+                return redirect(url_for('locations_blueprint.locations'))
+
+    cursor.close()
+    connection.close()
+    return render_template('locations/add_location.html', rooms=rooms, segment='add_location')
+
 
 
 
@@ -91,51 +106,51 @@ def add_location():
 @blueprint.route('/edit_location/<int:location_id>', methods=['GET', 'POST'])
 def edit_location(location_id):
     """Handles editing an existing location."""
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
     if request.method == 'POST':
-        location_name = request.form['name']
+        location_name = request.form.get('name')
+        room_id = request.form.get('room_id') or None
+        description = request.form.get('description') or None
 
-        # NOTE: Input validation (like the regex check) should be added here as well for a complete solution.
-        
+        # Optional: Input validation for location name
+        if not location_name or not re.match(r'^[A-Za-z0-9_ ]+$', location_name):
+            flash("Invalid location name. Use letters, numbers, spaces, or underscores.", "danger")
+            return redirect(url_for('locations_blueprint.edit_location', location_id=location_id))
+
         try:
-            connection = get_db_connection()
-            cursor = connection.cursor()
-
-            # Update the LocationName in the Locations table based on LocationID
             cursor.execute("""
                 UPDATE Locations
-                SET LocationName = %s
+                SET LocationName = %s, room_id = %s, description = %s
                 WHERE LocationID = %s
-            """, (location_name, location_id))
+            """, (location_name, room_id, description, location_id))
             connection.commit()
-
             flash("Location updated successfully!", "success")
         except Exception as e:
-            flash(f"Error: {str(e)}", "danger")
+            flash(f"Error updating location: {str(e)}", "danger")
         finally:
             cursor.close()
             connection.close()
 
-        # Assuming 'locations' is the function that renders the list of locations
         return redirect(url_for('locations_blueprint.locations'))
 
-    elif request.method == 'GET':
-        # Retrieve the location to pre-fill the form
-        connection = get_db_connection()
-        cursor = connection.cursor(dictionary=True)
-        # Select from Locations table using the LocationID
-        cursor.execute("SELECT LocationID, LocationName FROM Locations WHERE LocationID = %s", (location_id,))
+    else:  # GET
+        # Fetch location to pre-fill the form
+        cursor.execute("SELECT LocationID, LocationName, room_id, description FROM Locations WHERE LocationID = %s", (location_id,))
         location = cursor.fetchone()
+
+        # Fetch all rooms for dropdown
+        cursor.execute("SELECT room_id, room_name FROM rooms ORDER BY room_name ASC")
+        rooms = cursor.fetchall()
         cursor.close()
         connection.close()
 
         if location:
-            # Pass the retrieved location object to the template
-            return render_template('locations/edit_location.html', location=location, segment='locations')
+            return render_template('locations/edit_location.html', location=location, rooms=rooms, segment='locations')
         else:
             flash("Location not found.", "danger")
             return redirect(url_for('locations_blueprint.locations'))
-
-
 
 
 @blueprint.route('/delete_location/<int:location_id>')
@@ -143,21 +158,14 @@ def delete_location(location_id):
     """Deletes a location from the database."""
     connection = get_db_connection()
     cursor = connection.cursor()
-
     try:
-        # Delete the location from the Locations table
         cursor.execute('DELETE FROM Locations WHERE LocationID = %s', (location_id,))
         connection.commit()
         flash("Location deleted successfully.", "success")
-        
-        # NOTE: Database design should prevent deletion if assets are still linked (ON DELETE RESTRICT).
-        # If the deletion fails due to a Foreign Key constraint, the Exception handler will catch it.
-        
     except Exception as e:
         flash(f"Error: Cannot delete location. It may be linked to existing assets. ({str(e)})", "danger")
     finally:
         cursor.close()
         connection.close()
 
-    # Assuming 'locations' is the function that renders the list of locations
     return redirect(url_for('locations_blueprint.locations'))
