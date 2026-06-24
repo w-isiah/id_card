@@ -6,10 +6,8 @@
 
 {% block stylesheets %}
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
-
 <link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
 <link rel="stylesheet" href="/static/assets/css/mine.css">
 <link rel="stylesheet" href="/static/assets/css/select2.min.css">
@@ -35,6 +33,10 @@
   }
   .alert.alert-dismissible {
     padding-right: 30px;
+  }
+  /* Optimization helper for wide accounting tables */
+  .text-nowrap-cells td {
+    white-space: nowrap !important;
   }
 </style>
 {% endblock stylesheets %}
@@ -83,23 +85,28 @@
             <div class="card-header d-flex justify-content-between align-items-center">
               <h3 class="card-title mb-0">List of Registered Fixed Assets</h3>
               <div class="btn-group ms-auto" role="group">
-                <a href="/add_asset" class="btn btn-primary btn-sm">Add New Asset</a>
+                <a href="/add_asset" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Add New Asset</a>
                 <a href="/inventory_index" class="btn btn-success btn-sm">Inventory Dashboard</a>
               </div>
             </div>
 
             <div class="card-body">
               <div class="table-responsive">
-                <table id="assetsTable" class="display nowrap stripe" style="width:100%">
+                <table id="assetsTable" class="display nowrap stripe table-valign-middle text-nowrap-cells" style="width:100%">
                   <thead>
                     <tr>
                       <th>ID Number</th>
                       <th>Description</th>
+                      <th>Serial Number</th>
                       <th>Category</th>
+                      <th>Qty</th>
                       <th>Location</th>
                       <th>Custodian</th>
-                      <th>Cost</th>
+                      <th>Cost (UGX)</th>
+                      <th>Acc. Dep (UGX)</th>
+                      <th>Net Book Value (UGX)</th>
                       <th>Condition</th>
+                      <th>Status</th>
                       <th>Edit</th>
                       <th>Delete</th>
                     </tr>
@@ -107,50 +114,90 @@
                   <tbody>
                     {% for asset in assets %}
                     <tr>
-                      <td>{{ asset.IdentificationNumber }}</td>
+                      <td><strong>{{ asset.IdentificationNumber }}</strong></td>
                       <td>{{ asset.AssetDescription }}</td>
+                      <td><small class="text-muted">{{ asset.SerialNumber or '-' }}</small></td>
                       <td>{{ asset.CategoryName or 'N/A' }}</td>
+                      <td>{{ asset.quantity }}</td>
                       <td>{{ asset.LocationName or 'N/A' }}</td>
                       <td>{{ asset.CustodianName or 'N/A' }}</td>
                       
-
                       <td>
-                        {% if asset.CostValuation %}
-                        UGX {{ "{:,.2f}".format(asset.CostValuation) }}
+                        {% if asset.CostValuation is not none %}
+                        {{ "{:,.2f}".format(asset.CostValuation) }}
                         {% else %}
-                        N/A
+                        0.00
                         {% endif %}
                       </td>
 
+                      <td class="text-danger">
+                        {% if asset.AccumulatedDepreciation is not none %}
+                        {{ "{:,.2f}".format(asset.AccumulatedDepreciation) }}
+                        {% else %}
+                        0.00
+                        {% endif %}
+                      </td>
 
-                      <td>{{ asset.AssetCondition or 'N/A' }}</td>
+                      <td class="text-success font-weight-bold">
+                        {% if asset.NetBookValue is not none %}
+                        {{ "{:,.2f}".format(asset.NetBookValue) }}
+                        {% else %}
+                        0.00
+                        {% endif %}
+                      </td>
+
                       <td>
-                        <a href="/edit_asset/{{ asset.AssetID }}" class="btn btn-sm btn-warning">
-                          Edit
+                        {% if asset.AssetCondition == 'Good' %}
+                        <span class="badge badge-success">Good</span>
+                        {% elif asset.AssetCondition == 'Fair' %}
+                        <span class="badge badge-warning">Fair</span>
+                        {% elif asset.AssetCondition == 'Poor' %}
+                        <span class="badge badge-danger">Poor</span>
+                        {% else %}
+                        <span class="badge badge-secondary">{{ asset.AssetCondition or 'N/A' }}</span>
+                        {% endif %}
+                      </td>
+
+                      <td>
+                        {% if asset.AssetStatus == 'Active' %}
+                        <span class="badge bg-olive">Active</span>
+                        {% elif asset.AssetStatus == 'Under Maintenance' %}
+                        <span class="badge badge-info">Maintenance</span>
+                        {% elif asset.AssetStatus == 'Disposed' %}
+                        <span class="badge badge-dark">Disposed</span>
+                        {% else %}
+                        <span class="badge badge-secondary">{{ asset.AssetStatus }}</span>
+                        {% endif %}
+                      </td>
+
+                      <td>
+                        <a href="/edit_asset/{{ asset.AssetID }}" class="btn btn-xs btn-warning">
+                          <i class="fas fa-edit"></i> Edit
                         </a>
                       </td>
                       <td>
                         {% if session['role'] == 'admin' %}
                         <a href="/delete_asset/{{ asset.AssetID }}"
-                        class="btn btn-sm btn-danger"
-                        onclick="return confirm('Are you sure you want to delete asset {{ asset.IdentificationNumber }} ({{ asset.AssetDescription }})? This is permanent.')">
-                        Delete
-                      </a>
-                      {% else %}
-                      <span>-</span>
-                      {% endif %}
-                    </td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
+                           class="btn btn-xs btn-danger"
+                           onclick="return confirm('Are you sure you want to delete asset {{ asset.IdentificationNumber }}? This is permanent.')">
+                          <i class="fas fa-trash"></i> Delete
+                        </a>
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
             </div>
+
           </div>
         </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 </div>
 {% endblock content %}
 
@@ -162,27 +209,24 @@
 <script src="https://cdn.datatables.net/2.2.2/js/dataTables.js"></script>
 <script src="https://cdn.datatables.net/responsive/2.3.0/js/dataTables.responsive.min.js"></script>
 <script src="https://cdn.datatables.net/fixedcolumns/5.0.4/js/dataTables.fixedColumns.js"></script>
-
 <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
 <script src="/static/assets/js/mine.js"></script>
-<script src="/static/assets/js/select2.min.js"></script>
 
 <script>
   $(document).ready(function() {
-      // Initialize DataTable
+    // Initializing Datatables with scroll capabilities for wide accounting metrics
     $('#assetsTable').DataTable({
-      fixedColumns: { left: 1,},
-      paging: false,
+      fixedColumns: { 
+        left: 1 
+      },
+      paging: true, // Swapped to true for cleaner handling of extensive asset books
+      pageLength: 25,
       scrollX: true,
-      scrollY: '300px',
       scrollCollapse: true,
       stateSave: true
     });
 
-      // Flash message effect
     if ($('#flashMessageContainer').length) {
       $('#flashMessageContainer').fadeIn(500).delay(3000).fadeOut(1000);
     }

@@ -6,18 +6,19 @@
 
 {% block stylesheets %}
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-<link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
 <link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@x.x.x/dist/select2-bootstrap4.min.css">
 <link rel="stylesheet" href="/static/assets/css/select2.min.css">
 <style>
     .alert-container {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 9999;
-      width: 80%;
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 9999;
+        width: 80%;
     }
     .required-label::after {
         content: " *";
@@ -64,14 +65,13 @@
     <section class="content">
       <div class="container-fluid">
         <div class="row">
-          <div class="col-md-8 offset-md-2 col-12">
-            <div class="card card-warning"> <!-- Changed card style for editing -->
+          <div class="col-md-10 offset-md-1 col-12">
+            <div class="card card-warning">
               <div class="card-header d-flex justify-content-between align-items-center">
-                <h3 class="card-title">Editing Asset: {{ asset.AssetDescription if asset else 'N/A' }}</h3>
-                <div class="btn-group mb-2" role="group">
-                  <a href="/assets" class="btn btn-primary btn-sm">View Assets</a>
-                  <a href="/add_asset" class="btn btn-info btn-sm">Add New Asset</a>
-                  <a href="/inventory_index" class="btn btn-success btn-sm">Inventory Dashboard</a>
+                <h3 class="card-title text-dark">Editing Asset: {{ asset.AssetDescription if asset else 'N/A' }}</h3>
+                <div class="btn-group mb-2 ml-auto" role="group">
+                  <a href="/assets" class="btn btn-primary btn-sm">View Assets Register</a>
+                  <a href="/add_asset" class="btn btn-dark btn-sm">Add New Asset</a>
                 </div>
               </div>
               
@@ -83,55 +83,36 @@
                   <input type="hidden" name="AssetID" value="{{ asset.AssetID }}">
 
                   <div class="row">
-                    <!-- Column 1: Mandatory Identifiers -->
                     <div class="col-md-6">
-                        <h5 class="text-primary mb-3"><i class="fas fa-barcode"></i> Identification</h5>
+                        <h5 class="text-primary mb-3"><i class="fas fa-barcode"></i> General Asset Identifiers</h5>
 
                         <div class="form-group mb-3">
-                            <label class="control-label required-label" for="id-number">Identification Number:</label>
-                            <input type="text" id="id-number" name="id_number" 
+                            <label class="control-label required-label" for="identification_number">Identification Number:</label>
+                            <input type="text" id="identification_number" name="identification_number" 
                                 value="{{ asset.IdentificationNumber }}"
-                                class="form-control form-control-sm border-info shadow-sm" required />
+                                class="form-control form-control-sm border-secondary" required />
                         </div>
 
                         <div class="form-group mb-3">
-                            <label class="control-label" for="serial-number">Serial Number:</label>
-                            <input type="text" id="serial-number" name="serial_number" 
+                            <label class="control-label" for="serial_number">Serial Number:</label>
+                            <input type="text" id="serial_number" name="serial_number" 
                                 value="{{ asset.SerialNumber or '' }}"
-                                class="form-control form-control-sm border-info shadow-sm" />
+                                class="form-control form-control-sm border-secondary" />
                         </div>
                         
                         <div class="form-group mb-3">
-                            <label class="control-label required-label" for="description">Asset Description:</label>
-                            <textarea id="description" name="description" 
-                                class="form-control form-control-sm border-info shadow-sm" required rows="2">{{ asset.AssetDescription }}</textarea>
+                            <label class="control-label required-label" for="asset_description">Asset Description / Title:</label>
+                            <textarea id="asset_description" name="asset_description" 
+                                class="form-control form-control-sm border-secondary" required rows="2">{{ asset.AssetDescription }}</textarea>
                         </div>
-                        
-                        <h5 class="text-primary mb-3 mt-4"><i class="fas fa-money-bill-wave"></i> Acquisition & Cost</h5>
-                        
-                        <div class="form-group mb-3">
-                            <label class="control-label required-label" for="acquisition-date">Acquisition Date:</label>
-                            <input type="date" id="acquisition-date" name="acquisition_date"
-                                value="{{ asset.AcquisitionDate | date_format }}"
-                                class="form-control form-control-sm border-info shadow-sm" required />
-                        </div>
-
-                        <div class="form-group mb-3">
-                            <label class="control-label required-label" for="cost-valuation">Cost/Valuation:</label>
-                            <input type="number" step="0.01" id="cost-valuation" name="cost_valuation" 
-                                value="{{ asset.CostValuation }}"
-                                class="form-control form-control-sm border-info shadow-sm" required />
-                        </div>
-                        
                     </div>
 
-                    <!-- Column 2: Relationships and Status -->
                     <div class="col-md-6">
-                        <h5 class="text-info mb-3"><i class="fas fa-sitemap"></i> Categorization & Location</h5>
+                        <h5 class="text-info mb-3"><i class="fas fa-sitemap"></i> Structural Context</h5>
                         
                         <div class="form-group mb-3">
-                            <label class="control-label required-label" for="category-id">Category:</label>
-                            <select id="category-id" name="category_id" class="form-control form-control-sm select2-simple border-info shadow-sm" required>
+                            <label class="control-label required-label" for="category_id">Asset Class / Category:</label>
+                            <select id="category_id" name="category_id" class="form-control form-control-sm select2-simple" required>
                                 <option value="">Select Category...</option>
                                 {% for category in categories %}
                                     <option value="{{ category.CategoryID }}" 
@@ -143,8 +124,8 @@
                         </div>
                         
                         <div class="form-group mb-3">
-                            <label class="control-label required-label" for="location-id">Current Location:</label>
-                            <select id="location-id" name="location_id" class="form-control form-control-sm select2-simple border-info shadow-sm" required>
+                            <label class="control-label required-label" for="location_id">Assigned Physical Location:</label>
+                            <select id="location_id" name="location_id" class="form-control form-control-sm select2-simple" required>
                                 <option value="">Select Location...</option>
                                 {% for location in locations %}
                                     <option value="{{ location.LocationID }}"
@@ -154,10 +135,73 @@
                                 {% endfor %}
                             </select>
                         </div>
+
+                        <div class="form-group mb-3">
+                            <label class="control-label required-label" for="quantity">Quantity Block:</label>
+                            <input type="number" min="1" id="quantity" name="quantity" 
+                                value="{{ asset.quantity or 1 }}"
+                                class="form-control form-control-sm border-secondary" required />
+                        </div>
+                    </div>
+                  </div>
+
+                  <hr class="my-4">
+
+                  <div class="row">
+                    <div class="col-md-6">
+                        <h5 class="text-success mb-3"><i class="fas fa-money-check-alt"></i> Capital Expenditures & Valuation</h5>
                         
                         <div class="form-group mb-3">
-                            <label class="control-label" for="custodian-id">Custodian/Responsible Staff:</label>
-                            <select id="custodian-id" name="custodian_id" class="form-control form-control-sm select2-simple border-info shadow-sm">
+                            <label class="control-label required-label" for="acquisition_date">Acquisition Placement Date:</label>
+                            <input type="date" id="acquisition_date" name="acquisition_date"
+                                value="{{ asset.AcquisitionDate }}"
+                                class="form-control form-control-sm border-secondary" required />
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label class="control-label required-label" for="cost_valuation">Original Cost / Purchase Value (UGX):</label>
+                            <input type="number" step="0.01" id="cost_valuation" name="cost_valuation" 
+                                value="{{ asset.CostValuation }}"
+                                class="form-control form-control-sm border-secondary" required />
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label class="control-label" for="residual_value">Estimated Residual / Salvage Value (UGX):</label>
+                            <input type="number" step="0.01" id="residual_value" name="residual_value" 
+                                value="{{ asset.ResidualValue or '0.00' }}"
+                                class="form-control form-control-sm border-secondary" />
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label class="control-label" for="depreciation_start_date">Depreciation Commencement Date:</label>
+                            <input type="date" id="depreciation_start_date" name="depreciation_start_date"
+                                value="{{ asset.DepreciationStartDate or '' }}"
+                                class="form-control form-control-sm border-secondary" />
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label class="control-label" for="depreciation_method">Amortization Method Model:</label>
+                            <select id="depreciation_method" name="depreciation_method" class="form-control form-control-sm border-secondary">
+                                <option value="Straight Line" {% if asset.DepreciationMethod == 'Straight Line' %}selected{% endif %}>Straight Line Model</option>
+                                <option value="Reducing Balance" {% if asset.DepreciationMethod == 'Reducing Balance' %}selected{% endif %}>Reducing Balance Model</option>
+                                <option value="Amortized None" {% if asset.DepreciationMethod == 'Amortized None' %}selected{% endif %}>Non-Depreciable Asset Block</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label class="control-label" for="useful_life_years">Estimated Useful Life (Years):</label>
+                            <input type="number" min="1" id="useful_life_years" name="useful_life_years" 
+                                value="{{ asset.UsefulLife_Years or '' }}"
+                                class="form-control form-control-sm border-secondary" placeholder="e.g. 5" />
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <h5 class="text-secondary mb-3"><i class="fas fa-users-cog"></i> Custody, Sourcing & Operational Status</h5>
+
+                        <div class="form-group mb-3">
+                            <label class="control-label" for="custodian_id">Current Custodian Staff Member:</label>
+                            <select id="custodian_id" name="custodian_id" class="form-control form-control-sm select2-simple">
                                 <option value="">Select Staff...</option>
                                 {% for user in users %}
                                     <option value="{{ user.id }}"
@@ -169,9 +213,9 @@
                         </div>
                         
                         <div class="form-group mb-3">
-                            <label class="control-label" for="supplier-id">Supplier/Donor:</label>
-                            <select id="supplier-id" name="supplier_id" class="form-control form-control-sm select2-simple border-info shadow-sm">
-                                <option value="">Select Supplier/Donor...</option>
+                            <label class="control-label" for="supplier_id">Verified Source Supplier / Procurement Vendor:</label>
+                            <select id="supplier_id" name="supplier_id" class="form-control form-control-sm select2-simple">
+                                <option value="">Select Supplier...</option>
                                 {% for supplier in suppliers %}
                                     <option value="{{ supplier.SupplierID }}"
                                         {% if asset.SupplierID == supplier.SupplierID %}selected{% endif %}>
@@ -181,12 +225,10 @@
                             </select>
                         </div>
 
-                        <h5 class="text-danger mb-3 mt-4"><i class="fas fa-info-circle"></i> Status</h5>
-                        
                         {% set ownership_statuses = ['Owned', 'Leased', 'Trust'] %}
                         <div class="form-group mb-3">
-                            <label class="control-label" for="ownership-status">Ownership Status:</label>
-                            <select id="ownership-status" name="ownership_status" class="form-control form-control-sm border-info shadow-sm">
+                            <label class="control-label required-label" for="ownership_status">Ownership Structure Model:</label>
+                            <select id="ownership_status" name="ownership_status" class="form-control form-control-sm border-secondary" required>
                                 {% for status in ownership_statuses %}
                                     <option value="{{ status }}" 
                                         {% if asset.OwnershipStatus == status %}selected{% endif %}>
@@ -198,8 +240,8 @@
                         
                         {% set asset_conditions = ['Good', 'Fair', 'Poor', 'Missing'] %}
                         <div class="form-group mb-3">
-                            <label class="control-label" for="asset-condition">Asset Condition:</label>
-                            <select id="asset-condition" name="asset_condition" class="form-control form-control-sm border-info shadow-sm">
+                            <label class="control-label required-label" for="asset_condition">Physical Asset Condition Status:</label>
+                            <select id="asset_condition" name="asset_condition" class="form-control form-control-sm border-secondary" required>
                                 {% for condition in asset_conditions %}
                                     <option value="{{ condition }}"
                                         {% if asset.AssetCondition == condition %}selected{% endif %}>
@@ -208,20 +250,36 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        
+
+                        {% set asset_statuses = ['Active', 'Under Maintenance', 'Disposed'] %}
+                        <div class="form-group mb-3">
+                            <label class="control-label required-label" for="asset_status">Operational System Status:</label>
+                            <select id="asset_status" name="asset_status" class="form-control form-control-sm border-secondary" required>
+                                {% for system_status in asset_statuses %}
+                                    <option value="{{ system_status }}"
+                                        {% if asset.AssetStatus == system_status %}selected{% endif %}>
+                                        {{ system_status }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
                     </div>
                   </div>
 
                   <div class="form-group text-right mt-4">
-                    <button type="submit" class="btn btn-sm btn-success">
-                        <i class="fas fa-save"></i> Save Changes
+                    <button type="submit" class="btn btn-sm btn-success px-4">
+                        <i class="fas fa-save"></i> Commit Changes
                     </button>
-                    <a href="{{ url_for('fixed_assets_blueprint.assets') }}" class="btn btn-sm btn-secondary">Cancel</a>
+                    <a href="{{ url_for('fixed_assets_blueprint.assets') }}" class="btn btn-sm btn-default border px-3">Cancel</a>
                   </div>
 
                 </form>
                 {% else %}
-                    <p class="text-danger">Asset data could not be loaded. Please return to the asset list.</p>
+                    <div class="callout callout-danger mt-3">
+                        <h5>Record Loading Failure</h5>
+                        <p>The system was unable to target the requested operational ledger record key framework. Return to the active tracking directory.</p>
+                        <a href="/assets" class="btn btn-danger btn-sm">Return to Register</a>
+                    </div>
                 {% endif %}
               </div>
             </div>
@@ -233,40 +291,21 @@
 {% endblock content %}
 
 {% block javascripts %}
-<script src="/static/assets/plugins/jquery/jquery.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="/static/assets/js/adminlte.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
 <script>
-    // Simple custom filter for date formatting (needed if you don't have this available globally in Flask/Jinja)
-    // This assumes your date is passed as a Python date object or string that needs conversion for the input[type=date] value.
-    // If Flask filters are set up, you can remove this.
-    function formatDate(dateString) {
-        if (!dateString) return '';
-        if (dateString instanceof Date) {
-            return dateString.toISOString().split('T')[0];
-        }
-        // Assuming the date string is already in YYYY-MM-DD format if it came from the DB
-        return dateString.split(' ')[0]; 
-    }
-
     $(document).ready(function() {
-        // Initialize Select2 on all necessary dropdowns
+        // Initialize Select2 on select components
         $('.select2-simple').select2({
             theme: 'bootstrap4',
             width: '100%'
         });
-        
-        // Handle date input (ensure value is correctly formatted YYYY-MM-DD)
-        const acquisitionDate = '{{ asset.AcquisitionDate or '' }}';
-        if (acquisitionDate) {
-             // Assuming your asset.AcquisitionDate comes as a clean YYYY-MM-DD string or a date object that Jinja formats correctly.
-             $('#acquisition-date').val(formatDate(acquisitionDate));
-        }
 
-        // Flash message fade-in and fade-out effect
+        // Flash layout handling animations
         if ($('.alert-container').length) {
-            $('.alert-container').fadeIn(500).delay(3000).fadeOut(1000);
+            $('.alert-container').fadeIn(500).delay(4000).fadeOut(1000);
         }
     });
 </script>
