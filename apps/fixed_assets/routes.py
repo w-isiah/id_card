@@ -15,9 +15,9 @@ from jinja2 import TemplateNotFound
 def fetch_lookup_data(cursor):
     """Fetches locations, suppliers, categories, and users for dropdowns."""
     data = {}
-    
+
     # 1. Locations
-    cursor.execute('SELECT LocationID, LocationName FROM Locations ORDER BY LocationName')
+    cursor.execute('SELECT LocationID, LocationName FROM locations ORDER BY LocationName')
     data['locations'] = cursor.fetchall()
 
     # 2. Suppliers
@@ -25,19 +25,19 @@ def fetch_lookup_data(cursor):
     data['suppliers'] = cursor.fetchall()
 
     # 3. Categories (FIXED: Using 'category_list' instead of 'Categories')
-    cursor.execute('SELECT CategoryID, Name FROM category_list ORDER BY Name') 
+    cursor.execute('SELECT CategoryID, Name FROM category_list ORDER BY Name')
     data['categories'] = cursor.fetchall()
-    
+
     # 4. Users (for Custodians)
-    cursor.execute('SELECT id, first_name, last_name FROM users ORDER BY last_name')
+    cursor.execute('SELECT id, username,first_name, last_name FROM users ORDER BY last_name')
     data['users'] = cursor.fetchall()
-    
+
     return data
 
 # ---
 
 # LIST ASSETS (FIXED ASSETS REGISTER)
-@blueprint.route('/assets') 
+@blueprint.route('/assets')
 def assets():
     """Fetches all fixed assets and renders the main register page."""
     connection = get_db_connection()
@@ -46,27 +46,27 @@ def assets():
     try:
         # Fetch all assets, including names from linked tables for display
         cursor.execute("""
-            SELECT 
+            SELECT
                 fa.AssetID, fa.IdentificationNumber, fa.AssetDescription, fa.AssetCondition,
                 fa.AcquisitionDate, fa.CostValuation, fa.OwnershipStatus,
-                loc.LocationName, cat.Name AS CategoryName, 
-                sup.Name AS SupplierName, 
+                loc.LocationName, cat.Name AS CategoryName,
+                sup.Name AS SupplierName,
                 CONCAT(u.first_name, ' ', u.last_name) AS CustodianName
-            FROM Fixed_Assets fa
-            JOIN Locations loc ON fa.LocationID = loc.LocationID
+            FROM fixed_assets fa
+            JOIN locations loc ON fa.LocationID = loc.LocationID
             JOIN category_list cat ON fa.CategoryID = cat.CategoryID -- FIXED TABLE NAME HERE
             LEFT JOIN Suppliers sup ON fa.SupplierID = sup.SupplierID
             LEFT JOIN users u ON fa.CustodianID = u.id
             ORDER BY fa.IdentificationNumber ASC
         """)
         assets_list = cursor.fetchall()
-        
+
     except Error as e:
         logging.error(f"Database error fetching assets: {e}")
-        # Note: If Fixed_Assets table doesn't exist yet, this will also fail.
-        flash("Could not fetch assets due to a database error. Please ensure all tables (Fixed_Assets, category_list, etc.) exist.", "danger")
+        # Note: If fixed_assets table doesn't exist yet, this will also fail.
+        flash("Could not fetch assets due to a database error. Please ensure all tables (fixed_assets, category_list, etc.) exist.", "danger")
         assets_list = []
-        
+
     finally:
         cursor.close()
         connection.close()
@@ -78,35 +78,46 @@ def assets():
 # ---
 
 # ADD ASSET (FIXED ASSETS)
+
+
+
+
+# ADD ASSET (FIXED ASSETS)
 @blueprint.route('/add_asset', methods=['GET', 'POST'])
 def add_asset():
     """Handles the adding of a new fixed asset."""
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
-    lookup_data = fetch_lookup_data(cursor) # Get lookup data for GET/POST failure
+    lookup_data = fetch_lookup_data(cursor)  # Get lookup data for GET/POST failure
     cursor.close()
     connection.close()
 
     if request.method == 'POST':
-        # 1. Capture MANDATORY form data
-        id_number = request.form.get('id_number') 
-        description = request.form.get('description')
+        # 1. Capture MANDATORY form data (Mapped directly to your HTML form names)
+        identification_number = request.form.get('identification_number')
+        asset_description = request.form.get('asset_description')
         acquisition_date = request.form.get('acquisition_date')
         cost_valuation = request.form.get('cost_valuation')
         location_id = request.form.get('location_id')
-        category_id = request.form.get('category_id') # New mandatory FK
-        
-        # 2. Capture OPTIONAL/OTHER form data
-        serial_number = request.form.get('serial_number')
-        supplier_id = request.form.get('supplier_id') or None # Set to None if empty
-        custodian_id = request.form.get('custodian_id') or None # Set to None if empty
+        category_id = request.form.get('category_id')
         ownership_status = request.form.get('ownership_status')
         asset_condition = request.form.get('asset_condition')
+        asset_status = request.form.get('asset_status')
+        quantity = request.form.get('quantity')
+
+        # 2. Capture OPTIONAL/ACCOUNTING form data
+        serial_number = request.form.get('serial_number') or None
+        residual_value = request.form.get('residual_value') or '0.00'
+        useful_life_years = request.form.get('useful_life_years') or None
+        depreciation_method = request.form.get('depreciation_method') or 'Straight Line'
+        depreciation_start_date = request.form.get('depreciation_start_date') or None
+        supplier_id = request.form.get('supplier_id') or None
+        custodian_id = request.form.get('custodian_id') or None
 
         # Simple Mandatory Field Validation
-        if not all([id_number, description, acquisition_date, cost_valuation, location_id, category_id]):
-            flash("Please fill in all mandatory fields (ID, Description, Date, Cost, Location, Category).", "warning")
-            # Re-fetch lookup data before rendering on failure
+        if not all([identification_number, asset_description, acquisition_date, cost_valuation, 
+                    location_id, category_id, ownership_status, asset_condition, asset_status, quantity]):
+            flash("Please fill in all mandatory fields.", "warning")
             connection_fail = get_db_connection()
             cursor_fail = connection_fail.cursor(dictionary=True)
             lookup_data_fail = fetch_lookup_data(cursor_fail)
@@ -114,16 +125,15 @@ def add_asset():
             connection_fail.close()
             return render_template('assets/add_asset.html', **lookup_data_fail, segment='add_asset')
 
-        # Database connection for insertion
+        # Database connection for validation and insertion
         connection = get_db_connection()
         cursor = connection.cursor()
 
         try:
             # Check if IdentificationNumber already exists
-            cursor.execute('SELECT AssetID FROM Fixed_Assets WHERE IdentificationNumber = %s', (id_number,))
+            cursor.execute('SELECT AssetID FROM fixed_assets WHERE IdentificationNumber = %s', (identification_number,))
             if cursor.fetchone():
-                flash(f"Asset with ID '{id_number}' already exists!", "warning")
-                # Re-fetch lookup data before rendering on failure
+                flash(f"Asset with ID '{identification_number}' already exists!", "warning")
                 connection_fail = get_db_connection()
                 cursor_fail = connection_fail.cursor(dictionary=True)
                 lookup_data_fail = fetch_lookup_data(cursor_fail)
@@ -131,12 +141,14 @@ def add_asset():
                 connection_fail.close()
                 return render_template('assets/add_asset.html', **lookup_data_fail, segment='add_asset')
 
-            # Convert cost to Decimal, handle potential errors
+            # Clean and parse numerical values safely
             try:
                 cost = float(cost_valuation)
+                residual = float(residual_value)
+                qty = int(quantity)
+                useful_life = int(useful_life_years) if useful_life_years else None
             except ValueError:
-                flash("Cost Valuation must be a valid number.", "danger")
-                # Re-fetch lookup data before rendering on failure
+                flash("Cost, Residual Value, Quantity, and Useful Life must contain valid numeric configurations.", "danger")
                 connection_fail = get_db_connection()
                 cursor_fail = connection_fail.cursor(dictionary=True)
                 lookup_data_fail = fetch_lookup_data(cursor_fail)
@@ -144,24 +156,28 @@ def add_asset():
                 connection_fail.close()
                 return render_template('assets/add_asset.html', **lookup_data_fail, segment='add_asset')
 
-            # Insert the new asset into the Fixed_Assets table
+            # Insert the new asset into the fixed_assets table matching your exact MariaDB columns
             cursor.execute("""
-                INSERT INTO Fixed_Assets (
-                    IdentificationNumber, SerialNumber, AssetDescription, AcquisitionDate, CostValuation, 
-                    LocationID, SupplierID, CustodianID, CategoryID, OwnershipStatus, AssetCondition
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO fixed_assets (
+                    IdentificationNumber, SerialNumber, AssetDescription, CategoryID, 
+                    AcquisitionDate, DepreciationStartDate, CostValuation, ResidualValue, 
+                    LocationID, SupplierID, CustodianID, OwnershipStatus, 
+                    AssetCondition, AssetStatus, UsefulLife_Years, DepreciationMethod, quantity
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (
-                id_number, serial_number, description, acquisition_date, cost, 
-                location_id, supplier_id, custodian_id, category_id, ownership_status, asset_condition
+                identification_number, serial_number, asset_description, category_id,
+                acquisition_date, depreciation_start_date, cost, residual,
+                location_id, supplier_id, custodian_id, ownership_status,
+                asset_condition, asset_status, useful_life, depreciation_method, qty
             ))
+            
             connection.commit()
-            flash(f"Asset '{description}' successfully added!", "success")
-            return redirect(url_for('fixed_assets_blueprint.assets')) # Redirect to the main asset list
+            flash(f"Asset '{asset_description}' successfully added!", "success")
+            return redirect(url_for('fixed_assets_blueprint.assets'))
 
         except mysql.connector.Error as err:
             logging.error(f"Database Error adding asset: {err}")
             flash(f"Database Error: Could not add asset. {err}", "danger")
-            # If database error occurs, return to form with re-fetched lookup data
             connection_fail = get_db_connection()
             cursor_fail = connection_fail.cursor(dictionary=True)
             lookup_data_fail = fetch_lookup_data(cursor_fail)
@@ -172,7 +188,6 @@ def add_asset():
         except Exception as e:
             logging.error(f"Unexpected error adding asset: {e}")
             flash(f"An unexpected error occurred: {e}", "danger")
-            # If unexpected error occurs, return to form with re-fetched lookup data
             connection_fail = get_db_connection()
             cursor_fail = connection_fail.cursor(dictionary=True)
             lookup_data_fail = fetch_lookup_data(cursor_fail)
@@ -183,17 +198,20 @@ def add_asset():
         finally:
             cursor.close()
             connection.close()
-    
-    # GET request
+
+    # GET request execution
     return render_template('assets/add_asset.html', **lookup_data, segment='add_asset')
 
+
+
+    
 # ---
 
 # EDIT ASSET (FIXED ASSETS)
 @blueprint.route('/edit_asset/<int:asset_id>', methods=['GET', 'POST'])
 def edit_asset(asset_id):
     """Handles editing an existing fixed asset."""
-    
+
     # Use a new connection/cursor for lookup data
     connection_lookup = get_db_connection()
     cursor_lookup = connection_lookup.cursor(dictionary=True)
@@ -208,7 +226,7 @@ def edit_asset(asset_id):
         acquisition_date = request.form.get('acquisition_date')
         cost_valuation = request.form.get('cost_valuation')
         location_id = request.form.get('location_id')
-        category_id = request.form.get('category_id') 
+        category_id = request.form.get('category_id')
         serial_number = request.form.get('serial_number')
         supplier_id = request.form.get('supplier_id') or None
         custodian_id = request.form.get('custodian_id') or None
@@ -221,7 +239,7 @@ def edit_asset(asset_id):
             # Need to re-fetch the current asset data to pass back to the template
             connection = get_db_connection()
             cursor = connection.cursor(dictionary=True)
-            cursor.execute("SELECT * FROM Fixed_Assets WHERE AssetID = %s", (asset_id,))
+            cursor.execute("SELECT * FROM fixed_assets WHERE AssetID = %s", (asset_id,))
             asset = cursor.fetchone()
             cursor.close()
             connection.close()
@@ -232,16 +250,16 @@ def edit_asset(asset_id):
             connection = get_db_connection()
             cursor = connection.cursor()
 
-            # Update the asset in the Fixed_Assets table
+            # Update the asset in the fixed_assets table
             cursor.execute("""
-                UPDATE Fixed_Assets
-                SET IdentificationNumber = %s, SerialNumber = %s, AssetDescription = %s, 
-                    AcquisitionDate = %s, CostValuation = %s, LocationID = %s, 
+                UPDATE fixed_assets
+                SET IdentificationNumber = %s, SerialNumber = %s, AssetDescription = %s,
+                    AcquisitionDate = %s, CostValuation = %s, LocationID = %s,
                     SupplierID = %s, CustodianID = %s, CategoryID = %s,
                     OwnershipStatus = %s, AssetCondition = %s
                 WHERE AssetID = %s
             """, (
-                id_number, serial_number, description, acquisition_date, cost_valuation, 
+                id_number, serial_number, description, acquisition_date, cost_valuation,
                 location_id, supplier_id, custodian_id, category_id,
                 ownership_status, asset_condition, asset_id
             ))
@@ -255,7 +273,7 @@ def edit_asset(asset_id):
             # Re-fetch the current asset data to pass back to the template on error
             connection_fail = get_db_connection()
             cursor_fail = connection_fail.cursor(dictionary=True)
-            cursor_fail.execute("SELECT * FROM Fixed_Assets WHERE AssetID = %s", (asset_id,))
+            cursor_fail.execute("SELECT * FROM fixed_assets WHERE AssetID = %s", (asset_id,))
             asset = cursor_fail.fetchone()
             cursor_fail.close()
             connection_fail.close()
@@ -266,7 +284,7 @@ def edit_asset(asset_id):
             # Re-fetch the current asset data to pass back to the template on error
             connection_fail = get_db_connection()
             cursor_fail = connection_fail.cursor(dictionary=True)
-            cursor_fail.execute("SELECT * FROM Fixed_Assets WHERE AssetID = %s", (asset_id,))
+            cursor_fail.execute("SELECT * FROM fixed_assets WHERE AssetID = %s", (asset_id,))
             asset = cursor_fail.fetchone()
             cursor_fail.close()
             connection_fail.close()
@@ -284,7 +302,7 @@ def edit_asset(asset_id):
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
         try:
-            cursor.execute("SELECT * FROM Fixed_Assets WHERE AssetID = %s", (asset_id,))
+            cursor.execute("SELECT * FROM fixed_assets WHERE AssetID = %s", (asset_id,))
             asset = cursor.fetchone()
         except Error as e:
             logging.error(f"Database error fetching asset {asset_id}: {e}")
@@ -311,15 +329,15 @@ def delete_asset(asset_id):
 
     try:
         # Get asset description for flash message before deleting
-        cursor.execute('SELECT AssetDescription FROM Fixed_Assets WHERE AssetID = %s', (asset_id,))
+        cursor.execute('SELECT AssetDescription FROM fixed_assets WHERE AssetID = %s', (asset_id,))
         asset_info = cursor.fetchone()
         asset_description = asset_info[0] if asset_info else "the asset"
-        
+
         # Delete the asset
-        cursor.execute('DELETE FROM Fixed_Assets WHERE AssetID = %s', (asset_id,))
+        cursor.execute('DELETE FROM fixed_assets WHERE AssetID = %s', (asset_id,))
         connection.commit()
         flash(f"Asset '{asset_description}' deleted successfully.", "success")
-        
+
     except Exception as e:
         # Handle Foreign Key errors if the asset is linked to other audit/disposal logs
         flash(f"Error: Cannot delete asset. It may be linked to audit history or other records. ({str(e)})", "danger")

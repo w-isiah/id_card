@@ -73,7 +73,7 @@ def add_location():
         else:
             try:
                 # Check if the location already exists
-                cursor.execute('SELECT * FROM Locations WHERE LocationName = %s', (location_name,))
+                cursor.execute('SELECT * FROM locations WHERE LocationName = %s', (location_name,))
                 existing_location = cursor.fetchone()
 
                 if existing_location:
@@ -81,7 +81,7 @@ def add_location():
                 else:
                     # Insert the new location
                     cursor.execute(
-                        'INSERT INTO Locations (LocationName, room_id, description) VALUES (%s, %s, %s)',
+                        'INSERT INTO locations (LocationName, room_id, description) VALUES (%s, %s, %s)',
                         (location_name, room_id, description)
                     )
                     connection.commit()
@@ -121,7 +121,7 @@ def edit_location(location_id):
 
         try:
             cursor.execute("""
-                UPDATE Locations
+                UPDATE locations
                 SET LocationName = %s, room_id = %s, description = %s
                 WHERE LocationID = %s
             """, (location_name, room_id, description, location_id))
@@ -137,7 +137,7 @@ def edit_location(location_id):
 
     else:  # GET
         # Fetch location to pre-fill the form
-        cursor.execute("SELECT LocationID, LocationName, room_id, description FROM Locations WHERE LocationID = %s", (location_id,))
+        cursor.execute("SELECT LocationID, LocationName, room_id, description FROM locations WHERE LocationID = %s", (location_id,))
         location = cursor.fetchone()
 
         # Fetch all rooms for dropdown
@@ -159,7 +159,7 @@ def delete_location(location_id):
     connection = get_db_connection()
     cursor = connection.cursor()
     try:
-        cursor.execute('DELETE FROM Locations WHERE LocationID = %s', (location_id,))
+        cursor.execute('DELETE FROM locations WHERE LocationID = %s', (location_id,))
         connection.commit()
         flash("Location deleted successfully.", "success")
     except Exception as e:

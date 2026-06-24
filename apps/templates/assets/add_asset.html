@@ -8,7 +8,8 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
 <link rel="stylesheet" href="/static/assets/plugins/fontawesome-free/css/all.min.css">
 <link rel="stylesheet" href="/static/assets/css/adminlte.min.css">
-<link rel="stylesheet" href="/static/assets/css/select2.min.css"> <style>
+<link rel="stylesheet" href="/static/assets/css/select2.min.css"> 
+<style>
     .alert-container {
       position: fixed;
       top: 20px;
@@ -28,7 +29,7 @@
     .alert.alert-dismissible {
       padding-right: 30px;
     }
-    /* Style for required asterisk */
+    
     .required-label::after {
         content: " *";
         color: red;
@@ -74,9 +75,10 @@
     <section class="content">
       <div class="container-fluid">
         <div class="row">
-          <div class="col-md-8 offset-md-2 col-12">
-            <div class="card card-primary"> <div class="card-header d-flex justify-content-between align-items-center">
-                <h3 class="card-title mb-0">Asset Details</h3>
+          <div class="col-md-10 offset-md-1 col-12">
+            <div class="card card-primary"> 
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">Asset Details Form</h3>
                 <div class="btn-group ms-auto" role="group">
                   <a href="/assets" class="btn btn-warning btn-sm">Asset List</a>
                   <a href="/inventory_index" class="btn btn-success btn-sm">Inventory Dashboard</a>
@@ -88,12 +90,13 @@
 
                 <div class="card-body">
                   <div class="row">
+                    
                     <div class="col-md-6">
-                        <h5 class="text-primary mb-3"><i class="fas fa-barcode"></i> Identification</h5>
+                        <h5 class="text-primary mb-3"><i class="fas fa-barcode"></i> Identification & Logistics</h5>
 
                         <div class="form-group mb-3">
-                            <label class="control-label required-label" for="id-number">Identification Number:</label>
-                            <input type="text" id="id-number" name="id_number" placeholder="e.g., ENG-001"
+                            <label class="control-label required-label" for="identification-number">Identification Number:</label>
+                            <input type="text" id="identification-number" name="identification_number" placeholder="e.g., PROP-2026-001"
                                 class="form-control form-control-sm border-info shadow-sm" required />
                         </div>
 
@@ -102,15 +105,21 @@
                             <input type="text" id="serial-number" name="serial_number" placeholder="Manufacturer Serial Number (Optional)"
                                 class="form-control form-control-sm border-info shadow-sm" />
                         </div>
-                        
+
                         <div class="form-group mb-3">
-                            <label class="control-label required-label" for="description">Asset Description:</label>
-                            <textarea id="description" name="description" placeholder="Full description of the asset (e.g., HP ProBook G7 Laptop)"
+                            <label class="control-label required-label" for="asset-description">Asset Description:</label>
+                            <textarea id="asset-description" name="asset_description" placeholder="Full description of the asset"
                                 class="form-control form-control-sm border-info shadow-sm" required rows="2"></textarea>
                         </div>
-                        
-                        <h5 class="text-primary mb-3 mt-4"><i class="fas fa-money-bill-wave"></i> Acquisition & Cost</h5>
-                        
+
+                        <div class="form-group mb-3">
+                            <label class="control-label required-label" for="quantity">Quantity:</label>
+                            <input type="number" id="quantity" name="quantity" value="1" min="1"
+                                class="form-control form-control-sm border-info shadow-sm" required />
+                        </div>
+
+                        <h5 class="text-primary mb-3 mt-4"><i class="fas fa-money-bill-wave"></i> Acquisition & Valuation</h5>
+
                         <div class="form-group mb-3">
                             <label class="control-label required-label" for="acquisition-date">Acquisition Date:</label>
                             <input type="date" id="acquisition-date" name="acquisition_date"
@@ -118,16 +127,21 @@
                         </div>
 
                         <div class="form-group mb-3">
-                            <label class="control-label required-label" for="cost-valuation">Cost/Valuation:</label>
-                            <input type="number" step="0.01" id="cost-valuation" name="cost_valuation" placeholder="e.g., 1500.00"
+                            <label class="control-label required-label" for="cost-valuation">Cost / Valuation:</label>
+                            <input type="number" step="0.01" id="cost-valuation" name="cost_valuation" placeholder="0.00"
                                 class="form-control form-control-sm border-info shadow-sm" required />
                         </div>
-                        
+
+                        <div class="form-group mb-3">
+                            <label class="control-label required-label" for="residual-value">Residual Value:</label>
+                            <input type="number" step="0.01" id="residual-value" name="residual_value" value="0.00"
+                                class="form-control form-control-sm border-info shadow-sm" required />
+                        </div>
                     </div>
 
                     <div class="col-md-6">
-                        <h5 class="text-info mb-3"><i class="fas fa-sitemap"></i> Categorization</h5>
-                        
+                        <h5 class="text-info mb-3"><i class="fas fa-sitemap"></i> Categorization & Assignments</h5>
+
                         <div class="form-group mb-3">
                             <label class="control-label required-label" for="category-id">Category:</label>
                             <select id="category-id" name="category_id" class="form-control form-control-sm select2-simple border-info shadow-sm" required>
@@ -137,7 +151,7 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        
+
                         <div class="form-group mb-3">
                             <label class="control-label required-label" for="location-id">Current Location:</label>
                             <select id="location-id" name="location_id" class="form-control form-control-sm select2-simple border-info shadow-sm" required>
@@ -147,19 +161,19 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        
+
                         <div class="form-group mb-3">
-                            <label class="control-label" for="custodian-id">Custodian/Responsible Staff:</label>
+                            <label class="control-label" for="custodian-id">Custodian / Responsible Staff:</label>
                             <select id="custodian-id" name="custodian_id" class="form-control form-control-sm select2-simple border-info shadow-sm">
                                 <option value="">Select Staff...</option>
                                 {% for user in users %}
-                                    <option value="{{ user.id }}">{{ user.last_name }}, {{ user.first_name }}</option>
+                                    <option value="{{ user.id }}">{{ user.username }}, {{ user.last_name }}, {{ user.first_name }}</option>
                                 {% endfor %}
                             </select>
                         </div>
-                        
+
                         <div class="form-group mb-3">
-                            <label class="control-label" for="supplier-id">Supplier/Donor:</label>
+                            <label class="control-label" for="supplier-id">Supplier / Donor:</label>
                             <select id="supplier-id" name="supplier_id" class="form-control form-control-sm select2-simple border-info shadow-sm">
                                 <option value="">Select Supplier/Donor...</option>
                                 {% for supplier in suppliers %}
@@ -168,31 +182,69 @@
                             </select>
                         </div>
 
-                        <h5 class="text-danger mb-3 mt-4"><i class="fas fa-info-circle"></i> Status</h5>
-                        
+                        <h5 class="text-danger mb-3 mt-4"><i class="fas fa-calculator"></i> Accounting & Status</h5>
+
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <div class="form-group mb-3">
+                                    <label class="control-label" for="depreciation-method">Depreciation Method:</label>
+                                    <select id="depreciation-method" name="depreciation_method" class="form-control form-control-sm border-info shadow-sm">
+                                        <option value="Straight Line" selected>Straight Line</option>
+                                        <option value="Reducing Balance">Reducing Balance</option>
+                                        <option value="Units of Production">Units of Production</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="form-group mb-3">
+                                    <label class="control-label" for="useful-life-years">Useful Life (Years):</label>
+                                    <input type="number" id="useful-life-years" name="useful_life_years" placeholder="e.g., 5" min="0"
+                                        class="form-control form-control-sm border-info shadow-sm" />
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="form-group mb-3">
-                            <label class="control-label" for="ownership-status">Ownership Status:</label>
-                            <select id="ownership-status" name="ownership_status" class="form-control form-control-sm border-info shadow-sm">
-                                <option value="Owned" selected>Owned by Organization</option>
-                                <option value="Leased">Leased</option>
-                                <option value="Trust">Held in Trust</option>
+                            <label class="control-label" for="depreciation-start-date">Depreciation Start Date:</label>
+                            <input type="date" id="depreciation-start-date" name="depreciation_start_date"
+                                class="form-control form-control-sm border-info shadow-sm" />
+                        </div>
+
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <div class="form-group mb-3">
+                                    <label class="control-label required-label" for="ownership-status">Ownership:</label>
+                                    <input type="text" id="ownership-status" name="ownership_status" placeholder="e.g., Owned, Leased"
+                                        class="form-control form-control-sm border-info shadow-sm" required />
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="form-group mb-3">
+                                    <label class="control-label required-label" for="asset-condition">Condition:</label>
+                                    <select id="asset-condition" name="asset_condition" class="form-control form-control-sm border-info shadow-sm">
+                                        <option value="Good" selected>Good</option>
+                                        <option value="Fair">Fair</option>
+                                        <option value="Poor">Poor</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label class="control-label required-label" for="asset-status">Asset Status:</label>
+                            <select id="asset-status" name="asset_status" class="form-control form-control-sm border-info shadow-sm">
+                                <option value="Active" selected>Active</option>
+                                <option value="Under Maintenance">Under Maintenance</option>
+                                <option value="Transferred">Transferred</option>
+                                <option value="Disposed">Disposed</option>
+                                <option value="Lost">Lost</option>
                             </select>
                         </div>
-                        
-                        <div class="form-group mb-3">
-                            <label class="control-label" for="asset-condition">Asset Condition:</label>
-                            <select id="asset-condition" name="asset_condition" class="form-control form-control-sm border-info shadow-sm">
-                                <option value="Good" selected>Good</option>
-                                <option value="Fair">Fair</option>
-                                <option value="Poor">Poor (Needs Repair)</option>
-                                <option value="Missing">Missing</option>
-                            </select>
-                        </div>
-                        
+
                     </div>
                   </div>
-                </div> 
-                
+                </div>
+
                 <div class="card-footer">
                   <button type="submit" class="btn btn-sm btn-primary">
                       <i class="fas fa-save"></i> Register Asset
@@ -206,7 +258,6 @@
       </div>
     </section>
 </div>
-
 {% endblock content %}
 
 {% block javascripts %}
@@ -214,16 +265,15 @@
 <script src="/static/assets/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="/static/assets/js/adminlte.min.js"></script>
 <script src="/static/assets/js/demo.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script> <script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script> 
+<script>
     $(document).ready(function() {
-        // Initialize Select2 on all necessary dropdowns
         $('.select2-simple').select2({
             theme: 'bootstrap4',
             width: '100%',
             placeholder: $(this).attr('placeholder') || 'Select an option'
         });
 
-        // Flash message fade-in and fade-out effect
         if ($('#flashMessageContainer').length) {
             $('#flashMessageContainer').fadeIn(500).delay(3000).fadeOut(1000);
         }
